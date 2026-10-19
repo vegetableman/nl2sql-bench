@@ -1,0 +1,32 @@
+# DB-GPT v0.8.2 config for nl2sql-bench (derived from configs/dbgpt-proxy-openai.toml)
+[system]
+language = "en"
+api_keys = []
+encrypt_key = "nl2sql-bench-local"
+
+[service.web]
+host = "0.0.0.0"
+port = 5670
+
+[service.web.database]
+type = "sqlite"
+path = "pilot/meta_data/dbgpt.db"
+
+[rag.storage]
+[rag.storage.vector]
+type = "chroma"
+persist_path = "pilot/data"
+
+[models]
+[[models.llms]]
+name = "${env:LLM_MODEL_NAME:-gpt-4o-mini}"
+provider = "proxy/openai"
+# goes through the shared token-counting proxy -> LLM_UPSTREAM_BASE
+api_base = "${env:OPENAI_API_BASE:-http://llm-meter:8080/dbgpt/v1}"
+api_key = "${env:OPENAI_API_KEY}"
+
+[[models.embeddings]]
+name = "${env:EMBEDDING_MODEL_NAME:-text-embedding-3-small}"
+provider = "proxy/openai"
+api_url = "${env:EMBEDDING_MODEL_API_URL:-http://llm-meter:8080/dbgpt/v1/embeddings}"
+api_key = "${env:OPENAI_API_KEY}"

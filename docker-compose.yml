@@ -1,0 +1,87 @@
+# Shared infra: Postgres (Chinook), llm-meter proxy, DB-GPT.
+# WrenAI runs from its own upstream compose in ./wrenai and joins the same network.
+name: nl2sql-bench
+
+networks:
+  nl2sql-net:
+    name: nl2sql-net
+
+volumes:
+  pgdata:
+  dbgpt-data:
+
+services:
+  postgres:
+    image: postgres:16.4
+    environment:
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "${PG_HOST_PORT:-5432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./db/01_chinook.sql:/docker-entrypoint-initdb.d/01_chinook.sql:ro
+      - ./db/99_bench_user.sql:/docker-entrypoint-initdb.d/99_bench_user.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "psql -U postgres -d chinook -tAc 'select 1 from track limit 1' | grep -q 1"]
+      interval: 5s
+      retries: 30
+    networks:
+      nl2sql-net:
+        aliases: [bench-postgres]
+    mem_limit: 512m
+
+  llm-meter:
+    build: ./meter
+    image: nl2sql-bench/llm-meter:1.0
+    environment:
+      LLM_UPSTREAM_BASE: ${LLM_UPSTREAM_BASE:-https://api.openai.com/v1}
+      EMBEDDING_UPSTREAM_BASE: ${EMBEDDING_UPSTREAM_BASE:-https://api.openai.com/v1}
+    ports:
+      - "${METER_PORT:-8089}:8080"
+    networks: [nl2sql-net]
+    mem_limit: 256m
+
+  dbgpt:
+    build: ./dbgpt
+    image: nl2sql-bench/dbgpt:v0.8.2-pg
+    command: dbgpt start webserver --config /app/configs/dbgpt-bench.toml
+    environment:
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      LLM_MODEL_NAME: ${LLM_MODEL:-gpt-4o-mini}
+      EMBEDDING_MODEL_NAME: ${EMBEDDING_MODEL:-text-embedding-3-small}
+      OPENAI_API_BASE: http://llm-meter:8080/dbgpt/v1
+      EMBEDDING_MODEL_API_URL: http://llm-meter:8080/dbgpt/v1/embeddings
+    volumes:
+      - ./dbgpt/dbgpt-bench.toml:/app/configs/dbgpt-bench.toml:ro
+      - dbgpt-data:/app/pilot
+    ports:
+      - "${DBGPT_PORT:-5670}:5670"
+    depends_on:
+      postgres: {condition: service_healthy}
+      llm-meter: {condition: service_started}
+    restart: unless-stopped
+    networks: [nl2sql-net]
+    mem_limit: 2g
+
+  cube:
+    image: cubejs/cube:v1.8.8
+    environment:
+      CUBEJS_DB_TYPE: postgres
+      CUBEJS_DB_HOST: ${BENCH_PG_HOST:-bench-postgres}
+      CUBEJS_DB_PORT: ${BENCH_PG_PORT:-5432}
+      CUBEJS_DB_NAME: ${BENCH_PG_DB:-chinook}
+      CUBEJS_DB_USER: ${BENCH_PG_USER:-bench}
+      CUBEJS_DB_PASS: ${BENCH_PG_PASSWORD:-bench}
+      CUBEJS_API_SECRET: ${CUBEJS_API_SECRET:-nl2sql-bench-local-secret}
+      CUBEJS_DEV_MODE: "true"
+      CUBEJS_TELEMETRY: "false"
+      CUBEJS_SCHEMA_PATH: model
+    volumes:
+      - ./cube/model:/cube/conf/model:ro
+    ports:
+      - "${CUBE_PORT:-4000}:4000"
+    depends_on:
+      postgres: {condition: service_healthy}
+    restart: unless-stopped
+    networks: [nl2sql-net]
+    mem_limit: 1g

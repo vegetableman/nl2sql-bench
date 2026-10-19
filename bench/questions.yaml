@@ -1,0 +1,179 @@
+# Benchmark question set for the Chinook sample DB (lerocha/chinook-database v1.4.5, Postgres flavour).
+# Fields:
+#   id, difficulty (easy|medium|hard), question, gold_sql
+#   order_matters: if true, row order is compared on the gold columns listed in order_cols (0-based)
+#   cube_expressible: whether the question can be answered by ONE Cube REST query over the bundled model
+#   notes: why (not) expressible / gotchas
+dataset: chinook-1.4.5
+questions:
+- id: e01
+  difficulty: easy
+  question: How many tracks are there in total?
+  gold_sql: SELECT COUNT(*) FROM track;
+  cube_expressible: true
+- id: e02
+  difficulty: easy
+  question: List the names of all music genres.
+  gold_sql: SELECT name FROM genre;
+  cube_expressible: true
+- id: e03
+  difficulty: easy
+  question: How many customers are from Brazil?
+  gold_sql: SELECT COUNT(*) FROM customer WHERE country = 'Brazil';
+  cube_expressible: true
+- id: e04
+  difficulty: easy
+  question: Which tracks are longer than 20 minutes? Return the track names.
+  gold_sql: SELECT name FROM track WHERE milliseconds > 20 * 60 * 1000;
+  cube_expressible: true
+- id: e05
+  difficulty: easy
+  question: What is the highest unit price of any track?
+  gold_sql: SELECT MAX(unit_price) FROM track;
+  cube_expressible: true
+- id: e06
+  difficulty: easy
+  question: List the first and last names of employees whose title is 'Sales Support Agent'.
+  gold_sql: SELECT first_name, last_name FROM employee WHERE title = 'Sales Support Agent';
+  cube_expressible: true
+- id: e07
+  difficulty: easy
+  question: How many invoices were issued in the year 2023?
+  gold_sql: SELECT COUNT(*) FROM invoice WHERE invoice_date >= '2023-01-01' AND invoice_date < '2024-01-01';
+  cube_expressible: true
+- id: e08
+  difficulty: easy
+  question: Which customers have a company listed? Return their first name, last name and company.
+  gold_sql: SELECT first_name, last_name, company FROM customer WHERE company IS NOT NULL;
+  cube_expressible: true
+- id: m01
+  difficulty: medium
+  question: How many tracks are there in each genre? Return the genre name and the number of tracks.
+  gold_sql: SELECT g.name, COUNT(t.track_id) FROM genre g JOIN track t ON t.genre_id = g.genre_id GROUP BY g.name;
+  cube_expressible: true
+- id: m02
+  difficulty: medium
+  question: Which 5 artists have the most albums? Return the artist name and album count, ordered from most to fewest albums.
+  gold_sql: SELECT ar.name, COUNT(*) AS album_count FROM album al JOIN artist ar ON ar.artist_id = al.artist_id GROUP BY ar.name ORDER BY album_count DESC LIMIT 5;
+  order_matters: true
+  order_cols: [1]
+  cube_expressible: true
+- id: m03
+  difficulty: medium
+  question: What are the total sales (sum of invoice totals) for each billing country? Order by total sales descending.
+  gold_sql: SELECT billing_country, SUM(total) AS sales FROM invoice GROUP BY billing_country ORDER BY sales DESC;
+  order_matters: true
+  order_cols: [1]
+  cube_expressible: true
+- id: m04
+  difficulty: medium
+  question: Which customers are supported by the employee Jane Peacock? Return their first and last names.
+  gold_sql: SELECT c.first_name, c.last_name FROM customer c JOIN employee e ON e.employee_id = c.support_rep_id WHERE e.first_name = 'Jane' AND e.last_name = 'Peacock';
+  cube_expressible: true
+- id: m05
+  difficulty: medium
+  question: What is the average track length in minutes for each media type? Return the media type name and the average length in minutes.
+  gold_sql: SELECT mt.name, AVG(t.milliseconds) / 60000.0 AS avg_minutes FROM track t JOIN media_type mt ON mt.media_type_id = t.media_type_id GROUP BY mt.name;
+  cube_expressible: true
+- id: m06
+  difficulty: medium
+  question: Which albums have more than 20 tracks? Return the album title and the number of tracks.
+  gold_sql: SELECT al.title, COUNT(*) FROM album al JOIN track t ON t.album_id = al.album_id GROUP BY al.album_id, al.title HAVING COUNT(*) > 20;
+  cube_expressible: true
+- id: m07
+  difficulty: medium
+  question: Which genre has the most tracks? Return the genre name.
+  gold_sql: SELECT g.name FROM genre g JOIN track t ON t.genre_id = g.genre_id GROUP BY g.name ORDER BY COUNT(*) DESC LIMIT 1;
+  cube_expressible: true
+- id: m08
+  difficulty: medium
+  question: How many tracks are in the playlist named '90’s Music'?
+  gold_sql: SELECT COUNT(*) FROM playlist p JOIN playlist_track pt ON pt.playlist_id = p.playlist_id WHERE p.name = '90’s Music';
+  cube_expressible: true
+- id: m09
+  difficulty: medium
+  question: What is the total invoice revenue for each year? Return the year and revenue, ordered by year.
+  gold_sql: SELECT EXTRACT(YEAR FROM invoice_date)::int AS year, SUM(total) FROM invoice GROUP BY 1 ORDER BY 1;
+  order_matters: true
+  order_cols: [0]
+  cube_expressible: true
+  notes: Cube returns the year as a timestamp (YYYY-01-01); the comparator accepts a YYYY-01-01 date column for an integer year column.
+- id: h01
+  difficulty: hard
+  question: What are the top 3 genres by sales revenue, where revenue is unit price times quantity across all invoice lines? Return genre name and revenue, highest first.
+  gold_sql: SELECT g.name, SUM(il.unit_price * il.quantity) AS revenue FROM invoice_line il JOIN track t ON t.track_id = il.track_id JOIN genre g ON g.genre_id = t.genre_id GROUP BY g.name ORDER BY revenue DESC LIMIT 3;
+  order_matters: true
+  order_cols: [1]
+  cube_expressible: true
+- id: h02
+  difficulty: hard
+  question: For each sales support agent, what is the total invoice amount from the customers they support? Return the agent's first name, last name and total, ordered by total descending.
+  gold_sql: SELECT e.first_name, e.last_name, SUM(i.total) AS total FROM employee e JOIN customer c ON c.support_rep_id = e.employee_id JOIN invoice i ON i.customer_id = c.customer_id GROUP BY e.employee_id, e.first_name, e.last_name ORDER BY total DESC;
+  order_matters: true
+  order_cols: [2]
+  cube_expressible: true
+- id: h03
+  difficulty: hard
+  question: Which customers have spent more in total than the average total spend per customer? Return first name, last name and their total spend.
+  gold_sql: WITH s AS (SELECT c.customer_id, c.first_name, c.last_name, SUM(i.total) AS spend FROM customer c JOIN invoice i ON i.customer_id = c.customer_id GROUP BY c.customer_id, c.first_name, c.last_name) SELECT first_name, last_name, spend FROM s WHERE spend > (SELECT AVG(spend) FROM s);
+  cube_expressible: false
+  notes: Needs comparison against an aggregate of aggregates (subquery); not expressible in a single Cube REST query.
+- id: h04
+  difficulty: hard
+  question: For each country, which customer has the highest total spend? Include ties. Return country, customer first name, last name and total spend.
+  gold_sql: SELECT country, first_name, last_name, spend FROM (SELECT c.country, c.first_name, c.last_name, SUM(i.total) AS spend, RANK() OVER (PARTITION BY c.country ORDER BY SUM(i.total) DESC) AS rk FROM customer c JOIN invoice i ON i.customer_id = c.customer_id GROUP BY c.customer_id, c.country, c.first_name, c.last_name) x WHERE rk = 1;
+  cube_expressible: false
+  notes: Per-partition ranking (window function) is not expressible in Cube REST query.
+- id: h05
+  difficulty: hard
+  question: For each month of 2024, show the total invoice revenue and the previous month's revenue. Return month number, revenue and previous month revenue, ordered by month.
+  gold_sql: SELECT m, revenue, LAG(revenue) OVER (ORDER BY m) AS prev_revenue FROM (SELECT EXTRACT(MONTH FROM invoice_date)::int AS m, SUM(total) AS revenue FROM invoice WHERE invoice_date >= '2024-01-01' AND invoice_date < '2025-01-01' GROUP BY 1) x ORDER BY m;
+  order_matters: true
+  order_cols: [0]
+  cube_expressible: false
+  notes: LAG over months needs a time-shift/multi-stage measure; not in the generic model.
+- id: h06
+  difficulty: hard
+  question: Which artists have tracks in more than 3 different genres? Return the artist name and the number of distinct genres.
+  gold_sql: SELECT ar.name, COUNT(DISTINCT t.genre_id) FROM artist ar JOIN album al ON al.artist_id = ar.artist_id JOIN track t ON t.album_id = al.album_id GROUP BY ar.artist_id, ar.name HAVING COUNT(DISTINCT t.genre_id) > 3;
+  cube_expressible: true
+  notes: Uses track.genre_count (countDistinct) measure with a measure filter.
+- id: h07
+  difficulty: hard
+  question: How many tracks have never been purchased (never appear on any invoice line)?
+  gold_sql: SELECT COUNT(*) FROM track t WHERE NOT EXISTS (SELECT 1 FROM invoice_line il WHERE il.track_id = t.track_id);
+  cube_expressible: false
+  notes: Anti-join / NOT EXISTS is not expressible in a single Cube REST query.
+- id: h08
+  difficulty: hard
+  question: List every employee together with the name of the manager they report to. Return employee first name, employee last name, manager first name and manager last name (exclude employees without a manager).
+  gold_sql: SELECT e.first_name, e.last_name, m.first_name, m.last_name FROM employee e JOIN employee m ON m.employee_id = e.reports_to;
+  cube_expressible: true
+  notes: Self-join modelled as a separate 'manager' cube over the employee table.
+- id: h09
+  difficulty: hard
+  question: How many customers made at least one purchase in 2025 but made no purchase in 2024?
+  gold_sql: SELECT COUNT(*) FROM (SELECT customer_id FROM invoice WHERE EXTRACT(YEAR FROM invoice_date) = 2025 EXCEPT SELECT customer_id FROM invoice WHERE EXTRACT(YEAR FROM invoice_date) = 2024) x;
+  cube_expressible: false
+  notes: Set difference across periods; not expressible in one Cube REST query.
+- id: h10
+  difficulty: hard
+  question: For each month of 2023, show the year-to-date running total of invoice revenue (cumulative from January 2023). Return the month and the running total, ordered by month.
+  gold_sql: SELECT date_trunc('month', invoice_date) AS month, SUM(SUM(total)) OVER (ORDER BY date_trunc('month', invoice_date)) AS running_total FROM invoice WHERE invoice_date >= '2023-01-01' AND invoice_date < '2024-01-01' GROUP BY 1 ORDER BY 1;
+  order_matters: true
+  order_cols: [0]
+  cube_expressible: true
+  notes: Uses invoice.revenue_ytd (rolling_window to_date year) measure with dateRange 2023.
+- id: h11
+  difficulty: hard
+  question: What percentage of total sales revenue (unit price times quantity) comes from each media type? Return media type name and percentage rounded to 2 decimals.
+  gold_sql: SELECT mt.name, ROUND(100.0 * SUM(il.unit_price * il.quantity) / SUM(SUM(il.unit_price * il.quantity)) OVER (), 2) AS pct FROM invoice_line il JOIN track t ON t.track_id = il.track_id JOIN media_type mt ON mt.media_type_id = t.media_type_id GROUP BY mt.name;
+  cube_expressible: false
+  notes: Share-of-total needs a window over the grouped result.
+- id: h12
+  difficulty: hard
+  question: Which 5 artists generated the most sales revenue (unit price times quantity over invoice lines)? Return the artist name and revenue, highest first.
+  gold_sql: SELECT ar.name, SUM(il.unit_price * il.quantity) AS revenue FROM invoice_line il JOIN track t ON t.track_id = il.track_id JOIN album al ON al.album_id = t.album_id JOIN artist ar ON ar.artist_id = al.artist_id GROUP BY ar.artist_id, ar.name ORDER BY revenue DESC LIMIT 5;
+  order_matters: true
+  order_cols: [1]
+  cube_expressible: true

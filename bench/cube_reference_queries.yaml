@@ -1,0 +1,26 @@
+# Hand-written Cube REST queries for every question marked cube_expressible.
+# Used (a) to verify the Cube model can actually express them (make verify) and
+# (b) as the Cube "generator" in --mock mode. NOT shown to the LLM.
+e01: {measures: [track.count]}
+e02: {dimensions: [genre.name]}
+e03: {measures: [customer.count], filters: [{member: customer.country, operator: equals, values: [Brazil]}]}
+e04: {ungrouped: true, dimensions: [track.name], filters: [{member: track.milliseconds, operator: gt, values: ["1200000"]}]}
+e05: {measures: [track.max_unit_price]}
+e06: {dimensions: [employee.first_name, employee.last_name], filters: [{member: employee.title, operator: equals, values: [Sales Support Agent]}]}
+e07: {measures: [invoice.count], timeDimensions: [{dimension: invoice.invoice_date, dateRange: ["2023-01-01", "2023-12-31"]}]}
+e08: {dimensions: [customer.first_name, customer.last_name, customer.company], filters: [{member: customer.company, operator: set}]}
+m01: {dimensions: [genre.name], measures: [track.count]}
+m02: {dimensions: [artist.name], measures: [album.count], order: [[album.count, desc]], limit: 5}
+m03: {dimensions: [invoice.billing_country], measures: [invoice.total_sales], order: [[invoice.total_sales, desc]]}
+m04: {dimensions: [customer.first_name, customer.last_name], filters: [{member: employee.first_name, operator: equals, values: [Jane]}, {member: employee.last_name, operator: equals, values: [Peacock]}]}
+m05: {dimensions: [media_type.name], measures: [track.avg_minutes]}
+m06: {dimensions: [album.title], measures: [track.count], filters: [{member: track.count, operator: gt, values: ["20"]}]}
+m07: {dimensions: [genre.name], measures: [track.count], order: [[track.count, desc]], limit: 1}
+m08: {measures: [playlist_track.count], filters: [{member: playlist.name, operator: equals, values: ["90’s Music"]}]}
+m09: {measures: [invoice.total_sales], timeDimensions: [{dimension: invoice.invoice_date, granularity: year}], order: [[invoice.invoice_date, asc]]}
+h01: {dimensions: [genre.name], measures: [invoice_line.revenue], order: [[invoice_line.revenue, desc]], limit: 3}
+h02: {dimensions: [employee.first_name, employee.last_name], measures: [invoice.total_sales], filters: [{member: employee.title, operator: equals, values: [Sales Support Agent]}], order: [[invoice.total_sales, desc]]}
+h06: {dimensions: [artist.name], measures: [track.genre_count], filters: [{member: track.genre_count, operator: gt, values: ["3"]}]}
+h08: {dimensions: [employee.first_name, employee.last_name, manager.first_name, manager.last_name], filters: [{member: manager.employee_id, operator: set}]}
+h10: {measures: [invoice.revenue_ytd], timeDimensions: [{dimension: invoice.invoice_date, granularity: month, dateRange: ["2023-01-01", "2023-12-31"]}], order: [[invoice.invoice_date, asc]]}
+h12: {dimensions: [artist.name], measures: [invoice_line.revenue], order: [[invoice_line.revenue, desc]], limit: 5}

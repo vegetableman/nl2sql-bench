@@ -1,0 +1,7 @@
+.env
+.venv/
+results/*
+!results/mock-dryrun/
+wrenai/.env
+wrenai/config.yaml
+__pycache__/

@@ -1,0 +1,168 @@
+# Generic Chinook semantic model for Cube Core (nl2sql-bench).
+# Written as a data team would model the schema; not per-question views.
+cubes:
+  - name: artist
+    sql_table: public.artist
+    description: Recording artists / bands
+    dimensions:
+      - {name: artist_id, sql: artist_id, type: number, primary_key: true, public: true}
+      - {name: name, sql: name, type: string, description: Artist name}
+    measures:
+      - {name: count, type: count, description: Number of artists}
+
+  - name: album
+    sql_table: public.album
+    description: Albums; each album belongs to one artist
+    joins:
+      - {name: artist, sql: "{CUBE}.artist_id = {artist}.artist_id", relationship: many_to_one}
+    dimensions:
+      - {name: album_id, sql: album_id, type: number, primary_key: true, public: true}
+      - {name: title, sql: title, type: string, description: Album title}
+    measures:
+      - {name: count, type: count, description: Number of albums}
+
+  - name: genre
+    sql_table: public.genre
+    description: Music genres
+    dimensions:
+      - {name: genre_id, sql: genre_id, type: number, primary_key: true, public: true}
+      - {name: name, sql: name, type: string, description: Genre name}
+    measures:
+      - {name: count, type: count, description: Number of genres}
+
+  - name: media_type
+    sql_table: public.media_type
+    description: Media/file types of tracks (e.g. MPEG audio file)
+    dimensions:
+      - {name: media_type_id, sql: media_type_id, type: number, primary_key: true, public: true}
+      - {name: name, sql: name, type: string, description: Media type name}
+    measures:
+      - {name: count, type: count}
+
+  - name: track
+    sql_table: public.track
+    description: Individual songs/videos for sale
+    joins:
+      - {name: album, sql: "{CUBE}.album_id = {album}.album_id", relationship: many_to_one}
+      - {name: genre, sql: "{CUBE}.genre_id = {genre}.genre_id", relationship: many_to_one}
+      - {name: media_type, sql: "{CUBE}.media_type_id = {media_type}.media_type_id", relationship: many_to_one}
+    dimensions:
+      - {name: track_id, sql: track_id, type: number, primary_key: true, public: true}
+      - {name: name, sql: name, type: string, description: Track name}
+      - {name: composer, sql: composer, type: string}
+      - {name: milliseconds, sql: milliseconds, type: number, description: Track length in milliseconds}
+      - {name: unit_price, sql: unit_price, type: number, description: List price of the track}
+    measures:
+      - {name: count, type: count, description: Number of tracks}
+      - {name: total_milliseconds, sql: milliseconds, type: sum}
+      - {name: avg_minutes, sql: "{CUBE}.milliseconds / 60000.0", type: avg, description: Average track length in minutes}
+      - {name: max_unit_price, sql: unit_price, type: max}
+      - {name: min_unit_price, sql: unit_price, type: min}
+      - {name: genre_count, sql: genre_id, type: count_distinct, description: Number of distinct genres}
+
+  - name: playlist
+    sql_table: public.playlist
+    description: User playlists (names are not unique)
+    dimensions:
+      - {name: playlist_id, sql: playlist_id, type: number, primary_key: true, public: true}
+      - {name: name, sql: name, type: string, description: Playlist name}
+    measures:
+      - {name: count, type: count}
+
+  - name: playlist_track
+    sql: SELECT playlist_id, track_id, playlist_id::text || '-' || track_id::text AS pk FROM public.playlist_track
+    description: Membership of tracks in playlists (one row per playlist/track pair)
+    joins:
+      - {name: playlist, sql: "{CUBE}.playlist_id = {playlist}.playlist_id", relationship: many_to_one}
+      - {name: track, sql: "{CUBE}.track_id = {track}.track_id", relationship: many_to_one}
+    dimensions:
+      - {name: pk, sql: pk, type: string, primary_key: true}
+    measures:
+      - {name: count, type: count, description: Number of playlist entries (tracks in playlists)}
+
+  - name: employee
+    sql_table: public.employee
+    description: Company employees; sales support agents are assigned to customers
+    joins:
+      - {name: manager, sql: "{CUBE}.reports_to = {manager}.employee_id", relationship: many_to_one}
+    dimensions:
+      - {name: employee_id, sql: employee_id, type: number, primary_key: true, public: true}
+      - {name: first_name, sql: first_name, type: string}
+      - {name: last_name, sql: last_name, type: string}
+      - {name: title, sql: title, type: string, description: "Job title, e.g. 'Sales Support Agent'"}
+      - {name: city, sql: city, type: string}
+      - {name: country, sql: country, type: string}
+      - {name: hire_date, sql: hire_date, type: time}
+      - {name: birth_date, sql: birth_date, type: time}
+    measures:
+      - {name: count, type: count}
+
+  - name: manager
+    sql_table: public.employee
+    description: The employee that another employee reports to (self-join of employee)
+    dimensions:
+      - {name: employee_id, sql: employee_id, type: number, primary_key: true, public: true}
+      - {name: first_name, sql: first_name, type: string}
+      - {name: last_name, sql: last_name, type: string}
+      - {name: title, sql: title, type: string}
+    measures:
+      - {name: count, type: count}
+
+  - name: customer
+    sql_table: public.customer
+    description: Customers; each has a support rep (employee)
+    joins:
+      - {name: employee, sql: "{CUBE}.support_rep_id = {employee}.employee_id", relationship: many_to_one}
+    dimensions:
+      - {name: customer_id, sql: customer_id, type: number, primary_key: true, public: true}
+      - {name: first_name, sql: first_name, type: string}
+      - {name: last_name, sql: last_name, type: string}
+      - {name: company, sql: company, type: string, description: Company name (null if none)}
+      - {name: city, sql: city, type: string}
+      - {name: state, sql: state, type: string}
+      - {name: country, sql: country, type: string}
+      - {name: email, sql: email, type: string}
+    measures:
+      - {name: count, type: count, description: Number of customers}
+
+  - name: invoice
+    sql_table: public.invoice
+    description: Sales invoices (one per purchase)
+    joins:
+      - {name: customer, sql: "{CUBE}.customer_id = {customer}.customer_id", relationship: many_to_one}
+    dimensions:
+      - {name: invoice_id, sql: invoice_id, type: number, primary_key: true, public: true}
+      - {name: invoice_date, sql: invoice_date, type: time}
+      - {name: billing_city, sql: billing_city, type: string}
+      - {name: billing_state, sql: billing_state, type: string}
+      - {name: billing_country, sql: billing_country, type: string}
+    measures:
+      - {name: count, type: count, description: Number of invoices}
+      - {name: total_sales, sql: total, type: sum, description: Sum of invoice totals (revenue)}
+      - {name: avg_total, sql: total, type: avg}
+      - {name: customer_count, sql: customer_id, type: count_distinct, description: Number of distinct purchasing customers}
+      - name: revenue_running_total
+        sql: total
+        type: sum
+        description: Cumulative sum of invoice totals up to each period (use with a time dimension + granularity)
+        rolling_window: {trailing: unbounded}
+      - name: revenue_ytd
+        sql: total
+        type: sum
+        description: Year-to-date cumulative sum of invoice totals (resets each January; use with a time dimension + granularity)
+        rolling_window: {type: to_date, granularity: year}
+
+  - name: invoice_line
+    sql_table: public.invoice_line
+    description: Line items of invoices (track purchases)
+    joins:
+      - {name: invoice, sql: "{CUBE}.invoice_id = {invoice}.invoice_id", relationship: many_to_one}
+      - {name: track, sql: "{CUBE}.track_id = {track}.track_id", relationship: many_to_one}
+    dimensions:
+      - {name: invoice_line_id, sql: invoice_line_id, type: number, primary_key: true, public: true}
+      - {name: unit_price, sql: unit_price, type: number}
+      - {name: quantity, sql: quantity, type: number}
+    measures:
+      - {name: count, type: count, description: Number of invoice lines}
+      - {name: quantity_sold, sql: quantity, type: sum, description: Total units (tracks) sold}
+      - {name: revenue, sql: "{CUBE}.unit_price * {CUBE}.quantity", type: sum, description: Sales revenue = unit price x quantity}

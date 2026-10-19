@@ -1,0 +1,64 @@
+# nl2sql-bench — WrenAI vs DB-GPT vs Cube(+LLM adapter) on the same Postgres + same LLM
+SHELL := /bin/bash
+PY    := .venv/bin/python
+WREN  := docker compose --project-directory wrenai --env-file wrenai/.env -f wrenai/docker-compose.yaml -f wrenai/docker-compose.override.yaml
+REPEATS ?= 1
+SYSTEMS ?= wrenai,dbgpt,cube
+
+.PHONY: up down clean setup bench mock verify probe status logs venv render docker netfix wait
+
+up: docker netfix venv render          ## start everything and connect all tools to Postgres
+	docker compose up -d --build
+	$(WREN) up -d
+	$(MAKE) --no-print-directory wait setup
+
+venv: .venv/.ok
+.venv/.ok: requirements.txt
+	uv venv -q .venv --python 3.12 && uv pip install -q --python $(PY) -r requirements.txt && touch $@
+
+render: .env                           ## write wrenai/.env + wrenai/config.yaml from .env
+	$(PY) bench/render_config.py
+.env:
+	cp .env.example .env
+
+docker:                                ## start dockerd if not running (box has no systemd)
+	@docker info >/dev/null 2>&1 || { sudo sh -c 'nohup dockerd >/var/log/dockerd.log 2>&1 &'; sleep 5; sudo chmod 666 /var/run/docker.sock; }
+
+netfix:                                ## this box has legacy iptables FORWARD=DROP that breaks container<->container traffic
+	@if command -v iptables-legacy >/dev/null && sudo iptables-legacy -S FORWARD 2>/dev/null | grep -q -- '-P FORWARD DROP'; then \
+	  sudo iptables-legacy -C DOCKER-USER -i br-+ -j ACCEPT 2>/dev/null || sudo iptables-legacy -I DOCKER-USER -i br-+ -j ACCEPT; \
+	  sudo iptables-legacy -C DOCKER-USER -o br-+ -j ACCEPT 2>/dev/null || sudo iptables-legacy -I DOCKER-USER -o br-+ -j ACCEPT; \
+	  echo "netfix: legacy FORWARD rules ensured"; fi
+
+wait:                                  ## wait until services answer
+	@for u in "http://localhost:8089/health" "http://localhost:5555/health" "http://localhost:3000" "http://localhost:5670/api/v2/serve/datasources" "http://localhost:4000/readyz"; do \
+	  printf "waiting for %s " $$u; for i in $$(seq 1 90); do curl -sf -o /dev/null $$u && break; printf .; sleep 2; done; echo " ok"; done
+
+setup:                                 ## (re)connect WrenAI + DB-GPT to Postgres, redeploy/re-embed schema
+	cd bench && ../$(PY) setup_connections.py
+
+verify:                                ## gold SQL runs + Cube reference queries reproduce gold + API probe
+	cd bench && ../$(PY) verify_gold.py && ../$(PY) probe.py
+
+probe:
+	cd bench && ../$(PY) probe.py
+
+mock:                                  ## dry-run of the harness without an LLM key
+	$(PY) bench/harness.py --mock --repeats $(REPEATS) --systems $(SYSTEMS)
+
+bench:                                 ## real benchmark (needs OPENAI_API_KEY)
+	$(PY) bench/harness.py --repeats $(REPEATS) --systems $(SYSTEMS)
+
+status:
+	docker compose ps; $(WREN) ps
+
+logs:
+	docker compose logs --tail 50; $(WREN) logs --tail 50
+
+down:
+	-$(WREN) down
+	-docker compose down
+
+clean:                                 ## stop and delete all volumes (DB, Wren project, DB-GPT metadata)
+	-$(WREN) down -v
+	-docker compose down -v

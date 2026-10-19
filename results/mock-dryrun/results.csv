@@ -1,0 +1,183 @@
+run,id,difficulty,system,latency_s,status,exact,relaxed,reason,generated,error,cube_expressible,prompt_tokens,completion_tokens,embedding_tokens,chat_requests
+1,e01,easy,wrenai,0.043,exec_error,False,False,,SELEC broken sql,"SyntaxError: syntax error at or near ""SELEC""
+LINE 1: SELEC broken sql
+        ^",True,,,,
+1,e01,easy,dbgpt,0.016,correct,True,True,match,SELECT COUNT(*) FROM track;,,True,0,0,0,0
+1,e01,easy,cube,0.016,correct,True,True,match,"{""measures"": [""track.count""]}",,True,,,,
+1,e02,easy,wrenai,0.038,correct,True,True,match,SELECT name FROM genre;,,True,,,,
+1,e02,easy,dbgpt,0.041,correct,True,True,match,SELECT name FROM genre;,,True,0,0,0,0
+1,e02,easy,cube,0.011,correct,True,True,match,"{""dimensions"": [""genre.name""]}",,True,,,,
+1,e03,easy,wrenai,0.045,correct,True,True,match,SELECT COUNT(*) FROM customer WHERE country = 'Brazil';,,True,,,,
+1,e03,easy,dbgpt,0.05,tool_error,False,False,,,mock: simulated tool failure,True,0,0,0,0
+1,e03,easy,cube,0.017,correct,True,True,match,"{""measures"": [""customer.count""], ""filters"": [{""member"": ""customer.country"", ""operator"": ""equals"", ""values"": [""Brazil""]}]}",,True,,,,
+1,e04,easy,wrenai,0.021,correct,True,True,match,SELECT name FROM track WHERE milliseconds > 20 * 60 * 1000;,,True,,,,
+1,e04,easy,dbgpt,0.044,correct,True,True,match,SELECT name FROM track WHERE milliseconds > 20 * 60 * 1000;,,True,0,0,0,0
+1,e04,easy,cube,0.015,correct,True,True,match,"{""ungrouped"": true, ""dimensions"": [""track.name""], ""filters"": [{""member"": ""track.milliseconds"", ""operator"": ""gt"", ""values"": [""1200000""]}]}",,True,,,,
+1,e05,easy,wrenai,0.017,correct,True,True,match,SELECT MAX(unit_price) FROM track;,,True,,,,
+1,e05,easy,dbgpt,0.015,correct,True,True,match,SELECT MAX(unit_price) FROM track;,,True,0,0,0,0
+1,e05,easy,cube,0.012,correct,True,True,match,"{""measures"": [""track.max_unit_price""]}",,True,,,,
+1,e06,easy,wrenai,0.031,correct,True,True,match,"SELECT first_name, last_name FROM employee WHERE title = 'Sales Support Agent';",,True,,,,
+1,e06,easy,dbgpt,0.024,correct,True,True,match,"SELECT first_name, last_name FROM employee WHERE title = 'Sales Support Agent';",,True,0,0,0,0
+1,e06,easy,cube,0.012,correct,True,True,match,"{""dimensions"": [""employee.first_name"", ""employee.last_name""], ""filters"": [{""member"": ""employee.title"", ""operator"": ""equals"", ""values"": [""Sales Support Agent""]}]}",,True,,,,
+1,e07,easy,wrenai,0.036,correct,True,True,match,SELECT COUNT(*) FROM invoice WHERE invoice_date >= '2023-01-01' AND invoice_date < '2024-01-01';,,True,,,,
+1,e07,easy,dbgpt,0.037,correct,True,True,match,SELECT COUNT(*) FROM invoice WHERE invoice_date >= '2023-01-01' AND invoice_date < '2024-01-01';,,True,0,0,0,0
+1,e07,easy,cube,0.013,correct,True,True,match,"{""measures"": [""invoice.count""], ""timeDimensions"": [{""dimension"": ""invoice.invoice_date"", ""dateRange"": [""2023-01-01"", ""2023-12-31""]}]}",,True,,,,
+1,e08,easy,wrenai,0.041,correct,True,True,match,"SELECT first_name, last_name, company FROM customer WHERE company IS NOT NULL;",,True,,,,
+1,e08,easy,dbgpt,0.036,correct,True,True,match,"SELECT first_name, last_name, company FROM customer WHERE company IS NOT NULL;",,True,0,0,0,0
+1,e08,easy,cube,0.012,correct,True,True,match,"{""dimensions"": [""customer.first_name"", ""customer.last_name"", ""customer.company""], ""filters"": [{""member"": ""customer.company"", ""operator"": ""set""}]}",,True,,,,
+1,m01,medium,wrenai,0.044,correct,True,True,match,"SELECT g.name, COUNT(t.track_id) FROM genre g JOIN track t ON t.genre_id = g.genre_id GROUP BY g.name;",,True,,,,
+1,m01,medium,dbgpt,0.032,correct,True,True,match,"SELECT g.name, COUNT(t.track_id) FROM genre g JOIN track t ON t.genre_id = g.genre_id GROUP BY g.name;",,True,0,0,0,0
+1,m01,medium,cube,0.016,correct,True,True,match,"{""dimensions"": [""genre.name""], ""measures"": [""track.count""]}",,True,,,,
+1,m02,medium,wrenai,0.033,correct,True,True,match,"SELECT ar.name, COUNT(*) AS album_count FROM album al JOIN artist ar ON ar.artist_id = al.artist_id GROUP BY ar.name ORDER BY album_count DESC LIMIT 5;",,True,,,,
+1,m02,medium,dbgpt,0.045,correct,True,True,match,"SELECT ar.name, COUNT(*) AS album_count FROM album al JOIN artist ar ON ar.artist_id = al.artist_id GROUP BY ar.name ORDER BY album_count DESC LIMIT 5;",,True,0,0,0,0
+1,m02,medium,cube,0.013,correct,True,True,match,"{""dimensions"": [""artist.name""], ""measures"": [""album.count""], ""order"": [[""album.count"", ""desc""]], ""limit"": 5}",,True,,,,
+1,m03,medium,wrenai,0.019,tool_error,False,False,,,mock: simulated tool failure,True,,,,
+1,m03,medium,dbgpt,0.04,correct,True,True,match,"SELECT billing_country, SUM(total) AS sales FROM invoice GROUP BY billing_country ORDER BY sales DESC;",,True,0,0,0,0
+1,m03,medium,cube,0.014,correct,True,True,match,"{""dimensions"": [""invoice.billing_country""], ""measures"": [""invoice.total_sales""], ""order"": [[""invoice.total_sales"", ""desc""]]}",,True,,,,
+1,m04,medium,wrenai,0.031,correct,True,True,match,"SELECT c.first_name, c.last_name FROM customer c JOIN employee e ON e.employee_id = c.support_rep_id WHERE e.first_name = 'Jane' AND e.last_name = 'Peacock';",,True,,,,
+1,m04,medium,dbgpt,0.025,correct,True,True,match,"SELECT c.first_name, c.last_name FROM customer c JOIN employee e ON e.employee_id = c.support_rep_id WHERE e.first_name = 'Jane' AND e.last_name = 'Peacock';",,True,0,0,0,0
+1,m04,medium,cube,0.013,correct,True,True,match,"{""dimensions"": [""customer.first_name"", ""customer.last_name""], ""filters"": [{""member"": ""employee.first_name"", ""operator"": ""equals"", ""values"": [""Jane""]}, {""member"": ""employee.last_name"", ""operator"": ""equals"", ""values"": [""Peacock""]}]}",,True,,,,
+1,m05,medium,wrenai,0.014,correct,True,True,match,"SELECT mt.name, AVG(t.milliseconds) / 60000.0 AS avg_minutes FROM track t JOIN media_type mt ON mt.media_type_id = t.media_type_id GROUP BY mt.name;",,True,,,,
+1,m05,medium,dbgpt,0.03,tool_error,False,False,,,mock: simulated tool failure,True,0,0,0,0
+1,m05,medium,cube,0.011,correct,True,True,match,"{""dimensions"": [""media_type.name""], ""measures"": [""track.avg_minutes""]}",,True,,,,
+1,m06,medium,wrenai,0.043,correct,True,True,match,"SELECT al.title, COUNT(*) FROM album al JOIN track t ON t.album_id = al.album_id GROUP BY al.album_id, al.title HAVING COUNT(*) > 20;",,True,,,,
+1,m06,medium,dbgpt,0.023,correct,True,True,match,"SELECT al.title, COUNT(*) FROM album al JOIN track t ON t.album_id = al.album_id GROUP BY al.album_id, al.title HAVING COUNT(*) > 20;",,True,0,0,0,0
+1,m06,medium,cube,0.013,correct,True,True,match,"{""dimensions"": [""album.title""], ""measures"": [""track.count""], ""filters"": [{""member"": ""track.count"", ""operator"": ""gt"", ""values"": [""20""]}]}",,True,,,,
+1,m07,medium,wrenai,0.036,exec_error,False,False,,SELEC broken sql,"SyntaxError: syntax error at or near ""SELEC""
+LINE 1: SELEC broken sql
+        ^",True,,,,
+1,m07,medium,dbgpt,0.039,correct,True,True,match,SELECT g.name FROM genre g JOIN track t ON t.genre_id = g.genre_id GROUP BY g.name ORDER BY COUNT(*) DESC LIMIT 1;,,True,0,0,0,0
+1,m07,medium,cube,0.014,correct_extra_cols,False,True,match with 1 extra column(s),"{""dimensions"": [""genre.name""], ""measures"": [""track.count""], ""order"": [[""track.count"", ""desc""]], ""limit"": 1}",,True,,,,
+1,m08,medium,wrenai,0.028,correct,True,True,match,SELECT COUNT(*) FROM playlist p JOIN playlist_track pt ON pt.playlist_id = p.playlist_id WHERE p.name = '90’s Music';,,True,,,,
+1,m08,medium,dbgpt,0.011,correct,True,True,match,SELECT COUNT(*) FROM playlist p JOIN playlist_track pt ON pt.playlist_id = p.playlist_id WHERE p.name = '90’s Music';,,True,0,0,0,0
+1,m08,medium,cube,0.012,correct,True,True,match,"{""measures"": [""playlist_track.count""], ""filters"": [{""member"": ""playlist.name"", ""operator"": ""equals"", ""values"": [""90’s Music""]}]}",,True,,,,
+1,m09,medium,wrenai,0.04,correct,True,True,match,"SELECT EXTRACT(YEAR FROM invoice_date)::int AS year, SUM(total) FROM invoice GROUP BY 1 ORDER BY 1;",,True,,,,
+1,m09,medium,dbgpt,0.047,correct,True,True,match,"SELECT EXTRACT(YEAR FROM invoice_date)::int AS year, SUM(total) FROM invoice GROUP BY 1 ORDER BY 1;",,True,0,0,0,0
+1,m09,medium,cube,0.022,correct,True,True,match,"{""measures"": [""invoice.total_sales""], ""timeDimensions"": [{""dimension"": ""invoice.invoice_date"", ""granularity"": ""year""}], ""order"": [[""invoice.invoice_date"", ""asc""]]}",,True,,,,
+1,h01,hard,wrenai,0.017,correct,True,True,match,"SELECT g.name, SUM(il.unit_price * il.quantity) AS revenue FROM invoice_line il JOIN track t ON t.track_id = il.track_id JOIN genre g ON g.genre_id = t.genre_id GROUP BY g.name ORDER BY revenue DESC LIMIT 3;",,True,,,,
+1,h01,hard,dbgpt,0.012,correct,True,True,match,"SELECT g.name, SUM(il.unit_price * il.quantity) AS revenue FROM invoice_line il JOIN track t ON t.track_id = il.track_id JOIN genre g ON g.genre_id = t.genre_id GROUP BY g.name ORDER BY revenue DESC LIMIT 3;",,True,0,0,0,0
+1,h01,hard,cube,0.013,correct,True,True,match,"{""dimensions"": [""genre.name""], ""measures"": [""invoice_line.revenue""], ""order"": [[""invoice_line.revenue"", ""desc""]], ""limit"": 3}",,True,,,,
+1,h02,hard,wrenai,0.032,correct,True,True,match,"SELECT e.first_name, e.last_name, SUM(i.total) AS total FROM employee e JOIN customer c ON c.support_rep_id = e.employee_id JOIN invoice i ON i.customer_id = c.customer_id GROUP BY e.employee_id, e.first_name, e.last_name ORDER BY total DESC;",,True,,,,
+1,h02,hard,dbgpt,0.048,correct,True,True,match,"SELECT e.first_name, e.last_name, SUM(i.total) AS total FROM employee e JOIN customer c ON c.support_rep_id = e.employee_id JOIN invoice i ON i.customer_id = c.customer_id GROUP BY e.employee_id, e.first_name, e.last_name ORDER BY total DESC;",,True,0,0,0,0
+1,h02,hard,cube,0.015,correct,True,True,match,"{""dimensions"": [""employee.first_name"", ""employee.last_name""], ""measures"": [""invoice.total_sales""], ""filters"": [{""member"": ""employee.title"", ""operator"": ""equals"", ""values"": [""Sales Support Agent""]}], ""order"": [[""invoice.total_sales"", ""desc""]]}",,True,,,,
+1,h03,hard,wrenai,0.038,correct,True,True,match,"WITH s AS (SELECT c.customer_id, c.first_name, c.last_name, SUM(i.total) AS spend FROM customer c JOIN invoice i ON i.customer_id = c.customer_id GROUP BY c.customer_id, c.first_name, c.last_name) SELECT first_name, last_name, spend FROM s WHERE spend > (SELECT AVG(spend) FROM s);",,False,,,,
+1,h03,hard,dbgpt,0.045,correct,True,True,match,"WITH s AS (SELECT c.customer_id, c.first_name, c.last_name, SUM(i.total) AS spend FROM customer c JOIN invoice i ON i.customer_id = c.customer_id GROUP BY c.customer_id, c.first_name, c.last_name) SELECT first_name, last_name, spend FROM s WHERE spend > (SELECT AVG(spend) FROM s);",,False,0,0,0,0
+1,h03,hard,cube,0.0,unsupported,False,False,,,unsupported: not expressible in Cube model (reference),False,,,,
+1,h04,hard,wrenai,0.025,correct,True,True,match,"SELECT country, first_name, last_name, spend FROM (SELECT c.country, c.first_name, c.last_name, SUM(i.total) AS spend, RANK() OVER (PARTITION BY c.country ORDER BY SUM(i.total) DESC) AS rk FROM customer c JOIN invoice i ON i.customer_id = c.customer_id GROUP BY c.customer_id, c.country, c.first_name, c.last_name) x WHERE rk = 1;",,False,,,,
+1,h04,hard,dbgpt,0.042,correct,True,True,match,"SELECT country, first_name, last_name, spend FROM (SELECT c.country, c.first_name, c.last_name, SUM(i.total) AS spend, RANK() OVER (PARTITION BY c.country ORDER BY SUM(i.total) DESC) AS rk FROM customer c JOIN invoice i ON i.customer_id = c.customer_id GROUP BY c.customer_id, c.country, c.first_name, c.last_name) x WHERE rk = 1;",,False,0,0,0,0
+1,h04,hard,cube,0.0,unsupported,False,False,,,unsupported: not expressible in Cube model (reference),False,,,,
+1,h05,hard,wrenai,0.016,correct,True,True,match,"SELECT m, revenue, LAG(revenue) OVER (ORDER BY m) AS prev_revenue FROM (SELECT EXTRACT(MONTH FROM invoice_date)::int AS m, SUM(total) AS revenue FROM invoice WHERE invoice_date >= '2024-01-01' AND invoice_date < '2025-01-01' GROUP BY 1) x ORDER BY m;",,False,,,,
+1,h05,hard,dbgpt,0.025,tool_error,False,False,,,mock: simulated tool failure,False,0,0,0,0
+1,h05,hard,cube,0.0,unsupported,False,False,,,unsupported: not expressible in Cube model (reference),False,,,,
+1,h06,hard,wrenai,0.039,correct,True,True,match,"SELECT ar.name, COUNT(DISTINCT t.genre_id) FROM artist ar JOIN album al ON al.artist_id = ar.artist_id JOIN track t ON t.album_id = al.album_id GROUP BY ar.artist_id, ar.name HAVING COUNT(DISTINCT t.genre_id) > 3;",,True,,,,
+1,h06,hard,dbgpt,0.043,correct,True,True,match,"SELECT ar.name, COUNT(DISTINCT t.genre_id) FROM artist ar JOIN album al ON al.artist_id = ar.artist_id JOIN track t ON t.album_id = al.album_id GROUP BY ar.artist_id, ar.name HAVING COUNT(DISTINCT t.genre_id) > 3;",,True,0,0,0,0
+1,h06,hard,cube,0.026,correct,True,True,match,"{""dimensions"": [""artist.name""], ""measures"": [""track.genre_count""], ""filters"": [{""member"": ""track.genre_count"", ""operator"": ""gt"", ""values"": [""3""]}]}",,True,,,,
+1,h07,hard,wrenai,0.023,correct,True,True,match,SELECT COUNT(*) FROM track t WHERE NOT EXISTS (SELECT 1 FROM invoice_line il WHERE il.track_id = t.track_id);,,False,,,,
+1,h07,hard,dbgpt,0.034,correct,True,True,match,SELECT COUNT(*) FROM track t WHERE NOT EXISTS (SELECT 1 FROM invoice_line il WHERE il.track_id = t.track_id);,,False,0,0,0,0
+1,h07,hard,cube,0.0,unsupported,False,False,,,unsupported: not expressible in Cube model (reference),False,,,,
+1,h08,hard,wrenai,0.017,correct,True,True,match,"SELECT e.first_name, e.last_name, m.first_name, m.last_name FROM employee e JOIN employee m ON m.employee_id = e.reports_to;",,True,,,,
+1,h08,hard,dbgpt,0.014,correct,True,True,match,"SELECT e.first_name, e.last_name, m.first_name, m.last_name FROM employee e JOIN employee m ON m.employee_id = e.reports_to;",,True,0,0,0,0
+1,h08,hard,cube,0.015,correct,True,True,match,"{""dimensions"": [""employee.first_name"", ""employee.last_name"", ""manager.first_name"", ""manager.last_name""], ""filters"": [{""member"": ""manager.employee_id"", ""operator"": ""set""}]}",,True,,,,
+1,h09,hard,wrenai,0.049,correct,True,True,match,SELECT COUNT(*) FROM (SELECT customer_id FROM invoice WHERE EXTRACT(YEAR FROM invoice_date) = 2025 EXCEPT SELECT customer_id FROM invoice WHERE EXTRACT(YEAR FROM invoice_date) = 2024) x;,,False,,,,
+1,h09,hard,dbgpt,0.047,correct,True,True,match,SELECT COUNT(*) FROM (SELECT customer_id FROM invoice WHERE EXTRACT(YEAR FROM invoice_date) = 2025 EXCEPT SELECT customer_id FROM invoice WHERE EXTRACT(YEAR FROM invoice_date) = 2024) x;,,False,0,0,0,0
+1,h09,hard,cube,0.0,unsupported,False,False,,,unsupported: not expressible in Cube model (reference),False,,,,
+1,h10,hard,wrenai,0.019,correct,True,True,match,"SELECT date_trunc('month', invoice_date) AS month, SUM(SUM(total)) OVER (ORDER BY date_trunc('month', invoice_date)) AS running_total FROM invoice WHERE invoice_date >= '2023-01-01' AND invoice_date < '2024-01-01' GROUP BY 1 ORDER BY 1;",,True,,,,
+1,h10,hard,dbgpt,0.025,correct,True,True,match,"SELECT date_trunc('month', invoice_date) AS month, SUM(SUM(total)) OVER (ORDER BY date_trunc('month', invoice_date)) AS running_total FROM invoice WHERE invoice_date >= '2023-01-01' AND invoice_date < '2024-01-01' GROUP BY 1 ORDER BY 1;",,True,0,0,0,0
+1,h10,hard,cube,0.016,correct,True,True,match,"{""measures"": [""invoice.revenue_ytd""], ""timeDimensions"": [{""dimension"": ""invoice.invoice_date"", ""granularity"": ""month"", ""dateRange"": [""2023-01-01"", ""2023-12-31""]}], ""order"": [[""invoice.invoice_date"", ""asc""]]}",,True,,,,
+1,h11,hard,wrenai,0.034,correct,True,True,match,"SELECT mt.name, ROUND(100.0 * SUM(il.unit_price * il.quantity) / SUM(SUM(il.unit_price * il.quantity)) OVER (), 2) AS pct FROM invoice_line il JOIN track t ON t.track_id = il.track_id JOIN media_type mt ON mt.media_type_id = t.media_type_id GROUP BY mt.name;",,False,,,,
+1,h11,hard,dbgpt,0.048,correct,True,True,match,"SELECT mt.name, ROUND(100.0 * SUM(il.unit_price * il.quantity) / SUM(SUM(il.unit_price * il.quantity)) OVER (), 2) AS pct FROM invoice_line il JOIN track t ON t.track_id = il.track_id JOIN media_type mt ON mt.media_type_id = t.media_type_id GROUP BY mt.name;",,False,0,0,0,0
+1,h11,hard,cube,0.0,unsupported,False,False,,,unsupported: not expressible in Cube model (reference),False,,,,
+1,h12,hard,wrenai,0.014,wrong_result,False,False,row count 1 != gold 5,SELECT 1 AS wrong_answer,,True,,,,
+1,h12,hard,dbgpt,0.019,tool_error,False,False,,,mock: simulated tool failure,True,0,0,0,0
+1,h12,hard,cube,0.018,correct,True,True,match,"{""dimensions"": [""artist.name""], ""measures"": [""invoice_line.revenue""], ""order"": [[""invoice_line.revenue"", ""desc""]], ""limit"": 5}",,True,,,,
+2,e01,easy,wrenai,0.028,correct,True,True,match,SELECT COUNT(*) FROM track;,,True,,,,
+2,e01,easy,dbgpt,0.034,correct,True,True,match,SELECT COUNT(*) FROM track;,,True,0,0,0,0
+2,e01,easy,cube,0.014,correct,True,True,match,"{""measures"": [""track.count""]}",,True,,,,
+2,e02,easy,wrenai,0.045,correct,True,True,match,SELECT name FROM genre;,,True,,,,
+2,e02,easy,dbgpt,0.03,tool_error,False,False,,,mock: simulated tool failure,True,0,0,0,0
+2,e02,easy,cube,0.015,correct,True,True,match,"{""dimensions"": [""genre.name""]}",,True,,,,
+2,e03,easy,wrenai,0.03,correct,True,True,match,SELECT COUNT(*) FROM customer WHERE country = 'Brazil';,,True,,,,
+2,e03,easy,dbgpt,0.025,tool_error,False,False,,,mock: simulated tool failure,True,0,0,0,0
+2,e03,easy,cube,0.015,correct,True,True,match,"{""measures"": [""customer.count""], ""filters"": [{""member"": ""customer.country"", ""operator"": ""equals"", ""values"": [""Brazil""]}]}",,True,,,,
+2,e04,easy,wrenai,0.035,tool_error,False,False,,,mock: simulated tool failure,True,,,,
+2,e04,easy,dbgpt,0.017,correct,True,True,match,SELECT name FROM track WHERE milliseconds > 20 * 60 * 1000;,,True,0,0,0,0
+2,e04,easy,cube,0.016,correct,True,True,match,"{""ungrouped"": true, ""dimensions"": [""track.name""], ""filters"": [{""member"": ""track.milliseconds"", ""operator"": ""gt"", ""values"": [""1200000""]}]}",,True,,,,
+2,e05,easy,wrenai,0.05,correct,True,True,match,SELECT MAX(unit_price) FROM track;,,True,,,,
+2,e05,easy,dbgpt,0.029,tool_error,False,False,,,mock: simulated tool failure,True,0,0,0,0
+2,e05,easy,cube,0.021,correct,True,True,match,"{""measures"": [""track.max_unit_price""]}",,True,,,,
+2,e06,easy,wrenai,0.042,correct,True,True,match,"SELECT first_name, last_name FROM employee WHERE title = 'Sales Support Agent';",,True,,,,
+2,e06,easy,dbgpt,0.034,correct,True,True,match,"SELECT first_name, last_name FROM employee WHERE title = 'Sales Support Agent';",,True,0,0,0,0
+2,e06,easy,cube,0.025,correct,True,True,match,"{""dimensions"": [""employee.first_name"", ""employee.last_name""], ""filters"": [{""member"": ""employee.title"", ""operator"": ""equals"", ""values"": [""Sales Support Agent""]}]}",,True,,,,
+2,e07,easy,wrenai,0.041,tool_error,False,False,,,mock: simulated tool failure,True,,,,
+2,e07,easy,dbgpt,0.03,correct,True,True,match,SELECT COUNT(*) FROM invoice WHERE invoice_date >= '2023-01-01' AND invoice_date < '2024-01-01';,,True,0,0,0,0
+2,e07,easy,cube,0.015,correct,True,True,match,"{""measures"": [""invoice.count""], ""timeDimensions"": [{""dimension"": ""invoice.invoice_date"", ""dateRange"": [""2023-01-01"", ""2023-12-31""]}]}",,True,,,,
+2,e08,easy,wrenai,0.031,correct,True,True,match,"SELECT first_name, last_name, company FROM customer WHERE company IS NOT NULL;",,True,,,,
+2,e08,easy,dbgpt,0.049,correct,True,True,match,"SELECT first_name, last_name, company FROM customer WHERE company IS NOT NULL;",,True,0,0,0,0
+2,e08,easy,cube,0.018,correct,True,True,match,"{""dimensions"": [""customer.first_name"", ""customer.last_name"", ""customer.company""], ""filters"": [{""member"": ""customer.company"", ""operator"": ""set""}]}",,True,,,,
+2,m01,medium,wrenai,0.043,correct,True,True,match,"SELECT g.name, COUNT(t.track_id) FROM genre g JOIN track t ON t.genre_id = g.genre_id GROUP BY g.name;",,True,,,,
+2,m01,medium,dbgpt,0.034,correct,True,True,match,"SELECT g.name, COUNT(t.track_id) FROM genre g JOIN track t ON t.genre_id = g.genre_id GROUP BY g.name;",,True,0,0,0,0
+2,m01,medium,cube,0.023,correct,True,True,match,"{""dimensions"": [""genre.name""], ""measures"": [""track.count""]}",,True,,,,
+2,m02,medium,wrenai,0.03,correct,True,True,match,"SELECT ar.name, COUNT(*) AS album_count FROM album al JOIN artist ar ON ar.artist_id = al.artist_id GROUP BY ar.name ORDER BY album_count DESC LIMIT 5;",,True,,,,
+2,m02,medium,dbgpt,0.019,correct,True,True,match,"SELECT ar.name, COUNT(*) AS album_count FROM album al JOIN artist ar ON ar.artist_id = al.artist_id GROUP BY ar.name ORDER BY album_count DESC LIMIT 5;",,True,0,0,0,0
+2,m02,medium,cube,0.017,correct,True,True,match,"{""dimensions"": [""artist.name""], ""measures"": [""album.count""], ""order"": [[""album.count"", ""desc""]], ""limit"": 5}",,True,,,,
+2,m03,medium,wrenai,0.028,correct,True,True,match,"SELECT billing_country, SUM(total) AS sales FROM invoice GROUP BY billing_country ORDER BY sales DESC;",,True,,,,
+2,m03,medium,dbgpt,0.028,correct,True,True,match,"SELECT billing_country, SUM(total) AS sales FROM invoice GROUP BY billing_country ORDER BY sales DESC;",,True,0,0,0,0
+2,m03,medium,cube,0.014,correct,True,True,match,"{""dimensions"": [""invoice.billing_country""], ""measures"": [""invoice.total_sales""], ""order"": [[""invoice.total_sales"", ""desc""]]}",,True,,,,
+2,m04,medium,wrenai,0.049,correct,True,True,match,"SELECT c.first_name, c.last_name FROM customer c JOIN employee e ON e.employee_id = c.support_rep_id WHERE e.first_name = 'Jane' AND e.last_name = 'Peacock';",,True,,,,
+2,m04,medium,dbgpt,0.047,correct,True,True,match,"SELECT c.first_name, c.last_name FROM customer c JOIN employee e ON e.employee_id = c.support_rep_id WHERE e.first_name = 'Jane' AND e.last_name = 'Peacock';",,True,0,0,0,0
+2,m04,medium,cube,0.017,correct,True,True,match,"{""dimensions"": [""customer.first_name"", ""customer.last_name""], ""filters"": [{""member"": ""employee.first_name"", ""operator"": ""equals"", ""values"": [""Jane""]}, {""member"": ""employee.last_name"", ""operator"": ""equals"", ""values"": [""Peacock""]}]}",,True,,,,
+2,m05,medium,wrenai,0.033,correct,True,True,match,"SELECT mt.name, AVG(t.milliseconds) / 60000.0 AS avg_minutes FROM track t JOIN media_type mt ON mt.media_type_id = t.media_type_id GROUP BY mt.name;",,True,,,,
+2,m05,medium,dbgpt,0.038,correct,True,True,match,"SELECT mt.name, AVG(t.milliseconds) / 60000.0 AS avg_minutes FROM track t JOIN media_type mt ON mt.media_type_id = t.media_type_id GROUP BY mt.name;",,True,0,0,0,0
+2,m05,medium,cube,0.018,correct,True,True,match,"{""dimensions"": [""media_type.name""], ""measures"": [""track.avg_minutes""]}",,True,,,,
+2,m06,medium,wrenai,0.014,correct,True,True,match,"SELECT al.title, COUNT(*) FROM album al JOIN track t ON t.album_id = al.album_id GROUP BY al.album_id, al.title HAVING COUNT(*) > 20;",,True,,,,
+2,m06,medium,dbgpt,0.036,correct,True,True,match,"SELECT al.title, COUNT(*) FROM album al JOIN track t ON t.album_id = al.album_id GROUP BY al.album_id, al.title HAVING COUNT(*) > 20;",,True,0,0,0,0
+2,m06,medium,cube,0.021,correct,True,True,match,"{""dimensions"": [""album.title""], ""measures"": [""track.count""], ""filters"": [{""member"": ""track.count"", ""operator"": ""gt"", ""values"": [""20""]}]}",,True,,,,
+2,m07,medium,wrenai,0.047,correct,True,True,match,SELECT g.name FROM genre g JOIN track t ON t.genre_id = g.genre_id GROUP BY g.name ORDER BY COUNT(*) DESC LIMIT 1;,,True,,,,
+2,m07,medium,dbgpt,0.029,exec_error,False,False,,SELEC broken sql,"SyntaxError: syntax error at or near ""SELEC""
+LINE 1: SELEC broken sql
+        ^",True,0,0,0,0
+2,m07,medium,cube,0.014,correct_extra_cols,False,True,match with 1 extra column(s),"{""dimensions"": [""genre.name""], ""measures"": [""track.count""], ""order"": [[""track.count"", ""desc""]], ""limit"": 1}",,True,,,,
+2,m08,medium,wrenai,0.011,correct,True,True,match,SELECT COUNT(*) FROM playlist p JOIN playlist_track pt ON pt.playlist_id = p.playlist_id WHERE p.name = '90’s Music';,,True,,,,
+2,m08,medium,dbgpt,0.019,correct,True,True,match,SELECT COUNT(*) FROM playlist p JOIN playlist_track pt ON pt.playlist_id = p.playlist_id WHERE p.name = '90’s Music';,,True,0,0,0,0
+2,m08,medium,cube,0.015,correct,True,True,match,"{""measures"": [""playlist_track.count""], ""filters"": [{""member"": ""playlist.name"", ""operator"": ""equals"", ""values"": [""90’s Music""]}]}",,True,,,,
+2,m09,medium,wrenai,0.039,exec_error,False,False,,SELEC broken sql,"SyntaxError: syntax error at or near ""SELEC""
+LINE 1: SELEC broken sql
+        ^",True,,,,
+2,m09,medium,dbgpt,0.028,correct,True,True,match,"SELECT EXTRACT(YEAR FROM invoice_date)::int AS year, SUM(total) FROM invoice GROUP BY 1 ORDER BY 1;",,True,0,0,0,0
+2,m09,medium,cube,0.016,correct,True,True,match,"{""measures"": [""invoice.total_sales""], ""timeDimensions"": [{""dimension"": ""invoice.invoice_date"", ""granularity"": ""year""}], ""order"": [[""invoice.invoice_date"", ""asc""]]}",,True,,,,
+2,h01,hard,wrenai,0.035,wrong_result,False,False,row count 1 != gold 3,SELECT 1 AS wrong_answer,,True,,,,
+2,h01,hard,dbgpt,0.015,correct,True,True,match,"SELECT g.name, SUM(il.unit_price * il.quantity) AS revenue FROM invoice_line il JOIN track t ON t.track_id = il.track_id JOIN genre g ON g.genre_id = t.genre_id GROUP BY g.name ORDER BY revenue DESC LIMIT 3;",,True,0,0,0,0
+2,h01,hard,cube,0.019,correct,True,True,match,"{""dimensions"": [""genre.name""], ""measures"": [""invoice_line.revenue""], ""order"": [[""invoice_line.revenue"", ""desc""]], ""limit"": 3}",,True,,,,
+2,h02,hard,wrenai,0.025,correct,True,True,match,"SELECT e.first_name, e.last_name, SUM(i.total) AS total FROM employee e JOIN customer c ON c.support_rep_id = e.employee_id JOIN invoice i ON i.customer_id = c.customer_id GROUP BY e.employee_id, e.first_name, e.last_name ORDER BY total DESC;",,True,,,,
+2,h02,hard,dbgpt,0.047,wrong_result,False,False,row count 1 != gold 3,SELECT 1 AS wrong_answer,,True,0,0,0,0
+2,h02,hard,cube,0.026,correct,True,True,match,"{""dimensions"": [""employee.first_name"", ""employee.last_name""], ""measures"": [""invoice.total_sales""], ""filters"": [{""member"": ""employee.title"", ""operator"": ""equals"", ""values"": [""Sales Support Agent""]}], ""order"": [[""invoice.total_sales"", ""desc""]]}",,True,,,,
+2,h03,hard,wrenai,0.034,correct,True,True,match,"WITH s AS (SELECT c.customer_id, c.first_name, c.last_name, SUM(i.total) AS spend FROM customer c JOIN invoice i ON i.customer_id = c.customer_id GROUP BY c.customer_id, c.first_name, c.last_name) SELECT first_name, last_name, spend FROM s WHERE spend > (SELECT AVG(spend) FROM s);",,False,,,,
+2,h03,hard,dbgpt,0.018,correct,True,True,match,"WITH s AS (SELECT c.customer_id, c.first_name, c.last_name, SUM(i.total) AS spend FROM customer c JOIN invoice i ON i.customer_id = c.customer_id GROUP BY c.customer_id, c.first_name, c.last_name) SELECT first_name, last_name, spend FROM s WHERE spend > (SELECT AVG(spend) FROM s);",,False,0,0,0,0
+2,h03,hard,cube,0.0,unsupported,False,False,,,unsupported: not expressible in Cube model (reference),False,,,,
+2,h04,hard,wrenai,0.02,correct,True,True,match,"SELECT country, first_name, last_name, spend FROM (SELECT c.country, c.first_name, c.last_name, SUM(i.total) AS spend, RANK() OVER (PARTITION BY c.country ORDER BY SUM(i.total) DESC) AS rk FROM customer c JOIN invoice i ON i.customer_id = c.customer_id GROUP BY c.customer_id, c.country, c.first_name, c.last_name) x WHERE rk = 1;",,False,,,,
+2,h04,hard,dbgpt,0.017,correct,True,True,match,"SELECT country, first_name, last_name, spend FROM (SELECT c.country, c.first_name, c.last_name, SUM(i.total) AS spend, RANK() OVER (PARTITION BY c.country ORDER BY SUM(i.total) DESC) AS rk FROM customer c JOIN invoice i ON i.customer_id = c.customer_id GROUP BY c.customer_id, c.country, c.first_name, c.last_name) x WHERE rk = 1;",,False,0,0,0,0
+2,h04,hard,cube,0.0,unsupported,False,False,,,unsupported: not expressible in Cube model (reference),False,,,,
+2,h05,hard,wrenai,0.022,correct,True,True,match,"SELECT m, revenue, LAG(revenue) OVER (ORDER BY m) AS prev_revenue FROM (SELECT EXTRACT(MONTH FROM invoice_date)::int AS m, SUM(total) AS revenue FROM invoice WHERE invoice_date >= '2024-01-01' AND invoice_date < '2025-01-01' GROUP BY 1) x ORDER BY m;",,False,,,,
+2,h05,hard,dbgpt,0.017,correct,True,True,match,"SELECT m, revenue, LAG(revenue) OVER (ORDER BY m) AS prev_revenue FROM (SELECT EXTRACT(MONTH FROM invoice_date)::int AS m, SUM(total) AS revenue FROM invoice WHERE invoice_date >= '2024-01-01' AND invoice_date < '2025-01-01' GROUP BY 1) x ORDER BY m;",,False,0,0,0,0
+2,h05,hard,cube,0.0,unsupported,False,False,,,unsupported: not expressible in Cube model (reference),False,,,,
+2,h06,hard,wrenai,0.045,correct,True,True,match,"SELECT ar.name, COUNT(DISTINCT t.genre_id) FROM artist ar JOIN album al ON al.artist_id = ar.artist_id JOIN track t ON t.album_id = al.album_id GROUP BY ar.artist_id, ar.name HAVING COUNT(DISTINCT t.genre_id) > 3;",,True,,,,
+2,h06,hard,dbgpt,0.035,correct,True,True,match,"SELECT ar.name, COUNT(DISTINCT t.genre_id) FROM artist ar JOIN album al ON al.artist_id = ar.artist_id JOIN track t ON t.album_id = al.album_id GROUP BY ar.artist_id, ar.name HAVING COUNT(DISTINCT t.genre_id) > 3;",,True,0,0,0,0
+2,h06,hard,cube,0.021,correct,True,True,match,"{""dimensions"": [""artist.name""], ""measures"": [""track.genre_count""], ""filters"": [{""member"": ""track.genre_count"", ""operator"": ""gt"", ""values"": [""3""]}]}",,True,,,,
+2,h07,hard,wrenai,0.042,correct,True,True,match,SELECT COUNT(*) FROM track t WHERE NOT EXISTS (SELECT 1 FROM invoice_line il WHERE il.track_id = t.track_id);,,False,,,,
+2,h07,hard,dbgpt,0.011,wrong_result,False,False,no predicted column matches gold column 0,SELECT 1 AS wrong_answer,,False,0,0,0,0
+2,h07,hard,cube,0.0,unsupported,False,False,,,unsupported: not expressible in Cube model (reference),False,,,,
+2,h08,hard,wrenai,0.012,correct,True,True,match,"SELECT e.first_name, e.last_name, m.first_name, m.last_name FROM employee e JOIN employee m ON m.employee_id = e.reports_to;",,True,,,,
+2,h08,hard,dbgpt,0.034,correct,True,True,match,"SELECT e.first_name, e.last_name, m.first_name, m.last_name FROM employee e JOIN employee m ON m.employee_id = e.reports_to;",,True,0,0,0,0
+2,h08,hard,cube,0.016,correct,True,True,match,"{""dimensions"": [""employee.first_name"", ""employee.last_name"", ""manager.first_name"", ""manager.last_name""], ""filters"": [{""member"": ""manager.employee_id"", ""operator"": ""set""}]}",,True,,,,
+2,h09,hard,wrenai,0.048,correct,True,True,match,SELECT COUNT(*) FROM (SELECT customer_id FROM invoice WHERE EXTRACT(YEAR FROM invoice_date) = 2025 EXCEPT SELECT customer_id FROM invoice WHERE EXTRACT(YEAR FROM invoice_date) = 2024) x;,,False,,,,
+2,h09,hard,dbgpt,0.011,correct,True,True,match,SELECT COUNT(*) FROM (SELECT customer_id FROM invoice WHERE EXTRACT(YEAR FROM invoice_date) = 2025 EXCEPT SELECT customer_id FROM invoice WHERE EXTRACT(YEAR FROM invoice_date) = 2024) x;,,False,0,0,0,0
+2,h09,hard,cube,0.0,unsupported,False,False,,,unsupported: not expressible in Cube model (reference),False,,,,
+2,h10,hard,wrenai,0.034,wrong_result,False,False,row count 1 != gold 12,SELECT 1 AS wrong_answer,,True,,,,
+2,h10,hard,dbgpt,0.018,tool_error,False,False,,,mock: simulated tool failure,True,0,0,0,0
+2,h10,hard,cube,0.021,correct,True,True,match,"{""measures"": [""invoice.revenue_ytd""], ""timeDimensions"": [{""dimension"": ""invoice.invoice_date"", ""granularity"": ""month"", ""dateRange"": [""2023-01-01"", ""2023-12-31""]}], ""order"": [[""invoice.invoice_date"", ""asc""]]}",,True,,,,
+2,h11,hard,wrenai,0.02,correct,True,True,match,"SELECT mt.name, ROUND(100.0 * SUM(il.unit_price * il.quantity) / SUM(SUM(il.unit_price * il.quantity)) OVER (), 2) AS pct FROM invoice_line il JOIN track t ON t.track_id = il.track_id JOIN media_type mt ON mt.media_type_id = t.media_type_id GROUP BY mt.name;",,False,,,,
+2,h11,hard,dbgpt,0.031,correct,True,True,match,"SELECT mt.name, ROUND(100.0 * SUM(il.unit_price * il.quantity) / SUM(SUM(il.unit_price * il.quantity)) OVER (), 2) AS pct FROM invoice_line il JOIN track t ON t.track_id = il.track_id JOIN media_type mt ON mt.media_type_id = t.media_type_id GROUP BY mt.name;",,False,0,0,0,0
+2,h11,hard,cube,0.0,unsupported,False,False,,,unsupported: not expressible in Cube model (reference),False,,,,
+2,h12,hard,wrenai,0.015,tool_error,False,False,,,mock: simulated tool failure,True,,,,
+2,h12,hard,dbgpt,0.031,correct,True,True,match,"SELECT ar.name, SUM(il.unit_price * il.quantity) AS revenue FROM invoice_line il JOIN track t ON t.track_id = il.track_id JOIN album al ON al.album_id = t.album_id JOIN artist ar ON ar.artist_id = al.artist_id GROUP BY ar.artist_id, ar.name ORDER BY revenue DESC LIMIT 5;",,True,0,0,0,0
+2,h12,hard,cube,0.022,correct,True,True,match,"{""dimensions"": [""artist.name""], ""measures"": [""invoice_line.revenue""], ""order"": [[""invoice_line.revenue"", ""desc""]], ""limit"": 5}",,True,,,,

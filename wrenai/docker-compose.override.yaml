@@ -1,0 +1,14 @@
+# nl2sql-bench additions to upstream WrenAI 0.29.2 compose:
+# attach the services that talk to the DB / LLM to the shared network.
+networks:
+  nl2sql-net:
+    external: true
+services:
+  wren-engine:
+    networks: [wren, nl2sql-net]
+  ibis-server:
+    networks: [wren, nl2sql-net]
+  wren-ui:
+    networks: [wren, nl2sql-net]
+  wren-ai-service:
+    networks: [wren, nl2sql-net]
