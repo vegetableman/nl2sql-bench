@@ -6,7 +6,7 @@ WRENMDL := docker compose -p wrenai-mdl --project-directory wrenai_mdl --env-fil
 REPEATS ?= 1
 SYSTEMS ?= wrenai,dbgpt,cube
 
-.PHONY: wren-mdl wren-mdl-up report up down clean setup bench mock verify probe status logs venv render docker netfix wait
+.PHONY: wren-mdl wren-mdl-noreason wren-mdl-restore wren-mdl-up report up down clean setup bench mock verify probe status logs venv render docker netfix wait
 
 up: docker netfix venv render          ## start everything and connect all tools to Postgres
 	docker compose up -d --build
@@ -27,6 +27,22 @@ wren-mdl-up: docker netfix venv render ## start the 2nd WrenAI stack (UI :3001, 
 
 wren-mdl: wren-mdl-up                  ## build + deploy the semantic layer (wrenai_mdl/mdl/semantic_layer.yaml) on the 2nd stack
 	cd bench && ../$(PY) wren_mdl.py
+
+# The 2nd stack serves two systems by switching ONE wren-ai-service setting (same project/MDL/instructions):
+#   wrenai_mdl          = variant "semantic" (upstream defaults)            -> make wren-mdl-restore
+#   wrenai_mdl_noreason = variant "noreason" (allow_sql_generation_reasoning: false) -> make wren-mdl-noreason
+wren-mdl-noreason:                     ## switch the 2nd stack to the no-reasoning variant (system wrenai_mdl_noreason)
+	$(PY) bench/render_config.py --mdl-variant noreason
+	$(MAKE) --no-print-directory _wren-mdl-reload
+
+wren-mdl-restore:                      ## switch the 2nd stack back to the default semantic-layer variant (system wrenai_mdl)
+	$(PY) bench/render_config.py --mdl-variant semantic
+	$(MAKE) --no-print-directory _wren-mdl-reload
+
+_wren-mdl-reload:
+	$(WRENMDL) up -d --force-recreate wren-ai-service
+	@printf "waiting for wren-ai-service "; for i in $$(seq 1 90); do curl -sf -o /dev/null http://localhost:5556/health && break; printf .; sleep 2; done; echo " ok"
+	cd bench && ../$(PY) wren_mdl.py --redeploy
 
 report:                                ## combined 4-system report -> results/combined_summary.md + results/summary.png
 	$(PY) bench/combine.py

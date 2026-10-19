@@ -1,4 +1,4 @@
-# nl2sql-bench — WrenAI (out of the box / + semantic layer) vs DB-GPT vs Cube Core (+LLM adapter)
+# nl2sql-bench — WrenAI (out of the box / + semantic layer / + semantic layer, no reasoning) vs DB-GPT vs Cube Core (+LLM adapter)
 
 Same natural-language questions, same Postgres database, same LLM, measured the same way.
 
@@ -6,6 +6,7 @@ Same natural-language questions, same Postgres database, same LLM, measured the 
 |---|---|---|
 | **WrenAI 0.29.2 (out of the box)** — system `wrenai` (official docker compose) | NL → SQL; project = tables + PK/FK relationships only | `POST http://localhost:3000/api/v1/generate_sql` `{question, returnSqlDialect:true}` (wren-ui wraps wren-ai-service `/v1/asks` + polling; ibis converts Wren SQL to native Postgres SQL) |
 | **WrenAI 0.29.2 + semantic layer** — system `wrenai_mdl` (2nd, identical WrenAI stack, compose project `wrenai-mdl`) | NL → SQL; project additionally carries the MDL in `wrenai_mdl/mdl/semantic_layer.yaml` (see below) | `POST http://localhost:3001/api/v1/generate_sql` (same API) |
+| **WrenAI 0.29.2 + semantic layer, no reasoning** — system `wrenai_mdl_noreason` (same 2nd stack, switched with `make wren-mdl-noreason`) | identical to `wrenai_mdl` except wren-ai-service setting `allow_sql_generation_reasoning: false` | `POST http://localhost:3001/api/v1/generate_sql` |
 | **DB-GPT 0.8.2** (official `dbgpt-openai` image + psycopg2) | NL → SQL (chat_data mode) | `POST http://localhost:5670/api/v2/chat/completions` `{chat_mode:"chat_data", chat_param:"chinook", stream:false}`; SQL is parsed out of the `<chart-view content=…>` block in the reply |
 | **Cube Core 1.8.8 + LLM adapter (harness-built)** | Cube Core has **no OSS NL interface** (the AI API / D3 is Cube Cloud-only; OSS v1.8.8 api-gateway only has `/v1/load, /sql, /meta, /cubesql, /dry-run, …`). The harness gives the same LLM the `/v1/meta` model + join list and asks for a Cube REST query JSON (1 self-correction retry on Cube errors) | `POST http://localhost:4000/cubejs-api/v1/load` |
 
@@ -29,7 +30,11 @@ make mock                        # dry run without any LLM key (mock WrenAI/DB-G
 make bench SYSTEMS=wrenai,dbgpt  # subset of systems
 make wren-mdl                    # (after make up) start 2nd WrenAI stack (:3001/:5556) + build/deploy the semantic layer
 make bench SYSTEMS=wrenai_mdl REPEATS=3
-make report                      # combined 4-system report → results/combined_summary.md + results/summary.png
+make wren-mdl-noreason           # switch 2nd stack to the no-reasoning variant, then:
+make bench SYSTEMS=wrenai_mdl_noreason REPEATS=3
+make wren-mdl-restore            # switch back (wrenai_mdl); config.yaml is re-rendered byte-identically
+.venv/bin/python bench/stage_latency.py   # per-stage latency from wren-ai-service logs (see below)
+make report                      # combined 5-system report → results/combined_summary.md + results/summary.png
 make down / make clean           # stop / stop + delete volumes
 ```
 
@@ -65,7 +70,8 @@ bench/questions.yaml        29 questions (8 easy / 9 medium / 12 hard) with gold
 bench/cube_reference_queries.yaml  hand-written Cube queries proving the model covers 23/29 questions
 bench/harness.py            runner, scoring, report     bench/clients.py  per-system API clients
 bench/setup_connections.py  connects tools to the DB    bench/verify_gold.py, bench/probe.py
-bench/wren_mdl.py           builds/deploys the Wren semantic layer   bench/combine.py  combined 4-system report + summary.png
+bench/wren_mdl.py           builds/deploys the Wren semantic layer   bench/combine.py  combined 5-system report + summary.png
+bench/stage_latency.py      per-stage WrenAI latency from wren-ai-service logs (+ llm-meter timing events)
 ```
 
 ## WrenAI + semantic layer (`wrenai_mdl`)
@@ -106,6 +112,34 @@ instructions are things a real modeller of Chinook would add, and some of them c
 `genre.track_count`, `artist.album_count`, `album.track_count`, `playlist.track_count`, the revenue definition, the ties/LIMIT rules) — that
 is the intended benefit of a semantic layer, but it means the comparison measures "WrenAI with a sensible, Chinook-aware model", authored
 by someone who had seen the question set.
+
+## WrenAI + semantic layer, no reasoning (`wrenai_mdl_noreason`)
+
+One change versus `wrenai_mdl`: wren-ai-service `settings.allow_sql_generation_reasoning: false` (a documented setting in WrenAI
+0.29.2's `docker/config.example.yaml`, read by `src/config.py` → `AskService`; when false, `ask.py` skips the
+`sql_generation_reasoning` pipeline and calls SQL generation with `sql_generation_reasoning=None`). Intent classification,
+retrieval, SQL functions/knowledge retrieval, correction, the project, deployed MDL, instructions, LLM, embeddings and wren-ui
+(1 s polling) are unchanged.
+
+How the switch works (`bench/render_config.py --mdl-variant {semantic|noreason}`, Make targets `wren-mdl-noreason` /
+`wren-mdl-restore`):
+* re-renders `wrenai_mdl/config.yaml`; the only diff is that setting plus the llm-meter prefix (`/wrenmdlnr/` instead of `/wrenmdl/`)
+  so tokens are attributed separately (the meter strips the prefix; upstream requests are identical);
+* recreates `wren-ai-service` (its qdrant collections are recreated at start, `recreate_index: true`), re-deploys the unchanged
+  project and re-indexes the 9 instructions (`bench/wren_mdl.py --redeploy`), and fails unless the deployed MDL hash equals
+  `wrenai_mdl/mdl/deployed_mdl.json` (453930b9…) and qdrant holds 9 instructions / 0 SQL pairs;
+* writes `wrenai_mdl/.variant`; the harness refuses to run `wrenai_mdl` while `noreason` is live and vice versa.
+* `make wren-mdl-restore` (or `make render`) renders the default variant; the restored `wrenai_mdl/config.yaml` has the same sha256
+  (4f09a2c0…) as during the `wrenai_mdl` benchmark run (with the same `.env`).
+
+Verification: in the benchmark run the "SQL Generation Reasoning pipeline is running" line appears 0 times in the wren-ai-service log
+(vs 87/87 attempts for `wrenai_mdl`); "Intent Classification pipeline" ran 87/87.
+
+**Per-stage latency** (`bench/stage_latency.py` → `results/stage-latency/stage_latency.md`, `stages.csv`): stage boundaries
+come from wren-ai-service's "… pipeline is running" log lines; the end of an ask is not logged, it is seen at wren-ui's last
+`GET /v1/asks/<id>/result` poll. For the no-reasoning run llm-meter also recorded per-request timing (`GET /meter/events`,
+saved as `results/stage-latency/wrenai_mdl_noreason.meter-events.json`), which measures the gap between the last LLM call ending
+and the poll that picks the result up. Raw logs are saved next to it.
 
 ## Metrics
 * **EX exact**: result multiset equals gold (column order free; numbers rounded to 2 dp; dates normalised; row order checked only for `order_matters` questions, on the sort key so ties don't count). **EX relaxed**: additionally allows extra columns.

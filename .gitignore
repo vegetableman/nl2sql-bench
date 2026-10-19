@@ -12,3 +12,6 @@ wrenai_mdl/.env
 wrenai_mdl/config.yaml
 !results/run-gptoss120b-wrenmdl-r3/
 !results/combined_summary.md
+wrenai_mdl/.variant
+!results/run-gptoss120b-wrenmdl-noreason-r3/
+!results/stage-latency/

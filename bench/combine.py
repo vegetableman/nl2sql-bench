@@ -9,9 +9,11 @@ ENV = load_env()
 R = ROOT / "results"
 ACC_RUNS = {  # system -> run dir used for accuracy/latency
     "wrenai": "run-gptoss120b-r3", "wrenai_mdl": "run-gptoss120b-wrenmdl-r3",
+    "wrenai_mdl_noreason": "run-gptoss120b-wrenmdl-noreason-r3",
     "dbgpt": "run-gptoss120b-r3", "cube": "run-gptoss120b-r3"}
 TOK_RUNS = {**ACC_RUNS, "wrenai": "run-gptoss120b-wren-tokens"}  # OOTB Wren tokens were lost in r3 (meter-key bug)
 LABEL = {"wrenai": "WrenAI 0.29.2 (out of the box)", "wrenai_mdl": "WrenAI 0.29.2 + semantic layer",
+         "wrenai_mdl_noreason": "WrenAI 0.29.2 + semantic layer, no reasoning",
          "dbgpt": "DB-GPT 0.8.2", "cube": "Cube Core 1.8.8 + LLM adapter (harness-built)"}
 SYSTEMS = list(ACC_RUNS)
 EMO = {"correct": "✅", "correct_extra_cols": "🟡", "wrong_result": "❌", "exec_error": "💥", "tool_error": "⚠️", "unsupported": "⛔", "timeout": "⏱️"}
@@ -33,15 +35,18 @@ qs = yaml.safe_load(open(ROOT / "bench" / "questions.yaml"))
 qs = qs["questions"] if isinstance(qs, dict) else qs
 runs = lambda s: sorted({r["run"] for r in rows[s]}, key=int)
 
-L = ["# nl2sql-bench — combined report (4 systems)", "",
+L = ["# nl2sql-bench — combined report (5 systems)", "",
      f"- Generated {dt.datetime.now(ZoneInfo('Asia/Kolkata')).strftime('%Y-%m-%d %H:%M')} IST by `bench/combine.py` from: "
      + ", ".join(f"`{s}` ← `results/{ACC_RUNS[s]}`" for s in SYSTEMS),
      f"- Chinook on Postgres 16.4, {len(qs)} questions x 3 runs per system; LLM `{ENV['LLM_MODEL']}` via `{ENV['LLM_UPSTREAM_BASE']}`, "
      f"embeddings `{ENV['EMBEDDING_MODEL']}` (local ollama); same scorer, 180 s per-call cap, tokens via llm-meter.",
      "- `wrenai` (OOTB) and `wrenai_mdl` are two separate WrenAI 0.29.2 stacks with identical images/config; the only difference is the "
      "semantic layer in `wrenai_mdl/mdl/semantic_layer.yaml` (descriptions, relationship descriptions, 9 calculated fields, 9 generic instructions; no SQL pairs, no views).",
+     "- `wrenai_mdl_noreason` = the same 2nd stack, same project / deployed MDL (hash checked) / instructions, with the single wren-ai-service setting "
+     "`allow_sql_generation_reasoning: false` (`make wren-mdl-noreason`; `make wren-mdl-restore` switches back). Intent classification stays on. "
+     "Per-stage timings: `results/stage-latency/stage_latency.md`.",
      "- OOTB WrenAI tokens come from the separate 1-run re-measure `results/run-gptoss120b-wren-tokens` (r3 lost them to a meter-key bug); all other token numbers come from the accuracy runs.",
-     "- The OOTB/DB-GPT/Cube runs were executed earlier the same day than the `wrenai_mdl` run — Ollama Cloud latency may differ between sessions. WrenAI latencies cluster at ~1 s steps (6.06, 7.06 s …) because wren-ui polls the ai-service about once per second, so Wren p50 differences of ~1 s are within that granularity.", "",
+     "- The OOTB/DB-GPT/Cube runs, the `wrenai_mdl` run and the `wrenai_mdl_noreason` run were executed sequentially at different times the same day — Ollama Cloud latency may differ between sessions. WrenAI latencies cluster at ~1 s steps (6.06, 7.06 s …) because wren-ui polls the ai-service about once per second, so Wren p50 differences of ~1 s are within that granularity.", "",
      "## Overall", "",
      "| System | EX exact | EX relaxed | wrong | exec err | tool err | timeout | unsupported | p50 s | p95 s | mean s | avg prompt tok | avg completion tok | avg LLM calls | token source |",
      "|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|"]
@@ -74,33 +79,45 @@ for s in SYSTEMS:
     L.append(f"| {LABEL[s]} | {' / '.join(map(str, per))} | {statistics.mean(per):.1f} ± {statistics.stdev(per):.1f} | "
              f"{len(mixed)} ({', '.join(mixed) or '-'}) | {' / '.join(f'{x:.2f}' for x in p50s)} |")
 
-# OOTB vs MDL per question
-L += ["", "## WrenAI: out of the box vs + semantic layer (per question, EX exact over 3 runs)", "",
-      "| id | diff | question | OOTB | +MDL | OOTB statuses | +MDL statuses | change |", "|---|---|---|---|---|---|---|---|"]
-fixed, broke, better, worse = [], [], [], []
-for q in qs:
-    a = [r for r in rows["wrenai"] if r["id"] == q["id"]]; b = [r for r in rows["wrenai_mdl"] if r["id"] == q["id"]]
-    ea, eb = sum(T(r["exact"]) for r in a), sum(T(r["exact"]) for r in b)
-    if ea == eb:
-        ch = ""
-    elif ea == 0 and eb == len(b):
-        ch = "**fixed**"; fixed.append(q["id"])
-    elif eb == 0 and ea == len(a):
-        ch = "**broke**"; broke.append(q["id"])
-    elif eb > ea:
-        ch = "better"; better.append(q["id"])
-    else:
-        ch = "worse"; worse.append(q["id"])
-    L.append(f"| {q['id']} | {q['difficulty']} | {q['question'][:70]} | {ea}/{len(a)} | {eb}/{len(b)} | "
-             f"{' '.join(EMO.get(r['status'],'?') for r in a)} | {' '.join(EMO.get(r['status'],'?') for r in b)} | {ch} |")
-L += ["", f"- fixed (0/3 → 3/3): {', '.join(fixed) or 'none'}; broke (3/3 → 0/3): {', '.join(broke) or 'none'}",
-      f"- partially better: {', '.join(better) or 'none'}; partially worse: {', '.join(worse) or 'none'}", ""]
+# pairwise per-question comparisons
+def pairwise(A, B, title):
+    global L
+    L += ["", f"## {title} (per question, EX exact over 3 runs)", "",
+          f"| id | diff | question | {A} | {B} | {A} statuses | {B} statuses | change |", "|---|---|---|---|---|---|---|---|"]
+    fixed, broke, better, worse = [], [], [], []
+    for q in qs:
+        a = [r for r in rows[A] if r["id"] == q["id"]]; b = [r for r in rows[B] if r["id"] == q["id"]]
+        ea, eb = sum(T(r["exact"]) for r in a), sum(T(r["exact"]) for r in b)
+        if ea == eb:
+            ch = ""
+        elif ea == 0 and eb == len(b):
+            ch = "**fixed**"; fixed.append(q["id"])
+        elif eb == 0 and ea == len(a):
+            ch = "**broke**"; broke.append(q["id"])
+        elif eb > ea:
+            ch = "better"; better.append(q["id"])
+        else:
+            ch = "worse"; worse.append(q["id"])
+        L.append(f"| {q['id']} | {q['difficulty']} | {q['question'][:70]} | {ea}/{len(a)} | {eb}/{len(b)} | "
+                 f"{' '.join(EMO.get(r['status'],'?') for r in a)} | {' '.join(EMO.get(r['status'],'?') for r in b)} | {ch} |")
+    L += ["", f"- fixed (0/3 → 3/3): {', '.join(fixed) or 'none'}; broke (3/3 → 0/3): {', '.join(broke) or 'none'}",
+          f"- partially better: {', '.join(better) or 'none'}; partially worse: {', '.join(worse) or 'none'}", ""]
 
-# failure details for MDL
-L += ["## WrenAI + semantic layer: every non-exact attempt", "", "| run | id | status | reason / error |", "|---|---|---|---|"]
-for r in rows["wrenai_mdl"]:
-    if not T(r["exact"]):
-        L.append(f"| {r['run']} | {r['id']} | {r['status']} | {(r['reason'] or r['error'] or '')[:160].replace('|','/').replace(chr(10),' ')} |")
+
+pairwise("wrenai", "wrenai_mdl", "WrenAI: out of the box (wrenai) vs + semantic layer (wrenai_mdl)")
+pairwise("wrenai_mdl", "wrenai_mdl_noreason", "WrenAI + semantic layer: with reasoning (wrenai_mdl) vs no reasoning (wrenai_mdl_noreason)")
+
+# failure details for the semantic-layer variants
+for S in ("wrenai_mdl", "wrenai_mdl_noreason"):
+    L += [f"## {LABEL[S]}: every non-exact attempt", "", "| run | id | status | reason / error |", "|---|---|---|---|"]
+    for r in rows[S]:
+        if not T(r["exact"]):
+            L.append(f"| {r['run']} | {r['id']} | {r['status']} | {(r['reason'] or r['error'] or '')[:160].replace('|','/').replace(chr(10),' ')} |")
+    L.append("")
+
+stage = R / "stage-latency" / "stage_latency.md"
+if stage.exists():
+    L += ["## WrenAI per-stage latency (wrenai_mdl vs wrenai_mdl_noreason)", ""] + stage.read_text().split("\n", 2)[2].strip().split("\n") + [""]
 
 L += ["", "## Per question, all systems (status per run)", "", "| id | diff | " + " | ".join(LABEL[s] for s in SYSTEMS) + " |", "|---|---|" + "---|" * len(SYSTEMS)]
 for q in qs:
@@ -112,18 +129,19 @@ print("\n".join(L))
 
 # chart
 import matplotlib; matplotlib.use("Agg"); import matplotlib.pyplot as plt
-short = {"wrenai": "WrenAI 0.29.2\n(out of the box)", "wrenai_mdl": "WrenAI 0.29.2\n+ semantic layer", "dbgpt": "DB-GPT 0.8.2",
+short = {"wrenai": "WrenAI 0.29.2\n(out of the box)", "wrenai_mdl": "WrenAI 0.29.2\n+ semantic layer",
+         "wrenai_mdl_noreason": "WrenAI 0.29.2\n+ sem. layer,\nno reasoning", "dbgpt": "DB-GPT 0.8.2",
          "cube": "Cube Core 1.8.8\n+ LLM adapter (harness)"}
-fig, ax = plt.subplots(1, 3, figsize=(19, 5.5)); x = range(len(SYSTEMS)); w = 0.38
+fig, ax = plt.subplots(1, 3, figsize=(21, 6)); x = range(len(SYSTEMS)); w = 0.38
 ex = [100 * sum(T(r["exact"]) for r in rows[s]) / len(rows[s]) for s in SYSTEMS]
 rx = [100 * sum(T(r["relaxed"]) for r in rows[s]) / len(rows[s]) for s in SYSTEMS]
 b1 = ax[0].bar([i - w/2 for i in x], ex, w, label="EX strict"); b2 = ax[0].bar([i + w/2 for i in x], rx, w, label="EX relaxed")
 ax[0].bar_label(b1, fmt="%.0f%%"); ax[0].bar_label(b2, fmt="%.0f%%")
 ax[0].set_xticks(list(x), [short[s] for s in SYSTEMS], fontsize=8); ax[0].set_ylim(0, 108); ax[0].set_title("Execution accuracy (29 q x 3 runs)"); ax[0].legend(loc="lower left")
-w4 = 0.2
+w4 = 0.16
 for k, s in enumerate(SYSTEMS):
     v = [100 * sum(T(r["exact"]) for r in rows[s] if r["difficulty"] == d) / sum(r["difficulty"] == d for r in rows[s]) for d in ("easy", "medium", "hard")]
-    bb = ax[1].bar([i + (k - 1.5) * w4 for i in range(3)], v, w4, label=short[s].replace("\n", " ")); ax[1].bar_label(bb, fmt="%.0f", fontsize=7)
+    bb = ax[1].bar([i + (k - (len(SYSTEMS) - 1) / 2) * w4 for i in range(3)], v, w4, label=short[s].replace("\n", " ")); ax[1].bar_label(bb, fmt="%.0f", fontsize=6)
 ax[1].set_xticks(range(3), ["easy", "medium", "hard"]); ax[1].set_ylim(0, 135); ax[1].set_title("EX strict by difficulty (%)"); ax[1].legend(fontsize=7, loc="upper center", ncol=2)
 p50 = [pct([float(r["latency_s"]) for r in rows[s]], 50) for s in SYSTEMS]; p95 = [pct([float(r["latency_s"]) for r in rows[s]], 95) for s in SYSTEMS]
 c1 = ax[2].bar([i - w/2 for i in x], p50, w, label="p50"); c2 = ax[2].bar([i + w/2 for i in x], p95, w, label="p95")

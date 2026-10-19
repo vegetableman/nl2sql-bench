@@ -5,7 +5,10 @@
 4. global instructions                                                     (createInstruction)
 5. deploy and require status SUCCESS; dump the deployed MDL to wrenai_mdl/mdl/deployed_mdl.json
 Idempotent: re-running skips calculated fields / instructions that already exist.
-Usage: python bench/wren_mdl.py [--force]   (--force re-onboards the project from scratch)"""
+Usage: python bench/wren_mdl.py [--force]   (--force re-onboards the project from scratch)
+       python bench/wren_mdl.py --redeploy  (after wren-ai-service was recreated, e.g. a variant switch: its qdrant
+       collections are recreated at start (recreate_index: true), so re-deploy the unchanged project and re-index the
+       existing instructions; verifies the MDL hash equals wrenai_mdl/mdl/deployed_mdl.json and the index counts)"""
 import argparse, json, sys, time
 import httpx, yaml
 import setup_connections as sc
@@ -27,8 +30,40 @@ def diagram(c):
         relationFields { relationId fromModelName fromColumnName toModelName toColumnName } } } }""")["diagram"]["models"]
 
 
+def qdrant_counts():
+    import subprocess
+    out = {}
+    for col in ("table_descriptions", "Document", "instructions", "sql_pairs", "view_questions"):
+        r = subprocess.run(["docker", "exec", "wrenai-mdl-wren-ai-service-1", "python", "-c",
+                            f"import urllib.request,json;print(json.load(urllib.request.urlopen('http://qdrant:6333/collections/{col}'))['result']['points_count'])"],
+                           capture_output=True, text=True)
+        out[col] = int(r.stdout.strip()) if r.returncode == 0 and r.stdout.strip().isdigit() else None
+    return out
+
+
+def redeploy():
+    with httpx.Client(timeout=300) as c:
+        d = g(c, "mutation{ deploy(force:true) }")["deploy"]
+        if d.get("status") != "SUCCESS":
+            sys.exit(f"[mdl] DEPLOY FAILED {d}")
+        ins = g(c, "{ instructions { id instruction questions isDefault } }")["instructions"]
+        for i in ins:  # no-op update -> wren-ui re-sends the instruction to wren-ai-service for indexing
+            g(c, "mutation($w: InstructionWhereInput!, $d: UpdateInstructionInput!){ updateInstruction(where:$w, data:$d){ id } }",
+              {"w": {"id": i["id"]}, "d": {"instruction": i["instruction"], "questions": i["questions"], "isDefault": i["isDefault"]}})
+    want = json.loads((ROOT / "wrenai_mdl" / "mdl" / "deployed_mdl.json").read_text())["hash"]
+    got = httpx.get(f"{URL}/api/v1/models", timeout=60).json()["hash"]
+    counts = qdrant_counts()
+    print(f"[mdl] redeployed; MDL hash {got} ({'== deployed_mdl.json' if got == want else 'DIFFERS from ' + want}); "
+          f"instructions re-indexed {len(ins)}; qdrant {counts}")
+    if got != want or counts.get("instructions") != len(SPEC["instructions"]) or counts.get("sql_pairs") != 0:
+        sys.exit("[mdl] redeploy verification FAILED")
+
+
 def main():
-    ap = argparse.ArgumentParser(); ap.add_argument("--force", action="store_true"); a = ap.parse_args()
+    ap = argparse.ArgumentParser(); ap.add_argument("--force", action="store_true")
+    ap.add_argument("--redeploy", action="store_true"); a = ap.parse_args()
+    if a.redeploy:
+        return redeploy()
     # 1. data source: the second stack reaches Postgres via the host's published port
     sc.WREN = URL
     sc.PG = {**sc.PG, "host": "host.docker.internal", "port": int(env.get("PG_HOST_PORT", "5432"))}

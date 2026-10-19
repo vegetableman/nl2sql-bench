@@ -7,10 +7,10 @@ import argparse, concurrent.futures as cf, csv, datetime as dt, json, statistics
 import httpx, psycopg, yaml
 from zoneinfo import ZoneInfo
 from common import ROOT, load_env, compare
-from clients import WrenClient, WrenMDLClient, DBGPTClient, CubeClient, MockSQLClient
+from clients import WrenClient, WrenMDLClient, WrenMDLNoReasonClient, DBGPTClient, CubeClient, MockSQLClient
 
-METER_KEY = {"wrenai": "wren", "wrenai_mdl": "wrenmdl"}  # llm-meter path prefix per system
-LABELS = {"wrenai": "WrenAI 0.29.2 (out of the box)", "wrenai_mdl": "WrenAI 0.29.2 + semantic layer", "dbgpt": "DB-GPT 0.8.2", "cube": "Cube Core 1.8.8 + LLM adapter (harness-built)"}
+METER_KEY = {"wrenai": "wren", "wrenai_mdl": "wrenmdl", "wrenai_mdl_noreason": "wrenmdlnr"}  # llm-meter path prefix per system
+LABELS = {"wrenai": "WrenAI 0.29.2 (out of the box)", "wrenai_mdl": "WrenAI 0.29.2 + semantic layer", "wrenai_mdl_noreason": "WrenAI 0.29.2 + semantic layer, no reasoning", "dbgpt": "DB-GPT 0.8.2", "cube": "Cube Core 1.8.8 + LLM adapter (harness-built)"}
 
 
 def run_sql(conn, sql, limit_rows=100000):
@@ -70,6 +70,16 @@ def main():
     if not a.mock and not env.get("LLM_API_KEY"):
         sys.exit("LLM_API_KEY is not set (in .env or environment). Use --mock for a dry run.")
 
+    # wrenai_mdl and wrenai_mdl_noreason share the 2nd Wren stack; refuse to run one while the other variant is live
+    want = {"wrenai_mdl": "semantic", "wrenai_mdl_noreason": "noreason"}
+    live = (ROOT / "wrenai_mdl" / ".variant").read_text().strip() if (ROOT / "wrenai_mdl" / ".variant").exists() else "semantic"
+    for s in systems:
+        if s in want and not a.mock and want[s] != live:
+            sys.exit(f"{s} needs the '{want[s]}' variant of the 2nd Wren stack but '{live}' is live "
+                     f"(make {'wren-mdl-restore' if want[s] == 'semantic' else 'wren-mdl-noreason'})")
+        if s in want and not a.mock and want[s] == "noreason" and "wrenai_mdl" in systems:
+            sys.exit("wrenai_mdl and wrenai_mdl_noreason cannot run in the same invocation")
+
     clients = {}
     for s in systems:
         if s == "cube":
@@ -77,7 +87,7 @@ def main():
         elif a.mock:
             clients[s] = MockSQLClient(s, qs)
         else:
-            clients[s] = {"wrenai": WrenClient, "wrenai_mdl": WrenMDLClient, "dbgpt": DBGPTClient}[s](env)
+            clients[s] = {"wrenai": WrenClient, "wrenai_mdl": WrenMDLClient, "wrenai_mdl_noreason": WrenMDLNoReasonClient, "dbgpt": DBGPTClient}[s](env)
 
     run_id = a.out or (dt.datetime.now().strftime("%Y%m%d-%H%M%S") + ("-mock" if a.mock else ""))
     out = ROOT / "results" / run_id
@@ -107,6 +117,7 @@ def main():
                 rl_retries = 0
                 while True:
                     before = meter_totals(env)
+                    t_wall0 = time.time()
                     t0 = time.perf_counter()
                     fut = pool.submit(lambda: c.generate(q["question"], qid=q["id"]) if s == "cube" else c.generate(q["question"]))
                     try:
@@ -150,7 +161,7 @@ def main():
                     rec.update(exact=cmp["exact"], relaxed=cmp["relaxed"], reason=cmp["reason"],
                                status="correct" if cmp["exact"] else ("correct_extra_cols" if cmp["relaxed"] else "wrong_result"))
                 rows.append(rec)
-                raw.write(json.dumps({**rec, "raw": res.get("raw"), "compiled_sql": (c.compiled_sql(res["cube_query"]) if s == "cube" and res.get("cube_query") and not a.mock else None)}, ensure_ascii=False, default=str) + "\n")
+                raw.write(json.dumps({**rec, "t_start_epoch": round(t_wall0, 3), "t_end_epoch": round(t_wall0 + latency, 3), "raw": res.get("raw"), "compiled_sql": (c.compiled_sql(res["cube_query"]) if s == "cube" and res.get("cube_query") and not a.mock else None)}, ensure_ascii=False, default=str) + "\n")
                 raw.flush()
                 print(f"[run {rep}] {q['id']:4} {s:7} {rec['status']:18} {latency:6.2f}s {rec['error'][:90]}", flush=True)
     raw.close()

@@ -8,6 +8,7 @@ Routes
   /{tool}/v1/{path}   forwarded to LLM_UPSTREAM_BASE/{path}
                       (or EMBEDDING_UPSTREAM_BASE when path starts with 'embeddings')
   GET /meter/totals   cumulative counters per tool
+  GET /meter/events   per-request timing log [{tool, kind, t_start, t_end, status}] (epoch s; ?tool=&since=)
   POST /meter/reset   zero the counters
   GET /health
 The Authorization header from the caller is forwarded untouched; this proxy never logs it.
@@ -15,6 +16,8 @@ The Authorization header from the caller is forwarded untouched; this proxy neve
 import json
 import os
 import threading
+import time
+from collections import deque
 from collections import defaultdict
 
 import httpx
@@ -34,6 +37,7 @@ def _blank():
 
 
 COUNTERS = defaultdict(_blank)
+EVENTS = deque(maxlen=20000)  # timing only; no headers/bodies are stored
 client = httpx.AsyncClient(timeout=httpx.Timeout(300.0, connect=20.0))
 HOP = {"host", "content-length", "connection", "accept-encoding", "transfer-encoding"}
 
@@ -76,6 +80,7 @@ async def proxy(request: Request):
     if request.url.query:
         url += "?" + request.url.query
     req = client.build_request(request.method, url, headers=headers, content=body)
+    t0 = time.time()
     up = await client.send(req, stream=True)
     if up.status_code >= 400:
         with _lock:
@@ -96,9 +101,11 @@ async def proxy(request: Request):
                         except Exception:
                             pass
             await up.aclose()
+            EVENTS.append({"tool": tool, "kind": kind, "t_start": t0, "t_end": time.time(), "status": up.status_code})
         return StreamingResponse(gen(), status_code=up.status_code, headers=rh)
     data = await up.aread()
     await up.aclose()
+    EVENTS.append({"tool": tool, "kind": kind, "t_start": t0, "t_end": time.time(), "status": up.status_code})
     try:
         _add(tool, json.loads(data).get("usage"), kind)
     except Exception:
@@ -109,6 +116,11 @@ async def proxy(request: Request):
 async def totals(_):
     with _lock:
         return JSONResponse({k: dict(v) for k, v in COUNTERS.items()})
+
+
+async def events(request: Request):
+    tool = request.query_params.get("tool"); since = float(request.query_params.get("since", 0))
+    return JSONResponse([e for e in list(EVENTS) if (not tool or e["tool"] == tool) and e["t_start"] >= since])
 
 
 async def reset(_):
@@ -125,5 +137,6 @@ app = Starlette(routes=[
     Route("/health", health),
     Route("/meter/totals", totals),
     Route("/meter/reset", reset, methods=["POST"]),
+    Route("/meter/events", events),
     Route("/{tool}/v1/{path:path}", proxy, methods=["GET", "POST", "PUT", "DELETE"]),
 ])

@@ -1,10 +1,11 @@
-# nl2sql-bench — combined report (4 systems)
+# nl2sql-bench — combined report (5 systems)
 
-- Generated 2026-10-19 15:35 IST by `bench/combine.py` from: `wrenai` ← `results/run-gptoss120b-r3`, `wrenai_mdl` ← `results/run-gptoss120b-wrenmdl-r3`, `dbgpt` ← `results/run-gptoss120b-r3`, `cube` ← `results/run-gptoss120b-r3`
+- Generated 2026-10-19 16:06 IST by `bench/combine.py` from: `wrenai` ← `results/run-gptoss120b-r3`, `wrenai_mdl` ← `results/run-gptoss120b-wrenmdl-r3`, `wrenai_mdl_noreason` ← `results/run-gptoss120b-wrenmdl-noreason-r3`, `dbgpt` ← `results/run-gptoss120b-r3`, `cube` ← `results/run-gptoss120b-r3`
 - Chinook on Postgres 16.4, 29 questions x 3 runs per system; LLM `gpt-oss:120b` via `https://ollama.com/v1`, embeddings `nomic-embed-text` (local ollama); same scorer, 180 s per-call cap, tokens via llm-meter.
 - `wrenai` (OOTB) and `wrenai_mdl` are two separate WrenAI 0.29.2 stacks with identical images/config; the only difference is the semantic layer in `wrenai_mdl/mdl/semantic_layer.yaml` (descriptions, relationship descriptions, 9 calculated fields, 9 generic instructions; no SQL pairs, no views).
+- `wrenai_mdl_noreason` = the same 2nd stack, same project / deployed MDL (hash checked) / instructions, with the single wren-ai-service setting `allow_sql_generation_reasoning: false` (`make wren-mdl-noreason`; `make wren-mdl-restore` switches back). Intent classification stays on. Per-stage timings: `results/stage-latency/stage_latency.md`.
 - OOTB WrenAI tokens come from the separate 1-run re-measure `results/run-gptoss120b-wren-tokens` (r3 lost them to a meter-key bug); all other token numbers come from the accuracy runs.
-- The OOTB/DB-GPT/Cube runs were executed earlier the same day than the `wrenai_mdl` run — Ollama Cloud latency may differ between sessions. WrenAI latencies cluster at ~1 s steps (6.06, 7.06 s …) because wren-ui polls the ai-service about once per second, so Wren p50 differences of ~1 s are within that granularity.
+- The OOTB/DB-GPT/Cube runs, the `wrenai_mdl` run and the `wrenai_mdl_noreason` run were executed sequentially at different times the same day — Ollama Cloud latency may differ between sessions. WrenAI latencies cluster at ~1 s steps (6.06, 7.06 s …) because wren-ui polls the ai-service about once per second, so Wren p50 differences of ~1 s are within that granularity.
 
 ## Overall
 
@@ -12,6 +13,7 @@
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | WrenAI 0.29.2 (out of the box) | 79/87 (91%) | 81/87 (93%) | 4 | 2 | 0 | 0 | 0 | 7.06 | 9.09 | 6.97 | 14,572 | 1,058 | 3.0 | run-gptoss120b-wren-tokens (29 rows) |
 | WrenAI 0.29.2 + semantic layer | 81/87 (93%) | 84/87 (97%) | 2 | 1 | 0 | 0 | 0 | 6.08 | 9.08 | 6.87 | 24,888 | 962 | 3.0 | run-gptoss120b-wrenmdl-r3 (87 rows) |
+| WrenAI 0.29.2 + semantic layer, no reasoning | 86/87 (99%) | 87/87 (100%) | 0 | 0 | 0 | 0 | 0 | 4.05 | 6.07 | 4.29 | 20,941 | 604 | 2.0 | run-gptoss120b-wrenmdl-noreason-r3 (87 rows) |
 | DB-GPT 0.8.2 | 81/87 (93%) | 81/87 (93%) | 3 | 3 | 0 | 0 | 0 | 1.95 | 3.65 | 2.18 | 1,684 | 338 | 1.0 | run-gptoss120b-r3 (87 rows) |
 | Cube Core 1.8.8 + LLM adapter (harness-built) | 58/87 (67%) | 65/87 (75%) | 7 | 0 | 0 | 0 | 15 | 1.64 | 3.34 | 1.92 | 1,336 | 276 | 1.0 | run-gptoss120b-r3 (87 rows) |
 
@@ -21,6 +23,7 @@
 |---|---|---|---|
 | WrenAI 0.29.2 (out of the box) | 24/24 (100%) | 23/27 (85%) | 32/36 (89%) |
 | WrenAI 0.29.2 + semantic layer | 23/24 (96%) | 25/27 (93%) | 33/36 (92%) |
+| WrenAI 0.29.2 + semantic layer, no reasoning | 23/24 (96%) | 27/27 (100%) | 36/36 (100%) |
 | DB-GPT 0.8.2 | 21/24 (88%) | 27/27 (100%) | 33/36 (92%) |
 | Cube Core 1.8.8 + LLM adapter (harness-built) | 19/24 (79%) | 23/27 (85%) | 16/36 (44%) |
 
@@ -30,12 +33,13 @@
 |---|---|---|---|---|
 | WrenAI 0.29.2 (out of the box) | 27 / 24 / 28 | 26.3 ± 2.1 | 5 (m03, h01, h10, h11, h12) | 7.06 / 7.06 / 7.06 |
 | WrenAI 0.29.2 + semantic layer | 25 / 28 / 28 | 27.0 ± 1.7 | 4 (e04, m08, h02, h09) | 6.07 / 7.06 / 7.06 |
+| WrenAI 0.29.2 + semantic layer, no reasoning | 28 / 29 / 29 | 28.7 ± 0.6 | 1 (e04) | 4.06 / 4.05 / 4.05 |
 | DB-GPT 0.8.2 | 27 / 27 / 27 | 27.0 ± 0.0 | 0 (-) | 1.96 / 1.92 / 2.03 |
 | Cube Core 1.8.8 + LLM adapter (harness-built) | 20 / 19 / 19 | 19.3 ± 0.6 | 4 (e04, m09, h08, h10) | 1.77 / 1.65 / 1.55 |
 
-## WrenAI: out of the box vs + semantic layer (per question, EX exact over 3 runs)
+## WrenAI: out of the box (wrenai) vs + semantic layer (wrenai_mdl) (per question, EX exact over 3 runs)
 
-| id | diff | question | OOTB | +MDL | OOTB statuses | +MDL statuses | change |
+| id | diff | question | wrenai | wrenai_mdl | wrenai statuses | wrenai_mdl statuses | change |
 |---|---|---|---|---|---|---|---|
 | e01 | easy | How many tracks are there in total? | 3/3 | 3/3 | ✅ ✅ ✅ | ✅ ✅ ✅ |  |
 | e02 | easy | List the names of all music genres. | 3/3 | 3/3 | ✅ ✅ ✅ | ✅ ✅ ✅ |  |
@@ -70,7 +74,45 @@
 - fixed (0/3 → 3/3): m02; broke (3/3 → 0/3): none
 - partially better: m03, h01, h10, h11, h12; partially worse: e04, m08, h02, h09
 
-## WrenAI + semantic layer: every non-exact attempt
+
+## WrenAI + semantic layer: with reasoning (wrenai_mdl) vs no reasoning (wrenai_mdl_noreason) (per question, EX exact over 3 runs)
+
+| id | diff | question | wrenai_mdl | wrenai_mdl_noreason | wrenai_mdl statuses | wrenai_mdl_noreason statuses | change |
+|---|---|---|---|---|---|---|---|
+| e01 | easy | How many tracks are there in total? | 3/3 | 3/3 | ✅ ✅ ✅ | ✅ ✅ ✅ |  |
+| e02 | easy | List the names of all music genres. | 3/3 | 3/3 | ✅ ✅ ✅ | ✅ ✅ ✅ |  |
+| e03 | easy | How many customers are from Brazil? | 3/3 | 3/3 | ✅ ✅ ✅ | ✅ ✅ ✅ |  |
+| e04 | easy | Which tracks are longer than 20 minutes? Return the track names. | 2/3 | 2/3 | 🟡 ✅ ✅ | 🟡 ✅ ✅ |  |
+| e05 | easy | What is the highest unit price of any track? | 3/3 | 3/3 | ✅ ✅ ✅ | ✅ ✅ ✅ |  |
+| e06 | easy | List the first and last names of employees whose title is 'Sales Suppo | 3/3 | 3/3 | ✅ ✅ ✅ | ✅ ✅ ✅ |  |
+| e07 | easy | How many invoices were issued in the year 2023? | 3/3 | 3/3 | ✅ ✅ ✅ | ✅ ✅ ✅ |  |
+| e08 | easy | Which customers have a company listed? Return their first name, last n | 3/3 | 3/3 | ✅ ✅ ✅ | ✅ ✅ ✅ |  |
+| m01 | medium | How many tracks are there in each genre? Return the genre name and the | 3/3 | 3/3 | ✅ ✅ ✅ | ✅ ✅ ✅ |  |
+| m02 | medium | Which 5 artists have the most albums? Return the artist name and album | 3/3 | 3/3 | ✅ ✅ ✅ | ✅ ✅ ✅ |  |
+| m03 | medium | What are the total sales (sum of invoice totals) for each billing coun | 3/3 | 3/3 | ✅ ✅ ✅ | ✅ ✅ ✅ |  |
+| m04 | medium | Which customers are supported by the employee Jane Peacock? Return the | 3/3 | 3/3 | ✅ ✅ ✅ | ✅ ✅ ✅ |  |
+| m05 | medium | What is the average track length in minutes for each media type? Retur | 3/3 | 3/3 | ✅ ✅ ✅ | ✅ ✅ ✅ |  |
+| m06 | medium | Which albums have more than 20 tracks? Return the album title and the  | 3/3 | 3/3 | ✅ ✅ ✅ | ✅ ✅ ✅ |  |
+| m07 | medium | Which genre has the most tracks? Return the genre name. | 3/3 | 3/3 | ✅ ✅ ✅ | ✅ ✅ ✅ |  |
+| m08 | medium | How many tracks are in the playlist named '90’s Music'? | 1/3 | 3/3 | 🟡 ✅ 🟡 | ✅ ✅ ✅ | better |
+| m09 | medium | What is the total invoice revenue for each year? Return the year and r | 3/3 | 3/3 | ✅ ✅ ✅ | ✅ ✅ ✅ |  |
+| h01 | hard | What are the top 3 genres by sales revenue, where revenue is unit pric | 3/3 | 3/3 | ✅ ✅ ✅ | ✅ ✅ ✅ |  |
+| h02 | hard | For each sales support agent, what is the total invoice amount from th | 1/3 | 3/3 | ❌ ❌ ✅ | ✅ ✅ ✅ | better |
+| h03 | hard | Which customers have spent more in total than the average total spend  | 3/3 | 3/3 | ✅ ✅ ✅ | ✅ ✅ ✅ |  |
+| h04 | hard | For each country, which customer has the highest total spend? Include  | 3/3 | 3/3 | ✅ ✅ ✅ | ✅ ✅ ✅ |  |
+| h05 | hard | For each month of 2024, show the total invoice revenue and the previou | 3/3 | 3/3 | ✅ ✅ ✅ | ✅ ✅ ✅ |  |
+| h06 | hard | Which artists have tracks in more than 3 different genres? Return the  | 3/3 | 3/3 | ✅ ✅ ✅ | ✅ ✅ ✅ |  |
+| h07 | hard | How many tracks have never been purchased (never appear on any invoice | 3/3 | 3/3 | ✅ ✅ ✅ | ✅ ✅ ✅ |  |
+| h08 | hard | List every employee together with the name of the manager they report  | 3/3 | 3/3 | ✅ ✅ ✅ | ✅ ✅ ✅ |  |
+| h09 | hard | How many customers made at least one purchase in 2025 but made no purc | 2/3 | 3/3 | 💥 ✅ ✅ | ✅ ✅ ✅ | better |
+| h10 | hard | For each month of 2023, show the year-to-date running total of invoice | 3/3 | 3/3 | ✅ ✅ ✅ | ✅ ✅ ✅ |  |
+| h11 | hard | What percentage of total sales revenue (unit price times quantity) com | 3/3 | 3/3 | ✅ ✅ ✅ | ✅ ✅ ✅ |  |
+| h12 | hard | Which 5 artists generated the most sales revenue (unit price times qua | 3/3 | 3/3 | ✅ ✅ ✅ | ✅ ✅ ✅ |  |
+
+- fixed (0/3 → 3/3): none; broke (3/3 → 0/3): none
+- partially better: m08, h02, h09; partially worse: none
+
+## WrenAI 0.29.2 + semantic layer: every non-exact attempt
 
 | run | id | status | reason / error |
 |---|---|---|---|
@@ -81,38 +123,79 @@
 | 2 | h02 | wrong_result | row count 8 != gold 3 |
 | 3 | m08 | correct_extra_cols | match with 1 extra column(s) |
 
+## WrenAI 0.29.2 + semantic layer, no reasoning: every non-exact attempt
+
+| run | id | status | reason / error |
+|---|---|---|---|
+| 1 | e04 | correct_extra_cols | match with 1 extra column(s) |
+
+## WrenAI per-stage latency (wrenai_mdl vs wrenai_mdl_noreason)
+
+Generated by `bench/stage_latency.py`; per-attempt data in `results/stage-latency/stages.csv`. Medians over the 87 attempts per system (seconds).
+Stage boundaries are the 'pipeline is running' log lines (see script docstring). wren-ui (`/api/v1/generate_sql`) polls wren-ai-service every 1 s (`setTimeout(…,1000)` in `wren-ui/src/pages/api/v1/generate_sql.ts`); the harness itself makes one blocking call, it does not poll.
+
+| stage (median s) | wrenai_mdl | wrenai_mdl_noreason |
+|---|---|---|
+| pre-retrieval (historical Q / SQL pairs / instructions) | 0.06 | 0.06 |
+| intent classification | 1.55 | 1.41 |
+| schema retrieval (Ask Retrieval) | 0.07 | 0.07 |
+| SQL generation reasoning | 2.16 | 0.00 |
+| SQL generation incl. validation, up to wren-ui's last poll | 2.53 | 2.49 |
+| = wren-ai-service span (POST /v1/asks → last poll) | 6.03 | 4.02 |
+| wren-ui overhead (e2e − span: ask call, dialect conversion via ibis, response) | 0.03 | 0.03 |
+| **end-to-end (harness latency)** | 6.08 | 4.05 |
+| polls per question (GET …/result) | 7.00 | 5.00 |
+| …of which wren-ui before POST /v1/asks | – | 0.01 |
+| …of which wren-ui after last poll | – | 0.02 |
+| SQL generation: until end of last LLM call (meter) | – | 1.96 |
+| last poll − end of last LLM call (validation + poll wait) | – | 0.52 |
+| …as % of end-to-end | – | 12.87 |
+| LLM calls per question (meter, in ask window) | – | 2.00 |
+| time between the last two polls (s) | 1.00 | 1.00 |
+
+| check | wrenai_mdl | wrenai_mdl_noreason |
+|---|---|---|
+| attempts where 'SQL Generation Reasoning pipeline' ran | 87/87 | 0/87 |
+| attempts where 'Intent Classification pipeline' ran | 87/87 | 87/87 |
+| SQL correction pipeline runs | 0 | 1 |
+| mean stage sum (s): pre+intent+schema+reasoning+generation | 6.84 | 4.25 |
+| mean e2e (s) | 6.87 | 4.29 |
+
+Polling: the time between the ask actually finishing and wren-ui's next poll is ≤ 1 s per question. Where meter timing exists, `last poll − end of last LLM call` measures it (upper bound, includes the post-LLM dry-run validation).
+
+
 ## Per question, all systems (status per run)
 
-| id | diff | WrenAI 0.29.2 (out of the box) | WrenAI 0.29.2 + semantic layer | DB-GPT 0.8.2 | Cube Core 1.8.8 + LLM adapter (harness-built) |
-|---|---|---|---|---|---|
-| e01 | easy | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| e02 | easy | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| e03 | easy | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| e04 | easy | ✅ ✅ ✅ | 🟡 ✅ ✅ | ❌ ❌ ❌ | ✅ ❌ ❌ |
-| e05 | easy | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| e06 | easy | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| e07 | easy | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | 🟡 🟡 🟡 |
-| e08 | easy | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| m01 | medium | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| m02 | medium | ❌ ❌ ❌ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| m03 | medium | ✅ 💥 ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| m04 | medium | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| m05 | medium | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| m06 | medium | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| m07 | medium | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | 🟡 🟡 🟡 |
-| m08 | medium | ✅ ✅ ✅ | 🟡 ✅ 🟡 | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| m09 | medium | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ❌ |
-| h01 | hard | ✅ 🟡 ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| h02 | hard | ✅ ✅ ✅ | ❌ ❌ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| h03 | hard | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⛔ ⛔ ⛔ |
-| h04 | hard | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⛔ ⛔ ⛔ |
-| h05 | hard | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⛔ ⛔ ⛔ |
-| h06 | hard | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| h07 | hard | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ❌ ❌ ❌ |
-| h08 | hard | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ❌ ✅ ✅ |
-| h09 | hard | ✅ ✅ ✅ | 💥 ✅ ✅ | ✅ ✅ ✅ | ⛔ ⛔ ⛔ |
-| h10 | hard | ❌ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ 🟡 ✅ |
-| h11 | hard | ✅ 💥 ✅ | ✅ ✅ ✅ | 💥 💥 💥 | ⛔ ⛔ ⛔ |
-| h12 | hard | ✅ 🟡 ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
+| id | diff | WrenAI 0.29.2 (out of the box) | WrenAI 0.29.2 + semantic layer | WrenAI 0.29.2 + semantic layer, no reasoning | DB-GPT 0.8.2 | Cube Core 1.8.8 + LLM adapter (harness-built) |
+|---|---|---|---|---|---|---|
+| e01 | easy | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
+| e02 | easy | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
+| e03 | easy | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
+| e04 | easy | ✅ ✅ ✅ | 🟡 ✅ ✅ | 🟡 ✅ ✅ | ❌ ❌ ❌ | ✅ ❌ ❌ |
+| e05 | easy | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
+| e06 | easy | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
+| e07 | easy | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | 🟡 🟡 🟡 |
+| e08 | easy | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
+| m01 | medium | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
+| m02 | medium | ❌ ❌ ❌ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
+| m03 | medium | ✅ 💥 ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
+| m04 | medium | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
+| m05 | medium | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
+| m06 | medium | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
+| m07 | medium | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | 🟡 🟡 🟡 |
+| m08 | medium | ✅ ✅ ✅ | 🟡 ✅ 🟡 | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
+| m09 | medium | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ❌ |
+| h01 | hard | ✅ 🟡 ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
+| h02 | hard | ✅ ✅ ✅ | ❌ ❌ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
+| h03 | hard | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⛔ ⛔ ⛔ |
+| h04 | hard | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⛔ ⛔ ⛔ |
+| h05 | hard | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⛔ ⛔ ⛔ |
+| h06 | hard | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
+| h07 | hard | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ❌ ❌ ❌ |
+| h08 | hard | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ❌ ✅ ✅ |
+| h09 | hard | ✅ ✅ ✅ | 💥 ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⛔ ⛔ ⛔ |
+| h10 | hard | ❌ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ 🟡 ✅ |
+| h11 | hard | ✅ 💥 ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | 💥 💥 💥 | ⛔ ⛔ ⛔ |
+| h12 | hard | ✅ 🟡 ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
 
 Legend: ✅ exact, 🟡 extra columns, ❌ wrong result, 💥 SQL exec error, ⚠️ tool/API error, ⏱️ timeout (failure), ⛔ declared unsupported.

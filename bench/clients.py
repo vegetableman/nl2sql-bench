@@ -38,6 +38,12 @@ class WrenMDLClient(WrenClient):
         super().__init__(env, port=env.get("WREN_MDL_UI_PORT", "3001"))
 
 
+class WrenMDLNoReasonClient(WrenMDLClient):
+    """Same 2nd stack + same project/MDL as wrenai_mdl, with wren-ai-service setting
+    allow_sql_generation_reasoning: false (make wren-mdl-noreason)."""
+    name = "wrenai_mdl_noreason"
+
+
 class DBGPTClient:
     """DB-GPT 0.8.2 – POST /api/v2/chat/completions, chat_mode=chat_data (ChatWithDbExecute),
     chat_param=<datasource name>, stream=false. The generated SQL is embedded in the reply as
