@@ -5,7 +5,7 @@ import html, json, pathlib, random, re, time
 import httpx, yaml
 from common import ROOT, cube_token
 
-TIMEOUT = httpx.Timeout(300.0, connect=10.0)
+TIMEOUT = httpx.Timeout(180.0, connect=10.0)  # per-socket-op; harness also enforces a wall-clock cap
 
 
 class WrenClient:
@@ -41,13 +41,21 @@ class DBGPTClient:
 
     @staticmethod
     def extract_sql(content):
-        m = re.search(r'<chart-view\s+content="([^"]*)"', content or "")
+        # DB-GPT 0.8.2 does NOT html-escape the attribute (raw quotes inside content="..."),
+        # so take everything up to the closing '" />' and parse it as JSON.
+        m = re.search(r'<chart-view\s+content="(.*)"\s*/?>', content or "", re.S)
         if m:
-            try:
-                j = json.loads(html.unescape(m.group(1)))
-                return j.get("sql"), j.get("err_msg")
-            except Exception:
-                pass
+            for cand in (m.group(1), html.unescape(m.group(1))):
+                try:
+                    j = json.loads(cand, strict=False)
+                    sql = j.get("sql")
+                    # 0.8.2 html-escapes < > & inside the SQL string even though quotes are raw
+                    return (html.unescape(sql) if sql else sql), j.get("err_msg")
+                except Exception:
+                    pass
+            m2 = re.search(r'"sql"\s*:\s*"((?:[^"\\]|\\.)*)"', m.group(1), re.S)
+            if m2:
+                return html.unescape(json.loads('"' + m2.group(1) + '"', strict=False)), None
         m = re.search(r"```sql\s*(.+?)```", content or "", re.S | re.I)
         return (m.group(1).strip() if m else None), None
 
@@ -111,7 +119,7 @@ class CubeClient:
         self.secret = env["CUBEJS_API_SECRET"]
         self.model = env["LLM_MODEL"]
         self.llm_url = f"http://localhost:{env.get('METER_PORT', '8089')}/cube/v1/chat/completions"
-        self.key = env.get("OPENAI_API_KEY") or ""
+        self.key = env.get("LLM_API_KEY") or ""
         self.mock = mock
         self.ref = yaml.safe_load((ROOT / "bench" / "cube_reference_queries.yaml").read_text())
         self._meta_text = None

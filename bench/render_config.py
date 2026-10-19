@@ -11,7 +11,7 @@ W = ROOT / "wrenai"
 # ---- wrenai/.env ----
 txt = (W / ".env.example").read_text()
 subs = {
-    "OPENAI_API_KEY": env.get("OPENAI_API_KEY", ""),
+    "OPENAI_API_KEY": env.get("LLM_API_KEY", ""),  # Wren config refers to this env name
     "GENERATION_MODEL": env["LLM_MODEL"],
     "TELEMETRY_ENABLED": "false",
     "USER_UUID": "6f1c2a8e-3b4d-4e5f-9a1b-2c3d4e5f6a7b",
@@ -35,6 +35,7 @@ for d in docs:
             "api_base": meter,
             "api_key_name": "OPENAI_API_KEY",
             "timeout": 120,
+            "context_window_size": int(env.get("LLM_CONTEXT_WINDOW", "128000")),
             "kwargs": {"n": 1, "temperature": 0, "max_tokens": 4096},
         }]
     elif d.get("type") == "embedder":
@@ -52,4 +53,4 @@ for d in docs:
         d["settings"]["logging_level"] = "INFO"
 (W / "config.yaml").write_text(yaml.safe_dump_all(docs, sort_keys=False))
 print(f"rendered wrenai/.env + wrenai/config.yaml (model={env['LLM_MODEL']}, "
-      f"embedder={env['EMBEDDING_MODEL']}, key={'present' if env.get('OPENAI_API_KEY') else 'MISSING'})")
+      f"embedder={env['EMBEDDING_MODEL']}, key={'present' if env.get('LLM_API_KEY') else 'MISSING'})")

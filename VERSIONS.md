@@ -1,4 +1,4 @@
-# Pinned versions (set up 2026-10-19, IST)
+# Pinned versions (set up 2026-10-19, IST; switched to Ollama Cloud + local embeddings same day)
 
 | Component | Version | Image digest / source |
 |---|---|---|
@@ -14,5 +14,8 @@
 | Postgres | 16.4 | postgres@sha256:e62fbf9d3e2b49816a32c400ed2dba83e3b361e6833e624024309c35d334b412 |
 | Chinook dataset | v1.4.5 (`Chinook_PostgreSql.sql`) | sha256 e3fde5c1a5b51a2a91429a702c9ca6e69ba56e6c7f5e112724d70c3d03db695e |
 | llm-meter (local) | 1.0 | python:3.12-slim + starlette 0.41.3, uvicorn 0.32.1, httpx 0.28.1 |
-| Harness | Python 3.12 venv | psycopg 3.2.3, PyYAML 6.0.2, httpx 0.28.1, python-dotenv 1.0.1 |
+| Harness | Python 3.12 venv | psycopg 3.2.3, PyYAML 6.0.2, httpx 0.28.1, python-dotenv 1.0.1, matplotlib 3.9.2 |
+| Ollama (local, embeddings only) | 0.40.6 | ollama/ollama@sha256:265409e1d931028a8f7d5a32bcbafddd7bffbc6cc629d77efe9560adf692a5e7 |
+| Embedding model | nomic-embed-text:latest (768-d) | registry.ollama.ai manifest; model blob sha256:970aa74c0a90ef7482477cf803618e776e173c007bf957f635f1015bfcfef0e6 |
+| Chat LLM | gpt-oss:120b on Ollama Cloud (`https://ollama.com/v1`, OpenAI-compatible, Bearer `OLLAMA_API_KEY`) | hosted; version not pinnable by us |
 | Docker | 26.1.5 (Debian docker.io), Compose 2.26.1 | |

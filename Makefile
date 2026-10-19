@@ -9,6 +9,12 @@ SYSTEMS ?= wrenai,dbgpt,cube
 
 up: docker netfix venv render          ## start everything and connect all tools to Postgres
 	docker compose up -d --build
+	@if grep -q '^EMBEDDING_UPSTREAM_BASE=http://ollama' .env; then \
+	  m=$$(grep '^EMBEDDING_MODEL=' .env | cut -d= -f2); echo "pulling local embedding model $$m"; \
+	  docker compose exec -T ollama ollama list | grep -q "^$$m" \
+	  || docker compose exec -T ollama ollama pull $$m >/dev/null 2>&1 \
+	  || scripts/ollama_import.sh $$m; fi
+	$(WREN) up -d --force-recreate wren-ai-service
 	$(WREN) up -d
 	$(MAKE) --no-print-directory wait setup
 
@@ -46,7 +52,7 @@ probe:
 mock:                                  ## dry-run of the harness without an LLM key
 	$(PY) bench/harness.py --mock --repeats $(REPEATS) --systems $(SYSTEMS)
 
-bench:                                 ## real benchmark (needs OPENAI_API_KEY)
+bench:                                 ## real benchmark (needs LLM_API_KEY)
 	$(PY) bench/harness.py --repeats $(REPEATS) --systems $(SYSTEMS)
 
 status:

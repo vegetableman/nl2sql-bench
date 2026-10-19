@@ -9,6 +9,7 @@ networks:
 volumes:
   pgdata:
   dbgpt-data:
+  ollama-data:
 
 services:
   postgres:
@@ -35,20 +36,34 @@ services:
     image: nl2sql-bench/llm-meter:1.0
     environment:
       LLM_UPSTREAM_BASE: ${LLM_UPSTREAM_BASE:-https://api.openai.com/v1}
-      EMBEDDING_UPSTREAM_BASE: ${EMBEDDING_UPSTREAM_BASE:-https://api.openai.com/v1}
+      EMBEDDING_UPSTREAM_BASE: ${EMBEDDING_UPSTREAM_BASE:-http://ollama:11434/v1}
+      # local Ollama ignores auth; don't forward the cloud key to it
+      STRIP_AUTH_FOR_EMBEDDINGS: "${STRIP_AUTH_FOR_EMBEDDINGS:-1}"
     ports:
       - "${METER_PORT:-8089}:8080"
     networks: [nl2sql-net]
     mem_limit: 256m
+
+  # local embeddings (Ollama Cloud has no embeddings endpoint)
+  ollama:
+    image: ollama/ollama:${OLLAMA_VERSION:-0.40.6}
+    volumes:
+      - ollama-data:/root/.ollama
+    networks: [nl2sql-net]
+    mem_limit: 2g
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 5s
+      retries: 30
 
   dbgpt:
     build: ./dbgpt
     image: nl2sql-bench/dbgpt:v0.8.2-pg
     command: dbgpt start webserver --config /app/configs/dbgpt-bench.toml
     environment:
-      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
-      LLM_MODEL_NAME: ${LLM_MODEL:-gpt-4o-mini}
-      EMBEDDING_MODEL_NAME: ${EMBEDDING_MODEL:-text-embedding-3-small}
+      OPENAI_API_KEY: ${LLM_API_KEY:-}   # DB-GPT proxy/openai reads this name
+      LLM_MODEL_NAME: ${LLM_MODEL:-gpt-oss:120b}
+      EMBEDDING_MODEL_NAME: ${EMBEDDING_MODEL:-nomic-embed-text}
       OPENAI_API_BASE: http://llm-meter:8080/dbgpt/v1
       EMBEDDING_MODEL_API_URL: http://llm-meter:8080/dbgpt/v1/embeddings
     volumes:

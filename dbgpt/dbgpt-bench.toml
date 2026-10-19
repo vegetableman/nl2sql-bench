@@ -19,14 +19,14 @@ persist_path = "pilot/data"
 
 [models]
 [[models.llms]]
-name = "${env:LLM_MODEL_NAME:-gpt-4o-mini}"
+name = "${env:LLM_MODEL_NAME:-gpt-oss:120b}"
 provider = "proxy/openai"
 # goes through the shared token-counting proxy -> LLM_UPSTREAM_BASE
 api_base = "${env:OPENAI_API_BASE:-http://llm-meter:8080/dbgpt/v1}"
 api_key = "${env:OPENAI_API_KEY}"
 
 [[models.embeddings]]
-name = "${env:EMBEDDING_MODEL_NAME:-text-embedding-3-small}"
+name = "${env:EMBEDDING_MODEL_NAME:-nomic-embed-text}"
 provider = "proxy/openai"
 api_url = "${env:EMBEDDING_MODEL_API_URL:-http://llm-meter:8080/dbgpt/v1/embeddings}"
 api_key = "${env:OPENAI_API_KEY}"

@@ -3,11 +3,13 @@
 python bench/harness.py [--systems wrenai,dbgpt,cube] [--repeats N] [--mock] [--limit K] [--ids e01,h03]
 Outputs results/<run_id>/{results.csv, summary.md, raw.jsonl}
 """
-import argparse, csv, datetime as dt, json, statistics, sys, time
+import argparse, concurrent.futures as cf, csv, datetime as dt, json, statistics, sys, time
 import httpx, psycopg, yaml
+from zoneinfo import ZoneInfo
 from common import ROOT, load_env, compare
 from clients import WrenClient, DBGPTClient, CubeClient, MockSQLClient
 
+METER_KEY = {"wrenai": "wren"}  # llm-meter path prefix per system
 LABELS = {"wrenai": "WrenAI 0.29.2", "dbgpt": "DB-GPT 0.8.2", "cube": "Cube Core 1.8.8 + LLM adapter (harness-built)"}
 
 
@@ -53,6 +55,8 @@ def main():
     ap.add_argument("--ids", default="")
     ap.add_argument("--limit", type=int, default=0)
     ap.add_argument("--out", default="")
+    ap.add_argument("--timeout", type=float, default=180.0, help="wall-clock cap per tool call (s); exceeding = status 'timeout'")
+    ap.add_argument("--resume", action="store_true", help="append to an existing --out run, skipping (run,id,system) already in raw.jsonl")
     a = ap.parse_args()
 
     env = load_env()
@@ -63,8 +67,8 @@ def main():
     if a.limit:
         qs = qs[: a.limit]
     systems = [s.strip() for s in a.systems.split(",") if s.strip()]
-    if not a.mock and not env.get("OPENAI_API_KEY"):
-        sys.exit("OPENAI_API_KEY is not set (in .env or environment). Use --mock for a dry run.")
+    if not a.mock and not env.get("LLM_API_KEY"):
+        sys.exit("LLM_API_KEY is not set (in .env or environment). Use --mock for a dry run.")
 
     clients = {}
     for s in systems:
@@ -83,30 +87,55 @@ def main():
     for q in qs:
         gold[q["id"]] = run_sql(conn, q["gold_sql"])
 
-    rows = []
-    raw = open(out / "raw.jsonl", "w")
+    rows, done = [], set()
+    if a.resume and (out / "raw.jsonl").exists():
+        for line in open(out / "raw.jsonl"):
+            r = json.loads(line)
+            r.pop("raw", None); r.pop("compiled_sql", None)
+            r.setdefault("rate_limit_retries", 0)
+            rows.append(r)
+            done.add((r["run"], r["id"], r["system"]))
+        print(f"resuming: {len(done)} attempts already recorded")
+    raw = open(out / "raw.jsonl", "a" if a.resume else "w")
+    pool = cf.ThreadPoolExecutor(max_workers=8)
     for rep in range(1, a.repeats + 1):
         for q in qs:
             for s in systems:
+                if (rep, q["id"], s) in done:
+                    continue
                 c = clients[s]
-                before = meter_totals(env)
-                t0 = time.perf_counter()
-                try:
-                    res = c.generate(q["question"], qid=q["id"]) if s == "cube" else c.generate(q["question"])
-                except Exception as e:
-                    res = {"error": f"client exception: {e}"}
-                latency = time.perf_counter() - t0
-                usage = usage_delta(before, meter_totals(env), s)
+                rl_retries = 0
+                while True:
+                    before = meter_totals(env)
+                    t0 = time.perf_counter()
+                    fut = pool.submit(lambda: c.generate(q["question"], qid=q["id"]) if s == "cube" else c.generate(q["question"]))
+                    try:
+                        res = fut.result(timeout=a.timeout)
+                    except cf.TimeoutError:
+                        res = {"error": f"timeout: no response within {a.timeout:.0f}s", "timeout": True}
+                    except Exception as e:
+                        res = {"error": f"client exception: {e}"}
+                    latency = time.perf_counter() - t0
+                    e = (res.get("error") or "").lower()
+                    if rl_retries < 3 and ("429" in e or "rate limit" in e or "too many requests" in e):
+                        rl_retries += 1
+                        print(f"   rate-limited ({s} {q['id']}), backing off {30 * rl_retries}s", flush=True)
+                        time.sleep(30 * rl_retries)
+                        continue
+                    break
+                usage = usage_delta(before, meter_totals(env), METER_KEY.get(s, s))
                 rec = {"run": rep, "id": q["id"], "difficulty": q["difficulty"], "system": s,
                        "latency_s": round(latency, 3), "status": "", "exact": False, "relaxed": False,
                        "reason": "", "generated": "", "error": res.get("error", "") or "",
-                       "cube_expressible": q.get("cube_expressible", True), **usage}
+                       "cube_expressible": q.get("cube_expressible", True), "rate_limit_retries": rl_retries, **usage}
                 if "cube_query" in res:
                     rec["generated"] = json.dumps(res["cube_query"], ensure_ascii=False)
                 elif res.get("sql"):
                     rec["generated"] = res["sql"]
                 pred = None
-                if rec["error"]:
+                if res.get("timeout") or rec["error"].startswith("client exception: ") and "timed out" in rec["error"].lower():
+                    rec["status"] = "timeout"
+                elif rec["error"]:
                     rec["status"] = "unsupported" if rec["error"].startswith("unsupported") else "tool_error"
                 elif "rows" in res:
                     pred = res["rows"]
@@ -126,9 +155,10 @@ def main():
                 print(f"[run {rep}] {q['id']:4} {s:7} {rec['status']:18} {latency:6.2f}s {rec['error'][:90]}", flush=True)
     raw.close()
 
-    fields = list(rows[0].keys())
+    rows.sort(key=lambda r: (r["run"], [q["id"] for q in qs].index(r["id"]) if r["id"] in [q["id"] for q in qs] else 999, systems.index(r["system"]) if r["system"] in systems else 9))
+    fields = list(dict.fromkeys(k for r in rows for k in r.keys()))
     with open(out / "results.csv", "w", newline="") as f:
-        w = csv.DictWriter(f, fieldnames=fields)
+        w = csv.DictWriter(f, fieldnames=fields, restval="")
         w.writeheader()
         w.writerows(rows)
     md = summary(rows, systems, qs, a, env)
@@ -139,14 +169,15 @@ def main():
 
 def summary(rows, systems, qs, a, env):
     L = [f"# nl2sql-bench report ({'MOCK dry-run — numbers are NOT real tool results' if a.mock else 'live run'})", "",
-         f"- Date: {dt.datetime.now().strftime('%Y-%m-%d %H:%M')} (box local time, IST)",
+         f"- Report generated: {dt.datetime.now(ZoneInfo('Asia/Kolkata')).strftime('%Y-%m-%d %H:%M')} IST",
          f"- Dataset: Chinook 1.4.5 on Postgres 16.4; {len(qs)} questions x {a.repeats} run(s)",
          f"- LLM: `{env['LLM_MODEL']}` via `{env['LLM_UPSTREAM_BASE']}`, embeddings `{env['EMBEDDING_MODEL']}` (same for all systems, via llm-meter)",
          "- EX(exact) = same result set as gold (column order free; row order checked only when the question requires it).",
          "  EX(relaxed) also accepts extra columns. Latency = wall time of the tool's API call (question -> SQL / result).",
-         "  Tokens = measured by llm-meter proxy (chat prompt+completion; embeddings separate).", ""]
-    L += ["| System | EX exact | EX relaxed | tool errors | exec errors | unsupported | p50 latency s | p95 latency s | avg prompt tok | avg completion tok |",
-          "|---|---|---|---|---|---|---|---|---|---|"]
+         "  Tokens = measured by llm-meter proxy (chat prompt+completion; embeddings separate).",
+         f"- Per-call wall-clock cap {a.timeout:.0f}s: a call exceeding it is recorded as `timeout` and counts as a failure.", ""]
+    L += ["| System | EX exact | EX relaxed | wrong result | tool errors | exec errors | timeouts | unsupported | p50 latency s | p95 latency s | avg prompt tok | avg completion tok |",
+          "|---|---|---|---|---|---|---|---|---|---|---|---|"]
     for s in systems:
         R = [r for r in rows if r["system"] == s]
         n = len(R)
@@ -155,7 +186,7 @@ def summary(rows, systems, qs, a, env):
         ct = [r["completion_tokens"] for r in R if r["completion_tokens"] is not None]
         f = lambda k: sum(1 for r in R if r["status"] == k)
         L.append(f"| {LABELS.get(s, s)} | {sum(r['exact'] for r in R)}/{n} ({100*sum(r['exact'] for r in R)/n:.0f}%) | "
-                 f"{sum(r['relaxed'] for r in R)}/{n} ({100*sum(r['relaxed'] for r in R)/n:.0f}%) | {f('tool_error')} | {f('exec_error')} | {f('unsupported')} | "
+                 f"{sum(r['relaxed'] for r in R)}/{n} ({100*sum(r['relaxed'] for r in R)/n:.0f}%) | {f('wrong_result')} | {f('tool_error')} | {f('exec_error')} | {f('timeout')} | {f('unsupported')} | "
                  f"{pct(lat,50):.2f} | {pct(lat,95):.2f} | {statistics.mean(pt) if pt else 0:.0f} | {statistics.mean(ct) if ct else 0:.0f} |")
     L += ["", "## EX (exact) by difficulty", "", "| System | easy | medium | hard |", "|---|---|---|---|"]
     for s in systems:
@@ -175,9 +206,9 @@ def summary(rows, systems, qs, a, env):
         for s in systems:
             R = [r for r in rows if r["system"] == s and r["id"] == q["id"]]
             cells.append(" ".join({"correct": "✅", "correct_extra_cols": "🟡", "wrong_result": "❌", "exec_error": "💥",
-                                   "tool_error": "⚠️", "unsupported": "⛔"}.get(r["status"], "?") for r in R))
+                                   "tool_error": "⚠️", "unsupported": "⛔", "timeout": "⏱️"}.get(r["status"], "?") for r in R))
         L.append(f"| {q['id']} | {q['difficulty']} | " + " | ".join(cells) + " |")
-    L += ["", "Legend: ✅ exact match, 🟡 match with extra columns, ❌ wrong result, 💥 SQL failed to execute, ⚠️ tool/API error, ⛔ declared unsupported."]
+    L += ["", "Legend: ✅ exact match, 🟡 match with extra columns, ❌ wrong result, 💥 SQL failed to execute, ⚠️ tool/API error, ⏱️ timeout (no answer within the per-call cap; counted as failure), ⛔ declared unsupported."]
     return "\n".join(L) + "\n"
 
 

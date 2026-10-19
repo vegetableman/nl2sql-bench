@@ -67,6 +67,8 @@ async def proxy(request: Request):
         except Exception:
             pass
     headers = {k: v for k, v in request.headers.items() if k.lower() not in HOP}
+    if kind == "embeddings" and os.environ.get("STRIP_AUTH_FOR_EMBEDDINGS") == "1":
+        headers.pop("authorization", None); headers.pop("Authorization", None)
     with _lock:
         COUNTERS[tool]["requests"] += 1
         COUNTERS[tool][f"{'embedding' if kind == 'embeddings' else 'chat'}_requests"] += 1

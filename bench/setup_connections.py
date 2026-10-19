@@ -89,8 +89,11 @@ def setup_wren(force):
         print(f"[wren] deploy -> {json.dumps(d)[:300]}")
         if d.get("status") == "FAILED":
             print("[wren] NOTE: deploy = schema indexing into qdrant via the embedding model; it fails without a "
-                  "valid OPENAI_API_KEY. Set the key, then `make up` (recreates containers with the key) to redeploy.")
+                  "valid LLM_API_KEY / reachable embedding model. Set the key, then `make up` (recreates containers with the key) to redeploy.")
         return d
+
+
+REFRESH = False
 
 
 def setup_dbgpt(force):
@@ -99,9 +102,15 @@ def setup_dbgpt(force):
         existing = [d for d in items if d.get("db_name") == PG["database"]]
         if existing and not force:
             ds_id = existing[0]["id"]
-            r = c.post(f"/api/v2/serve/datasources/{ds_id}/refresh")
-            print(f"[dbgpt] datasource '{PG['database']}' exists (id={ds_id}); schema re-embedding "
-                  f"triggered (async) -> HTTP {r.status_code}")
+            if REFRESH:
+                r = c.post(f"/api/v2/serve/datasources/{ds_id}/refresh")
+                print(f"[dbgpt] schema re-embedding triggered (async) -> HTTP {r.status_code}")
+            else:
+                # DB-GPT re-embeds every datasource on startup; calling /refresh concurrently with that
+                # races (delete_db_profile drops the chroma collection mid-write -> 'Collection ... does
+                # not exist', 0/11 chunks). So only refresh on explicit request.
+                print(f"[dbgpt] datasource '{PG['database']}' exists (id={ds_id}); schema is embedded at "
+                      f"DB-GPT startup (use --refresh to force)")
             return existing[0]
         for d in existing:
             c.delete(f"/api/v2/serve/datasources/{d['id']}")
@@ -125,7 +134,9 @@ if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("--force", action="store_true")
     ap.add_argument("--only", choices=["wren", "dbgpt", "cube"])
+    ap.add_argument("--refresh", action="store_true", help="DB-GPT: re-embed schema now")
     a = ap.parse_args()
+    REFRESH = a.refresh
     ok = True
     for name, fn in [("wren", lambda: setup_wren(a.force)), ("dbgpt", lambda: setup_dbgpt(a.force)), ("cube", check_cube)]:
         if a.only and a.only != name:

@@ -13,9 +13,6 @@ def load_env():
     for k in list(env):  # real environment wins (e.g. OPENAI_API_KEY exported in shell)
         if os.environ.get(k):
             env[k] = os.environ[k]
-    for k in ("OPENAI_API_KEY",):
-        if os.environ.get(k):
-            env[k] = os.environ[k]
     return env
 
 
@@ -54,6 +51,8 @@ def norm(v):
     m = _DATE.match(s)
     if m:
         return m.group(1)
+    if re.match(r"^\d{4}-\d{2}$", s):  # 'YYYY-MM' month label == first day of month
+        return s + "-01"
     m = _TS.match(s)
     if m:
         return f"{m.group(1)} {m.group(2)}"
