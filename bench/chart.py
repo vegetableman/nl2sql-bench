@@ -11,7 +11,7 @@ run = pathlib.Path(sys.argv[1])
 out = pathlib.Path(sys.argv[2]) if len(sys.argv) > 2 else run.parent / "summary.png"
 rows = list(csv.DictReader(open(run / "results.csv")))
 systems = list(dict.fromkeys(r["system"] for r in rows))
-label = {"wrenai": "WrenAI 0.29.2", "dbgpt": "DB-GPT 0.8.2", "cube": "Cube Core 1.8.8\n+ LLM adapter (harness)"}
+label = {"wrenai": "WrenAI 0.29.2\n(out of the box)", "wrenai_mdl": "WrenAI 0.29.2\n+ semantic layer", "dbgpt": "DB-GPT 0.8.2", "cube": "Cube Core 1.8.8\n+ LLM adapter (harness)"}
 T = lambda v: v == "True"
 
 

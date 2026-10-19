@@ -1,0 +1,12 @@
+# Second WrenAI 0.29.2 stack (compose project "wrenai-mdl") that holds the semantic-layer project.
+# It is NOT attached to nl2sql-net (service names would collide with the out-of-the-box stack);
+# it reaches the shared Postgres and llm-meter through the host's published ports instead.
+services:
+  wren-engine:
+    extra_hosts: ["host.docker.internal:host-gateway"]
+  ibis-server:
+    extra_hosts: ["host.docker.internal:host-gateway"]
+  wren-ui:
+    extra_hosts: ["host.docker.internal:host-gateway"]
+  wren-ai-service:
+    extra_hosts: ["host.docker.internal:host-gateway"]

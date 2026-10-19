@@ -17,8 +17,8 @@ DBGPT = f"http://localhost:{env.get('DBGPT_PORT', '5670')}"
 CUBE = f"http://localhost:{env.get('CUBE_PORT', '4000')}"
 
 
-def gql(c, query, variables=None):
-    r = c.post(f"{WREN}/api/graphql", json={"query": query, "variables": variables or {}}, timeout=180)
+def gql(c, query, variables=None, wren=None):
+    r = c.post(f"{wren or WREN}/api/graphql", json={"query": query, "variables": variables or {}}, timeout=180)
     r.raise_for_status()
     j = r.json()
     if j.get("errors"):

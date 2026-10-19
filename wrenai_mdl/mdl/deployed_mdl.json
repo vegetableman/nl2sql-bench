@@ -1,0 +1,1222 @@
+{
+ "hash": "453930b97fd91c5c3039b4bfc6ad3e6a7e59cd76",
+ "models": [
+  {
+   "name": "public_album",
+   "columns": [
+    {
+     "name": "album_id",
+     "type": "INTEGER",
+     "isCalculated": false,
+     "notNull": true,
+     "properties": {
+      "description": "Primary key of the album.",
+      "displayName": "Album ID"
+     }
+    },
+    {
+     "name": "title",
+     "type": "VARCHAR",
+     "isCalculated": false,
+     "notNull": true,
+     "properties": {
+      "description": "Title of the album.",
+      "displayName": "Album Title"
+     }
+    },
+    {
+     "name": "artist_id",
+     "type": "INTEGER",
+     "isCalculated": false,
+     "notNull": true,
+     "properties": {
+      "description": "Foreign key to artist.artist_id (the album's artist).",
+      "displayName": "Artist ID"
+     }
+    },
+    {
+     "name": "public_artist",
+     "type": "public_artist",
+     "properties": {},
+     "relationship": "Public.albumArtist_idPublic.artistArtist_id",
+     "isCalculated": false,
+     "notNull": false
+    },
+    {
+     "name": "public_track",
+     "type": "public_track",
+     "properties": {},
+     "relationship": "Public.trackAlbum_idPublic.albumAlbum_id",
+     "isCalculated": false,
+     "notNull": false
+    },
+    {
+     "name": "track_count",
+     "type": "BIGINT",
+     "isCalculated": true,
+     "expression": "COUNT(public_track.\"track_id\")",
+     "notNull": false,
+     "properties": {
+      "description": "Number of tracks on the album."
+     }
+    }
+   ],
+   "tableReference": {
+    "catalog": "chinook",
+    "schema": "public",
+    "table": "album"
+   },
+   "cached": false,
+   "properties": {
+    "displayName": "Album",
+    "description": "A music album (or TV season / audiobook collection). Each album belongs to exactly one artist and contains many tracks."
+   },
+   "primaryKey": "album_id"
+  },
+  {
+   "name": "public_artist",
+   "columns": [
+    {
+     "name": "artist_id",
+     "type": "INTEGER",
+     "isCalculated": false,
+     "notNull": true,
+     "properties": {
+      "description": "Primary key of the artist.",
+      "displayName": "Artist ID"
+     }
+    },
+    {
+     "name": "name",
+     "type": "VARCHAR",
+     "isCalculated": false,
+     "notNull": false,
+     "properties": {
+      "description": "Name of the artist or band.",
+      "displayName": "Artist Name"
+     }
+    },
+    {
+     "name": "public_album",
+     "type": "public_album",
+     "properties": {},
+     "relationship": "Public.albumArtist_idPublic.artistArtist_id",
+     "isCalculated": false,
+     "notNull": false
+    },
+    {
+     "name": "album_count",
+     "type": "BIGINT",
+     "isCalculated": true,
+     "expression": "COUNT(public_album.\"album_id\")",
+     "notNull": false,
+     "properties": {
+      "description": "Number of albums by the artist."
+     }
+    }
+   ],
+   "tableReference": {
+    "catalog": "chinook",
+    "schema": "public",
+    "table": "artist"
+   },
+   "cached": false,
+   "properties": {
+    "displayName": "Artist",
+    "description": "A recording artist, band or production that released albums."
+   },
+   "primaryKey": "artist_id"
+  },
+  {
+   "name": "public_customer",
+   "columns": [
+    {
+     "name": "customer_id",
+     "type": "INTEGER",
+     "isCalculated": false,
+     "notNull": true,
+     "properties": {
+      "description": "Primary key of the customer.",
+      "displayName": "Customer ID"
+     }
+    },
+    {
+     "name": "first_name",
+     "type": "VARCHAR",
+     "isCalculated": false,
+     "notNull": true,
+     "properties": {
+      "description": "Customer's given name.",
+      "displayName": "First Name"
+     }
+    },
+    {
+     "name": "last_name",
+     "type": "VARCHAR",
+     "isCalculated": false,
+     "notNull": true,
+     "properties": {
+      "description": "Customer's family name.",
+      "displayName": "Last Name"
+     }
+    },
+    {
+     "name": "company",
+     "type": "VARCHAR",
+     "isCalculated": false,
+     "notNull": false,
+     "properties": {
+      "description": "Company the customer works for; NULL for private customers.",
+      "displayName": "Company"
+     }
+    },
+    {
+     "name": "address",
+     "type": "VARCHAR",
+     "isCalculated": false,
+     "notNull": false,
+     "properties": {
+      "description": "Street address.",
+      "displayName": "Address"
+     }
+    },
+    {
+     "name": "city",
+     "type": "VARCHAR",
+     "isCalculated": false,
+     "notNull": false,
+     "properties": {
+      "description": "City where the customer lives.",
+      "displayName": "City"
+     }
+    },
+    {
+     "name": "state",
+     "type": "VARCHAR",
+     "isCalculated": false,
+     "notNull": false,
+     "properties": {
+      "description": "State / province (may be NULL).",
+      "displayName": "State"
+     }
+    },
+    {
+     "name": "country",
+     "type": "VARCHAR",
+     "isCalculated": false,
+     "notNull": false,
+     "properties": {
+      "description": "Country where the customer lives.",
+      "displayName": "Country"
+     }
+    },
+    {
+     "name": "postal_code",
+     "type": "VARCHAR",
+     "isCalculated": false,
+     "notNull": false,
+     "properties": {
+      "description": "Postal / ZIP code.",
+      "displayName": "Postal Code"
+     }
+    },
+    {
+     "name": "phone",
+     "type": "VARCHAR",
+     "isCalculated": false,
+     "notNull": false,
+     "properties": {
+      "description": "Phone number.",
+      "displayName": "Phone"
+     }
+    },
+    {
+     "name": "fax",
+     "type": "VARCHAR",
+     "isCalculated": false,
+     "notNull": false,
+     "properties": {
+      "description": "Fax number (often NULL).",
+      "displayName": "Fax"
+     }
+    },
+    {
+     "name": "email",
+     "type": "VARCHAR",
+     "isCalculated": false,
+     "notNull": true,
+     "properties": {
+      "description": "Email address.",
+      "displayName": "Email"
+     }
+    },
+    {
+     "name": "support_rep_id",
+     "type": "INTEGER",
+     "isCalculated": false,
+     "notNull": false,
+     "properties": {
+      "description": "Foreign key to employee.employee_id — the employee (sales support agent) who supports this customer.",
+      "displayName": "Support Rep ID"
+     }
+    },
+    {
+     "name": "public_employee",
+     "type": "public_employee",
+     "properties": {},
+     "relationship": "Public.customerSupport_rep_idPublic.employeeEmployee_id",
+     "isCalculated": false,
+     "notNull": false
+    },
+    {
+     "name": "public_invoice",
+     "type": "public_invoice",
+     "properties": {},
+     "relationship": "Public.invoiceCustomer_idPublic.customerCustomer_id",
+     "isCalculated": false,
+     "notNull": false
+    },
+    {
+     "name": "lifetime_spend",
+     "type": "DECIMAL",
+     "isCalculated": true,
+     "expression": "SUM(public_invoice.\"total\")",
+     "notNull": false,
+     "properties": {
+      "description": "Sum of all invoice totals of the customer."
+     }
+    },
+    {
+     "name": "invoice_count",
+     "type": "BIGINT",
+     "isCalculated": true,
+     "expression": "COUNT(public_invoice.\"invoice_id\")",
+     "notNull": false,
+     "properties": {
+      "description": "Number of invoices of the customer."
+     }
+    }
+   ],
+   "tableReference": {
+    "catalog": "chinook",
+    "schema": "public",
+    "table": "customer"
+   },
+   "cached": false,
+   "properties": {
+    "displayName": "Customer",
+    "description": "A customer who buys tracks. Each customer is assigned one support representative (an employee)."
+   },
+   "primaryKey": "customer_id"
+  },
+  {
+   "name": "public_employee",
+   "columns": [
+    {
+     "name": "employee_id",
+     "type": "INTEGER",
+     "isCalculated": false,
+     "notNull": true,
+     "properties": {
+      "description": "Primary key of the employee.",
+      "displayName": "Employee ID"
+     }
+    },
+    {
+     "name": "last_name",
+     "type": "VARCHAR",
+     "isCalculated": false,
+     "notNull": true,
+     "properties": {
+      "description": "Employee's family name.",
+      "displayName": "Last Name"
+     }
+    },
+    {
+     "name": "first_name",
+     "type": "VARCHAR",
+     "isCalculated": false,
+     "notNull": true,
+     "properties": {
+      "description": "Employee's given name.",
+      "displayName": "First Name"
+     }
+    },
+    {
+     "name": "title",
+     "type": "VARCHAR",
+     "isCalculated": false,
+     "notNull": false,
+     "properties": {
+      "description": "Job title, e.g. 'Sales Support Agent', 'Sales Manager', 'IT Staff', 'General Manager'.",
+      "displayName": "Job Title"
+     }
+    },
+    {
+     "name": "reports_to",
+     "type": "INTEGER",
+     "isCalculated": false,
+     "notNull": false,
+     "properties": {
+      "description": "Foreign key to employee.employee_id of this employee's manager; NULL for the top manager.",
+      "displayName": "Manager ID"
+     }
+    },
+    {
+     "name": "birth_date",
+     "type": "TIMESTAMP",
+     "isCalculated": false,
+     "notNull": false,
+     "properties": {
+      "description": "Date of birth.",
+      "displayName": "Birth Date"
+     }
+    },
+    {
+     "name": "hire_date",
+     "type": "TIMESTAMP",
+     "isCalculated": false,
+     "notNull": false,
+     "properties": {
+      "description": "Date the employee was hired.",
+      "displayName": "Hire Date"
+     }
+    },
+    {
+     "name": "address",
+     "type": "VARCHAR",
+     "isCalculated": false,
+     "notNull": false,
+     "properties": {
+      "description": "Street address.",
+      "displayName": "Address"
+     }
+    },
+    {
+     "name": "city",
+     "type": "VARCHAR",
+     "isCalculated": false,
+     "notNull": false,
+     "properties": {
+      "description": "City.",
+      "displayName": "City"
+     }
+    },
+    {
+     "name": "state",
+     "type": "VARCHAR",
+     "isCalculated": false,
+     "notNull": false,
+     "properties": {
+      "description": "State / province.",
+      "displayName": "State"
+     }
+    },
+    {
+     "name": "country",
+     "type": "VARCHAR",
+     "isCalculated": false,
+     "notNull": false,
+     "properties": {
+      "description": "Country.",
+      "displayName": "Country"
+     }
+    },
+    {
+     "name": "postal_code",
+     "type": "VARCHAR",
+     "isCalculated": false,
+     "notNull": false,
+     "properties": {
+      "description": "Postal code.",
+      "displayName": "Postal Code"
+     }
+    },
+    {
+     "name": "phone",
+     "type": "VARCHAR",
+     "isCalculated": false,
+     "notNull": false,
+     "properties": {
+      "description": "Phone number.",
+      "displayName": "Phone"
+     }
+    },
+    {
+     "name": "fax",
+     "type": "VARCHAR",
+     "isCalculated": false,
+     "notNull": false,
+     "properties": {
+      "description": "Fax number.",
+      "displayName": "Fax"
+     }
+    },
+    {
+     "name": "email",
+     "type": "VARCHAR",
+     "isCalculated": false,
+     "notNull": false,
+     "properties": {
+      "description": "Work email address.",
+      "displayName": "Email"
+     }
+    },
+    {
+     "name": "public_customer",
+     "type": "public_customer",
+     "properties": {},
+     "relationship": "Public.customerSupport_rep_idPublic.employeeEmployee_id",
+     "isCalculated": false,
+     "notNull": false
+    },
+    {
+     "name": "public_employee",
+     "type": "public_employee",
+     "properties": {},
+     "relationship": "Public.employeeReports_toPublic.employeeEmployee_id",
+     "isCalculated": false,
+     "notNull": false
+    },
+    {
+     "name": "public_employee_reports_to",
+     "type": "public_employee",
+     "properties": {},
+     "relationship": "Public.employeeReports_toPublic.employeeEmployee_id",
+     "isCalculated": false,
+     "notNull": false
+    },
+    {
+     "name": "supported_customer_count",
+     "type": "BIGINT",
+     "isCalculated": true,
+     "expression": "COUNT(public_customer.\"customer_id\")",
+     "notNull": false,
+     "properties": {
+      "description": "Number of customers this employee supports as support rep."
+     }
+    }
+   ],
+   "tableReference": {
+    "catalog": "chinook",
+    "schema": "public",
+    "table": "employee"
+   },
+   "cached": false,
+   "properties": {
+    "displayName": "Employee",
+    "description": "A company employee. Sales support agents are assigned to customers; every employee except the general manager reports to another employee."
+   },
+   "primaryKey": "employee_id"
+  },
+  {
+   "name": "public_genre",
+   "columns": [
+    {
+     "name": "genre_id",
+     "type": "INTEGER",
+     "isCalculated": false,
+     "notNull": true,
+     "properties": {
+      "description": "Primary key of the genre.",
+      "displayName": "Genre ID"
+     }
+    },
+    {
+     "name": "name",
+     "type": "VARCHAR",
+     "isCalculated": false,
+     "notNull": false,
+     "properties": {
+      "description": "Name of the genre.",
+      "displayName": "Genre Name"
+     }
+    },
+    {
+     "name": "public_track",
+     "type": "public_track",
+     "properties": {},
+     "relationship": "Public.trackGenre_idPublic.genreGenre_id",
+     "isCalculated": false,
+     "notNull": false
+    },
+    {
+     "name": "track_count",
+     "type": "BIGINT",
+     "isCalculated": true,
+     "expression": "COUNT(public_track.\"track_id\")",
+     "notNull": false,
+     "properties": {
+      "description": "Number of tracks in the genre."
+     }
+    }
+   ],
+   "tableReference": {
+    "catalog": "chinook",
+    "schema": "public",
+    "table": "genre"
+   },
+   "cached": false,
+   "properties": {
+    "displayName": "Genre",
+    "description": "Musical / content genre of a track (e.g. Rock, Jazz, TV Shows)."
+   },
+   "primaryKey": "genre_id"
+  },
+  {
+   "name": "public_invoice",
+   "columns": [
+    {
+     "name": "invoice_id",
+     "type": "INTEGER",
+     "isCalculated": false,
+     "notNull": true,
+     "properties": {
+      "description": "Primary key of the invoice.",
+      "displayName": "Invoice ID"
+     }
+    },
+    {
+     "name": "customer_id",
+     "type": "INTEGER",
+     "isCalculated": false,
+     "notNull": true,
+     "properties": {
+      "description": "Foreign key to customer.customer_id (the buyer).",
+      "displayName": "Customer ID"
+     }
+    },
+    {
+     "name": "invoice_date",
+     "type": "TIMESTAMP",
+     "isCalculated": false,
+     "notNull": true,
+     "properties": {
+      "description": "Date and time of the sale; use this column for all sales-period (day / month / year) analysis.",
+      "displayName": "Invoice Date"
+     }
+    },
+    {
+     "name": "billing_address",
+     "type": "VARCHAR",
+     "isCalculated": false,
+     "notNull": false,
+     "properties": {
+      "description": "Billing street address.",
+      "displayName": "Billing Address"
+     }
+    },
+    {
+     "name": "billing_city",
+     "type": "VARCHAR",
+     "isCalculated": false,
+     "notNull": false,
+     "properties": {
+      "description": "Billing city.",
+      "displayName": "Billing City"
+     }
+    },
+    {
+     "name": "billing_state",
+     "type": "VARCHAR",
+     "isCalculated": false,
+     "notNull": false,
+     "properties": {
+      "description": "Billing state / province.",
+      "displayName": "Billing State"
+     }
+    },
+    {
+     "name": "billing_country",
+     "type": "VARCHAR",
+     "isCalculated": false,
+     "notNull": false,
+     "properties": {
+      "description": "Country the invoice was billed to.",
+      "displayName": "Billing Country"
+     }
+    },
+    {
+     "name": "billing_postal_code",
+     "type": "VARCHAR",
+     "isCalculated": false,
+     "notNull": false,
+     "properties": {
+      "description": "Billing postal code.",
+      "displayName": "Billing Postal Code"
+     }
+    },
+    {
+     "name": "total",
+     "type": "DECIMAL",
+     "isCalculated": false,
+     "notNull": true,
+     "properties": {
+      "description": "Total amount of the invoice in USD (= sum of unit_price x quantity of its lines).",
+      "displayName": "Invoice Total"
+     }
+    },
+    {
+     "name": "public_customer",
+     "type": "public_customer",
+     "properties": {},
+     "relationship": "Public.invoiceCustomer_idPublic.customerCustomer_id",
+     "isCalculated": false,
+     "notNull": false
+    },
+    {
+     "name": "public_invoice_line",
+     "type": "public_invoice_line",
+     "properties": {},
+     "relationship": "Public.invoice_lineInvoice_idPublic.invoiceInvoice_id",
+     "isCalculated": false,
+     "notNull": false
+    },
+    {
+     "name": "units_on_invoice",
+     "type": "INTEGER",
+     "isCalculated": true,
+     "expression": "SUM(public_invoice_line.\"quantity\")",
+     "notNull": false,
+     "properties": {
+      "description": "Total units (tracks) on the invoice."
+     }
+    }
+   ],
+   "tableReference": {
+    "catalog": "chinook",
+    "schema": "public",
+    "table": "invoice"
+   },
+   "cached": false,
+   "properties": {
+    "displayName": "Invoice",
+    "description": "A sales invoice (one purchase by one customer on one date). The invoice total equals the sum of its invoice lines (unit_price x quantity)."
+   },
+   "primaryKey": "invoice_id"
+  },
+  {
+   "name": "public_invoice_line",
+   "columns": [
+    {
+     "name": "invoice_line_id",
+     "type": "INTEGER",
+     "isCalculated": false,
+     "notNull": true,
+     "properties": {
+      "description": "Primary key of the invoice line.",
+      "displayName": "Invoice Line ID"
+     }
+    },
+    {
+     "name": "invoice_id",
+     "type": "INTEGER",
+     "isCalculated": false,
+     "notNull": true,
+     "properties": {
+      "description": "Foreign key to invoice.invoice_id.",
+      "displayName": "Invoice ID"
+     }
+    },
+    {
+     "name": "track_id",
+     "type": "INTEGER",
+     "isCalculated": false,
+     "notNull": true,
+     "properties": {
+      "description": "Foreign key to track.track_id (the purchased track).",
+      "displayName": "Track ID"
+     }
+    },
+    {
+     "name": "unit_price",
+     "type": "DECIMAL",
+     "isCalculated": false,
+     "notNull": true,
+     "properties": {
+      "description": "Price charged per unit on this line (USD).",
+      "displayName": "Sold Unit Price"
+     }
+    },
+    {
+     "name": "quantity",
+     "type": "INTEGER",
+     "isCalculated": false,
+     "notNull": true,
+     "properties": {
+      "description": "Number of units purchased on this line.",
+      "displayName": "Quantity"
+     }
+    },
+    {
+     "name": "public_invoice",
+     "type": "public_invoice",
+     "properties": {},
+     "relationship": "Public.invoice_lineInvoice_idPublic.invoiceInvoice_id",
+     "isCalculated": false,
+     "notNull": false
+    },
+    {
+     "name": "public_track",
+     "type": "public_track",
+     "properties": {},
+     "relationship": "Public.invoice_lineTrack_idPublic.trackTrack_id",
+     "isCalculated": false,
+     "notNull": false
+    }
+   ],
+   "tableReference": {
+    "catalog": "chinook",
+    "schema": "public",
+    "table": "invoice_line"
+   },
+   "cached": false,
+   "properties": {
+    "displayName": "Invoice Line",
+    "description": "One line item of an invoice — the purchase of one track. Line revenue = unit_price x quantity."
+   },
+   "primaryKey": "invoice_line_id"
+  },
+  {
+   "name": "public_media_type",
+   "columns": [
+    {
+     "name": "media_type_id",
+     "type": "INTEGER",
+     "isCalculated": false,
+     "notNull": true,
+     "properties": {
+      "description": "Primary key of the media type.",
+      "displayName": "Media Type ID"
+     }
+    },
+    {
+     "name": "name",
+     "type": "VARCHAR",
+     "isCalculated": false,
+     "notNull": false,
+     "properties": {
+      "description": "Name of the media format.",
+      "displayName": "Media Type Name"
+     }
+    },
+    {
+     "name": "public_track",
+     "type": "public_track",
+     "properties": {},
+     "relationship": "Public.trackMedia_type_idPublic.media_typeMedia_type_id",
+     "isCalculated": false,
+     "notNull": false
+    }
+   ],
+   "tableReference": {
+    "catalog": "chinook",
+    "schema": "public",
+    "table": "media_type"
+   },
+   "cached": false,
+   "properties": {
+    "displayName": "Media Type",
+    "description": "File / media format of a track (e.g. MPEG audio file, Protected AAC audio file)."
+   },
+   "primaryKey": "media_type_id"
+  },
+  {
+   "name": "public_playlist",
+   "columns": [
+    {
+     "name": "playlist_id",
+     "type": "INTEGER",
+     "isCalculated": false,
+     "notNull": true,
+     "properties": {
+      "description": "Primary key of the playlist.",
+      "displayName": "Playlist ID"
+     }
+    },
+    {
+     "name": "name",
+     "type": "VARCHAR",
+     "isCalculated": false,
+     "notNull": false,
+     "properties": {
+      "description": "Name of the playlist (not unique).",
+      "displayName": "Playlist Name"
+     }
+    },
+    {
+     "name": "public_playlist_track",
+     "type": "public_playlist_track",
+     "properties": {},
+     "relationship": "Public.playlist_trackPlaylist_idPublic.playlistPlaylist_id",
+     "isCalculated": false,
+     "notNull": false
+    },
+    {
+     "name": "track_count",
+     "type": "BIGINT",
+     "isCalculated": true,
+     "expression": "COUNT(public_playlist_track.\"track_id\")",
+     "notNull": false,
+     "properties": {
+      "description": "Number of tracks in the playlist."
+     }
+    }
+   ],
+   "tableReference": {
+    "catalog": "chinook",
+    "schema": "public",
+    "table": "playlist"
+   },
+   "cached": false,
+   "properties": {
+    "displayName": "Playlist",
+    "description": "A curated playlist of tracks. Playlist names are NOT unique (some names appear twice with different ids)."
+   },
+   "primaryKey": "playlist_id"
+  },
+  {
+   "name": "public_playlist_track",
+   "columns": [
+    {
+     "name": "playlist_id",
+     "type": "INTEGER",
+     "isCalculated": false,
+     "notNull": true,
+     "properties": {
+      "description": "Foreign key to playlist.playlist_id.",
+      "displayName": "Playlist ID"
+     }
+    },
+    {
+     "name": "track_id",
+     "type": "INTEGER",
+     "isCalculated": false,
+     "notNull": true,
+     "properties": {
+      "description": "Foreign key to track.track_id.",
+      "displayName": "Track ID"
+     }
+    },
+    {
+     "name": "public_playlist",
+     "type": "public_playlist",
+     "properties": {},
+     "relationship": "Public.playlist_trackPlaylist_idPublic.playlistPlaylist_id",
+     "isCalculated": false,
+     "notNull": false
+    },
+    {
+     "name": "public_track",
+     "type": "public_track",
+     "properties": {},
+     "relationship": "Public.playlist_trackTrack_idPublic.trackTrack_id",
+     "isCalculated": false,
+     "notNull": false
+    }
+   ],
+   "tableReference": {
+    "catalog": "chinook",
+    "schema": "public",
+    "table": "playlist_track"
+   },
+   "cached": false,
+   "properties": {
+    "displayName": "Playlist Track",
+    "description": "Bridge table linking playlists and tracks (many-to-many); one row per track in a playlist."
+   },
+   "primaryKey": ""
+  },
+  {
+   "name": "public_track",
+   "columns": [
+    {
+     "name": "track_id",
+     "type": "INTEGER",
+     "isCalculated": false,
+     "notNull": true,
+     "properties": {
+      "description": "Primary key of the track.",
+      "displayName": "Track ID"
+     }
+    },
+    {
+     "name": "name",
+     "type": "VARCHAR",
+     "isCalculated": false,
+     "notNull": true,
+     "properties": {
+      "description": "Title of the track (not unique across the catalogue).",
+      "displayName": "Track Name"
+     }
+    },
+    {
+     "name": "album_id",
+     "type": "INTEGER",
+     "isCalculated": false,
+     "notNull": false,
+     "properties": {
+      "description": "Foreign key to album.album_id.",
+      "displayName": "Album ID"
+     }
+    },
+    {
+     "name": "media_type_id",
+     "type": "INTEGER",
+     "isCalculated": false,
+     "notNull": true,
+     "properties": {
+      "description": "Foreign key to media_type.media_type_id.",
+      "displayName": "Media Type ID"
+     }
+    },
+    {
+     "name": "genre_id",
+     "type": "INTEGER",
+     "isCalculated": false,
+     "notNull": false,
+     "properties": {
+      "description": "Foreign key to genre.genre_id.",
+      "displayName": "Genre ID"
+     }
+    },
+    {
+     "name": "composer",
+     "type": "VARCHAR",
+     "isCalculated": false,
+     "notNull": false,
+     "properties": {
+      "description": "Composer(s) of the track; may be NULL.",
+      "displayName": "Composer"
+     }
+    },
+    {
+     "name": "milliseconds",
+     "type": "INTEGER",
+     "isCalculated": false,
+     "notNull": true,
+     "properties": {
+      "description": "Length of the track in milliseconds (minutes = milliseconds / 60000.0).",
+      "displayName": "Duration (ms)"
+     }
+    },
+    {
+     "name": "bytes",
+     "type": "INTEGER",
+     "isCalculated": false,
+     "notNull": false,
+     "properties": {
+      "description": "File size in bytes.",
+      "displayName": "File Size (bytes)"
+     }
+    },
+    {
+     "name": "unit_price",
+     "type": "DECIMAL",
+     "isCalculated": false,
+     "notNull": true,
+     "properties": {
+      "description": "Catalogue price of the track (USD).",
+      "displayName": "List Price"
+     }
+    },
+    {
+     "name": "public_invoice_line",
+     "type": "public_invoice_line",
+     "properties": {},
+     "relationship": "Public.invoice_lineTrack_idPublic.trackTrack_id",
+     "isCalculated": false,
+     "notNull": false
+    },
+    {
+     "name": "public_playlist_track",
+     "type": "public_playlist_track",
+     "properties": {},
+     "relationship": "Public.playlist_trackTrack_idPublic.trackTrack_id",
+     "isCalculated": false,
+     "notNull": false
+    },
+    {
+     "name": "public_album",
+     "type": "public_album",
+     "properties": {},
+     "relationship": "Public.trackAlbum_idPublic.albumAlbum_id",
+     "isCalculated": false,
+     "notNull": false
+    },
+    {
+     "name": "public_genre",
+     "type": "public_genre",
+     "properties": {},
+     "relationship": "Public.trackGenre_idPublic.genreGenre_id",
+     "isCalculated": false,
+     "notNull": false
+    },
+    {
+     "name": "public_media_type",
+     "type": "public_media_type",
+     "properties": {},
+     "relationship": "Public.trackMedia_type_idPublic.media_typeMedia_type_id",
+     "isCalculated": false,
+     "notNull": false
+    },
+    {
+     "name": "units_sold",
+     "type": "INTEGER",
+     "isCalculated": true,
+     "expression": "SUM(public_invoice_line.\"quantity\")",
+     "notNull": false,
+     "properties": {
+      "description": "Total units of this track sold across all invoices."
+     }
+    }
+   ],
+   "tableReference": {
+    "catalog": "chinook",
+    "schema": "public",
+    "table": "track"
+   },
+   "cached": false,
+   "properties": {
+    "displayName": "Track",
+    "description": "A song, video or episode that can be purchased. Belongs to one album, one genre and one media type."
+   },
+   "primaryKey": "track_id"
+  }
+ ],
+ "relationships": [
+  {
+   "name": "Public.albumArtist_idPublic.artistArtist_id",
+   "models": [
+    "public_album",
+    "public_artist"
+   ],
+   "joinType": "MANY_TO_ONE",
+   "condition": "\"public_album\".artist_id = \"public_artist\".artist_id",
+   "properties": {
+    "description": "Each album is released by one artist; an artist can have many albums."
+   }
+  },
+  {
+   "name": "Public.customerSupport_rep_idPublic.employeeEmployee_id",
+   "models": [
+    "public_customer",
+    "public_employee"
+   ],
+   "joinType": "MANY_TO_ONE",
+   "condition": "\"public_customer\".support_rep_id = \"public_employee\".employee_id",
+   "properties": {
+    "description": "The employee who is the customer's support representative."
+   }
+  },
+  {
+   "name": "Public.employeeReports_toPublic.employeeEmployee_id",
+   "models": [
+    "public_employee",
+    "public_employee"
+   ],
+   "joinType": "MANY_TO_ONE",
+   "condition": "\"public_employee\".reports_to = \"public_employee\".employee_id",
+   "properties": {
+    "description": "Self-reference — the manager an employee reports to."
+   }
+  },
+  {
+   "name": "Public.invoiceCustomer_idPublic.customerCustomer_id",
+   "models": [
+    "public_invoice",
+    "public_customer"
+   ],
+   "joinType": "MANY_TO_ONE",
+   "condition": "\"public_invoice\".customer_id = \"public_customer\".customer_id",
+   "properties": {
+    "description": "Each invoice is a purchase by one customer; a customer has many invoices."
+   }
+  },
+  {
+   "name": "Public.invoice_lineInvoice_idPublic.invoiceInvoice_id",
+   "models": [
+    "public_invoice_line",
+    "public_invoice"
+   ],
+   "joinType": "MANY_TO_ONE",
+   "condition": "\"public_invoice_line\".invoice_id = \"public_invoice\".invoice_id",
+   "properties": {
+    "description": "Each invoice line belongs to one invoice; an invoice has many lines."
+   }
+  },
+  {
+   "name": "Public.invoice_lineTrack_idPublic.trackTrack_id",
+   "models": [
+    "public_invoice_line",
+    "public_track"
+   ],
+   "joinType": "MANY_TO_ONE",
+   "condition": "\"public_invoice_line\".track_id = \"public_track\".track_id",
+   "properties": {
+    "description": "Each invoice line is the purchase of one track; a track can be sold many times."
+   }
+  },
+  {
+   "name": "Public.playlist_trackPlaylist_idPublic.playlistPlaylist_id",
+   "models": [
+    "public_playlist_track",
+    "public_playlist"
+   ],
+   "joinType": "MANY_TO_ONE",
+   "condition": "\"public_playlist_track\".playlist_id = \"public_playlist\".playlist_id",
+   "properties": {
+    "description": "Playlist membership row -> its playlist."
+   }
+  },
+  {
+   "name": "Public.playlist_trackTrack_idPublic.trackTrack_id",
+   "models": [
+    "public_playlist_track",
+    "public_track"
+   ],
+   "joinType": "MANY_TO_ONE",
+   "condition": "\"public_playlist_track\".track_id = \"public_track\".track_id",
+   "properties": {
+    "description": "Playlist membership row -> its track."
+   }
+  },
+  {
+   "name": "Public.trackAlbum_idPublic.albumAlbum_id",
+   "models": [
+    "public_track",
+    "public_album"
+   ],
+   "joinType": "MANY_TO_ONE",
+   "condition": "\"public_track\".album_id = \"public_album\".album_id",
+   "properties": {
+    "description": "Each track belongs to one album; an album has many tracks."
+   }
+  },
+  {
+   "name": "Public.trackGenre_idPublic.genreGenre_id",
+   "models": [
+    "public_track",
+    "public_genre"
+   ],
+   "joinType": "MANY_TO_ONE",
+   "condition": "\"public_track\".genre_id = \"public_genre\".genre_id",
+   "properties": {
+    "description": "Each track has one genre; a genre has many tracks."
+   }
+  },
+  {
+   "name": "Public.trackMedia_type_idPublic.media_typeMedia_type_id",
+   "models": [
+    "public_track",
+    "public_media_type"
+   ],
+   "joinType": "MANY_TO_ONE",
+   "condition": "\"public_track\".media_type_id = \"public_media_type\".media_type_id",
+   "properties": {
+    "description": "Each track has one media type."
+   }
+  }
+ ],
+ "views": []
+}

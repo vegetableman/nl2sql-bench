@@ -1,0 +1,155 @@
+# WrenAI semantic layer (MDL) for Chinook — applied by `make wren-mdl` (bench/wren_mdl.py) through the
+# same GraphQL mutations the Wren UI uses: updateModelMetadata, createCalculatedField, createInstruction, deploy.
+# Rule followed: nothing here copies or paraphrases the 29 benchmark questions or their gold SQL.
+# No SQL pairs and no views are created (see README "WrenAI + semantic layer").
+
+models:
+  album:
+    display_name: Album
+    description: A music album (or TV season / audiobook collection). Each album belongs to exactly one artist and contains many tracks.
+    columns:
+      album_id: {display_name: Album ID, description: Primary key of the album.}
+      title: {display_name: Album Title, description: Title of the album.}
+      artist_id: {display_name: Artist ID, description: Foreign key to artist.artist_id (the album's artist).}
+  artist:
+    display_name: Artist
+    description: A recording artist, band or production that released albums.
+    columns:
+      artist_id: {display_name: Artist ID, description: Primary key of the artist.}
+      name: {display_name: Artist Name, description: Name of the artist or band.}
+  customer:
+    display_name: Customer
+    description: A customer who buys tracks. Each customer is assigned one support representative (an employee).
+    columns:
+      customer_id: {display_name: Customer ID, description: Primary key of the customer.}
+      first_name: {display_name: First Name, description: Customer's given name.}
+      last_name: {display_name: Last Name, description: Customer's family name.}
+      company: {display_name: Company, description: Company the customer works for; NULL for private customers.}
+      address: {display_name: Address, description: Street address.}
+      city: {display_name: City, description: City where the customer lives.}
+      state: {display_name: State, description: State / province (may be NULL).}
+      country: {display_name: Country, description: Country where the customer lives.}
+      postal_code: {display_name: Postal Code, description: Postal / ZIP code.}
+      phone: {display_name: Phone, description: Phone number.}
+      fax: {display_name: Fax, description: Fax number (often NULL).}
+      email: {display_name: Email, description: Email address.}
+      support_rep_id: {display_name: Support Rep ID, description: Foreign key to employee.employee_id — the employee (sales support agent) who supports this customer.}
+  employee:
+    display_name: Employee
+    description: A company employee. Sales support agents are assigned to customers; every employee except the general manager reports to another employee.
+    columns:
+      employee_id: {display_name: Employee ID, description: Primary key of the employee.}
+      last_name: {display_name: Last Name, description: Employee's family name.}
+      first_name: {display_name: First Name, description: Employee's given name.}
+      title: {display_name: Job Title, description: "Job title, e.g. 'Sales Support Agent', 'Sales Manager', 'IT Staff', 'General Manager'."}
+      reports_to: {display_name: Manager ID, description: Foreign key to employee.employee_id of this employee's manager; NULL for the top manager.}
+      birth_date: {display_name: Birth Date, description: Date of birth.}
+      hire_date: {display_name: Hire Date, description: Date the employee was hired.}
+      address: {display_name: Address, description: Street address.}
+      city: {display_name: City, description: City.}
+      state: {display_name: State, description: State / province.}
+      country: {display_name: Country, description: Country.}
+      postal_code: {display_name: Postal Code, description: Postal code.}
+      phone: {display_name: Phone, description: Phone number.}
+      fax: {display_name: Fax, description: Fax number.}
+      email: {display_name: Email, description: Work email address.}
+  genre:
+    display_name: Genre
+    description: Musical / content genre of a track (e.g. Rock, Jazz, TV Shows).
+    columns:
+      genre_id: {display_name: Genre ID, description: Primary key of the genre.}
+      name: {display_name: Genre Name, description: Name of the genre.}
+  invoice:
+    display_name: Invoice
+    description: A sales invoice (one purchase by one customer on one date). The invoice total equals the sum of its invoice lines (unit_price x quantity).
+    columns:
+      invoice_id: {display_name: Invoice ID, description: Primary key of the invoice.}
+      customer_id: {display_name: Customer ID, description: Foreign key to customer.customer_id (the buyer).}
+      invoice_date: {display_name: Invoice Date, description: Date and time of the sale; use this column for all sales-period (day / month / year) analysis.}
+      billing_address: {display_name: Billing Address, description: Billing street address.}
+      billing_city: {display_name: Billing City, description: Billing city.}
+      billing_state: {display_name: Billing State, description: Billing state / province.}
+      billing_country: {display_name: Billing Country, description: Country the invoice was billed to.}
+      billing_postal_code: {display_name: Billing Postal Code, description: Billing postal code.}
+      total: {display_name: Invoice Total, description: Total amount of the invoice in USD (= sum of unit_price x quantity of its lines).}
+  invoice_line:
+    display_name: Invoice Line
+    description: One line item of an invoice — the purchase of one track. Line revenue = unit_price x quantity.
+    columns:
+      invoice_line_id: {display_name: Invoice Line ID, description: Primary key of the invoice line.}
+      invoice_id: {display_name: Invoice ID, description: Foreign key to invoice.invoice_id.}
+      track_id: {display_name: Track ID, description: Foreign key to track.track_id (the purchased track).}
+      unit_price: {display_name: Sold Unit Price, description: Price charged per unit on this line (USD).}
+      quantity: {display_name: Quantity, description: Number of units purchased on this line.}
+  media_type:
+    display_name: Media Type
+    description: File / media format of a track (e.g. MPEG audio file, Protected AAC audio file).
+    columns:
+      media_type_id: {display_name: Media Type ID, description: Primary key of the media type.}
+      name: {display_name: Media Type Name, description: Name of the media format.}
+  playlist:
+    display_name: Playlist
+    description: A curated playlist of tracks. Playlist names are NOT unique (some names appear twice with different ids).
+    columns:
+      playlist_id: {display_name: Playlist ID, description: Primary key of the playlist.}
+      name: {display_name: Playlist Name, description: Name of the playlist (not unique).}
+  playlist_track:
+    display_name: Playlist Track
+    description: Bridge table linking playlists and tracks (many-to-many); one row per track in a playlist.
+    columns:
+      playlist_id: {display_name: Playlist ID, description: Foreign key to playlist.playlist_id.}
+      track_id: {display_name: Track ID, description: Foreign key to track.track_id.}
+  track:
+    display_name: Track
+    description: A song, video or episode that can be purchased. Belongs to one album, one genre and one media type.
+    columns:
+      track_id: {display_name: Track ID, description: Primary key of the track.}
+      name: {display_name: Track Name, description: Title of the track (not unique across the catalogue).}
+      album_id: {display_name: Album ID, description: Foreign key to album.album_id.}
+      media_type_id: {display_name: Media Type ID, description: Foreign key to media_type.media_type_id.}
+      genre_id: {display_name: Genre ID, description: Foreign key to genre.genre_id.}
+      composer: {display_name: Composer, description: Composer(s) of the track; may be NULL.}
+      milliseconds: {display_name: Duration (ms), description: Length of the track in milliseconds (minutes = milliseconds / 60000.0).}
+      bytes: {display_name: File Size (bytes), description: File size in bytes.}
+      unit_price: {display_name: List Price, description: Catalogue price of the track (USD).}
+
+# Relationship descriptions (relationships themselves = the 11 FKs, MANY_TO_ONE from the referencing table).
+relationships:
+  album.artist_id->artist.artist_id: Each album is released by one artist; an artist can have many albums.
+  track.album_id->album.album_id: Each track belongs to one album; an album has many tracks.
+  track.genre_id->genre.genre_id: Each track has one genre; a genre has many tracks.
+  track.media_type_id->media_type.media_type_id: Each track has one media type.
+  invoice_line.invoice_id->invoice.invoice_id: Each invoice line belongs to one invoice; an invoice has many lines.
+  invoice_line.track_id->track.track_id: Each invoice line is the purchase of one track; a track can be sold many times.
+  invoice.customer_id->customer.customer_id: Each invoice is a purchase by one customer; a customer has many invoices.
+  customer.support_rep_id->employee.employee_id: The employee who is the customer's support representative.
+  employee.reports_to->employee.employee_id: Self-reference — the manager an employee reports to.
+  playlist_track.playlist_id->playlist.playlist_id: Playlist membership row -> its playlist.
+  playlist_track.track_id->track.track_id: Playlist membership row -> its track.
+
+# Calculated fields: Wren 0.29.2 only supports one aggregate/math function over a column reached through
+# relationships (ExpressionName enum). Row-level arithmetic (unit_price*quantity), string concatenation
+# (full names) or ms->minutes conversions are NOT possible as calculated fields; those are covered by
+# column descriptions + instructions instead. Generic per-entity rollups:
+calculated_fields:
+  - {model: customer, name: lifetime_spend, expression: SUM, path: [invoice.customer_id->customer.customer_id], column: invoice.total, description: Sum of all invoice totals of the customer.}
+  - {model: customer, name: invoice_count, expression: COUNT, path: [invoice.customer_id->customer.customer_id], column: invoice.invoice_id, description: Number of invoices of the customer.}
+  - {model: invoice, name: units_on_invoice, expression: SUM, path: [invoice_line.invoice_id->invoice.invoice_id], column: invoice_line.quantity, description: Total units (tracks) on the invoice.}
+  - {model: track, name: units_sold, expression: SUM, path: [invoice_line.track_id->track.track_id], column: invoice_line.quantity, description: Total units of this track sold across all invoices.}
+  - {model: album, name: track_count, expression: COUNT, path: [track.album_id->album.album_id], column: track.track_id, description: Number of tracks on the album.}
+  - {model: artist, name: album_count, expression: COUNT, path: [album.artist_id->artist.artist_id], column: album.album_id, description: Number of albums by the artist.}
+  - {model: genre, name: track_count, expression: COUNT, path: [track.genre_id->genre.genre_id], column: track.track_id, description: Number of tracks in the genre.}
+  - {model: playlist, name: track_count, expression: COUNT, path: [playlist_track.playlist_id->playlist.playlist_id], column: playlist_track.track_id, description: Number of tracks in the playlist.}
+  - {model: employee, name: supported_customer_count, expression: COUNT, path: [customer.support_rep_id->employee.employee_id], column: customer.customer_id, description: Number of customers this employee supports as support rep.}
+
+# Global instructions (isDefault: true -> applied to every question). Generic business / SQL rules only.
+instructions:
+  - "Revenue or sales of tracks, albums, artists, genres, media types or playlists means SUM(invoice_line.unit_price * invoice_line.quantity). Revenue of customers, countries or time periods can use SUM(invoice.total), which is the same amount."
+  - "Track length is stored in track.milliseconds; minutes = milliseconds / 60000.0 and seconds = milliseconds / 1000.0."
+  - "A customer's support representative is the employee referenced by customer.support_rep_id. An employee's manager is the employee referenced by employee.reports_to (a self-join of employee)."
+  - "Use invoice.invoice_date for any question about dates, months or years of sales; a calendar year Y means invoice_date >= 'Y-01-01' and invoice_date < '(Y+1)-01-01'."
+  - "Return only the columns the user asks for; do not add id, rank, row-number or helper columns unless they are requested."
+  - "When the user asks for the top N or the N highest/lowest items, return exactly N rows using ORDER BY ... LIMIT N; only use RANK()/DENSE_RANK() to include ties when the user explicitly asks for ties."
+  - "Do not add a LIMIT unless the user asks for a specific number of results; list questions should return all matching rows."
+  - "Album titles, track names and playlist names are not guaranteed to be unique; when grouping by such a name also group by the entity's id."
+  - "The database is PostgreSQL. To round a floating-point expression use ROUND(CAST(expression AS NUMERIC), n)."

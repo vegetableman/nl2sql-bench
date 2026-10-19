@@ -7,10 +7,10 @@ import argparse, concurrent.futures as cf, csv, datetime as dt, json, statistics
 import httpx, psycopg, yaml
 from zoneinfo import ZoneInfo
 from common import ROOT, load_env, compare
-from clients import WrenClient, DBGPTClient, CubeClient, MockSQLClient
+from clients import WrenClient, WrenMDLClient, DBGPTClient, CubeClient, MockSQLClient
 
-METER_KEY = {"wrenai": "wren"}  # llm-meter path prefix per system
-LABELS = {"wrenai": "WrenAI 0.29.2", "dbgpt": "DB-GPT 0.8.2", "cube": "Cube Core 1.8.8 + LLM adapter (harness-built)"}
+METER_KEY = {"wrenai": "wren", "wrenai_mdl": "wrenmdl"}  # llm-meter path prefix per system
+LABELS = {"wrenai": "WrenAI 0.29.2 (out of the box)", "wrenai_mdl": "WrenAI 0.29.2 + semantic layer", "dbgpt": "DB-GPT 0.8.2", "cube": "Cube Core 1.8.8 + LLM adapter (harness-built)"}
 
 
 def run_sql(conn, sql, limit_rows=100000):
@@ -77,7 +77,7 @@ def main():
         elif a.mock:
             clients[s] = MockSQLClient(s, qs)
         else:
-            clients[s] = {"wrenai": WrenClient, "dbgpt": DBGPTClient}[s](env)
+            clients[s] = {"wrenai": WrenClient, "wrenai_mdl": WrenMDLClient, "dbgpt": DBGPTClient}[s](env)
 
     run_id = a.out or (dt.datetime.now().strftime("%Y%m%d-%H%M%S") + ("-mock" if a.mock else ""))
     out = ROOT / "results" / run_id

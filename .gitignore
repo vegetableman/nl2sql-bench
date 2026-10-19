@@ -8,3 +8,7 @@ results/*
 wrenai/.env
 wrenai/config.yaml
 __pycache__/
+wrenai_mdl/.env
+wrenai_mdl/config.yaml
+!results/run-gptoss120b-wrenmdl-r3/
+!results/combined_summary.md

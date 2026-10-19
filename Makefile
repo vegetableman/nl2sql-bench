@@ -2,10 +2,11 @@
 SHELL := /bin/bash
 PY    := .venv/bin/python
 WREN  := docker compose --project-directory wrenai --env-file wrenai/.env -f wrenai/docker-compose.yaml -f wrenai/docker-compose.override.yaml
+WRENMDL := docker compose -p wrenai-mdl --project-directory wrenai_mdl --env-file wrenai_mdl/.env -f wrenai_mdl/docker-compose.yaml -f wrenai_mdl/docker-compose.override.yaml
 REPEATS ?= 1
 SYSTEMS ?= wrenai,dbgpt,cube
 
-.PHONY: up down clean setup bench mock verify probe status logs venv render docker netfix wait
+.PHONY: wren-mdl wren-mdl-up report up down clean setup bench mock verify probe status logs venv render docker netfix wait
 
 up: docker netfix venv render          ## start everything and connect all tools to Postgres
 	docker compose up -d --build
@@ -17,6 +18,18 @@ up: docker netfix venv render          ## start everything and connect all tools
 	$(WREN) up -d --force-recreate wren-ai-service
 	$(WREN) up -d
 	$(MAKE) --no-print-directory wait setup
+
+wren-mdl-up: docker netfix venv render ## start the 2nd WrenAI stack (UI :3001, AI :5556) used by system wrenai_mdl
+	$(WRENMDL) up -d --force-recreate wren-ai-service
+	$(WRENMDL) up -d
+	@for u in "http://localhost:5556/health" "http://localhost:3001"; do printf "waiting for %s " $$u; \
+	  for i in $$(seq 1 90); do curl -sf -o /dev/null $$u && break; printf .; sleep 2; done; echo " ok"; done
+
+wren-mdl: wren-mdl-up                  ## build + deploy the semantic layer (wrenai_mdl/mdl/semantic_layer.yaml) on the 2nd stack
+	cd bench && ../$(PY) wren_mdl.py
+
+report:                                ## combined 4-system report -> results/combined_summary.md + results/summary.png
+	$(PY) bench/combine.py
 
 venv: .venv/.ok
 .venv/.ok: requirements.txt
@@ -56,15 +69,17 @@ bench:                                 ## real benchmark (needs LLM_API_KEY)
 	$(PY) bench/harness.py --repeats $(REPEATS) --systems $(SYSTEMS)
 
 status:
-	docker compose ps; $(WREN) ps
+	docker compose ps; $(WREN) ps; -$(WRENMDL) ps
 
 logs:
 	docker compose logs --tail 50; $(WREN) logs --tail 50
 
 down:
+	-$(WRENMDL) down
 	-$(WREN) down
 	-docker compose down
 
-clean:                                 ## stop and delete all volumes (DB, Wren project, DB-GPT metadata)
+clean:                                 ## stop and delete all volumes (DB, both Wren projects, DB-GPT metadata)
+	-$(WRENMDL) down -v
 	-$(WREN) down -v
 	-docker compose down -v

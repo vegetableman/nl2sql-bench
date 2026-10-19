@@ -1,10 +1,11 @@
-# nl2sql-bench — WrenAI vs DB-GPT vs Cube Core (+LLM adapter)
+# nl2sql-bench — WrenAI (out of the box / + semantic layer) vs DB-GPT vs Cube Core (+LLM adapter)
 
 Same natural-language questions, same Postgres database, same LLM, measured the same way.
 
 | System | How questions reach it | API used by the harness |
 |---|---|---|
-| **WrenAI 0.29.2** (official docker compose) | NL → SQL | `POST http://localhost:3000/api/v1/generate_sql` `{question, returnSqlDialect:true}` (wren-ui wraps wren-ai-service `/v1/asks` + polling; ibis converts Wren SQL to native Postgres SQL) |
+| **WrenAI 0.29.2 (out of the box)** — system `wrenai` (official docker compose) | NL → SQL; project = tables + PK/FK relationships only | `POST http://localhost:3000/api/v1/generate_sql` `{question, returnSqlDialect:true}` (wren-ui wraps wren-ai-service `/v1/asks` + polling; ibis converts Wren SQL to native Postgres SQL) |
+| **WrenAI 0.29.2 + semantic layer** — system `wrenai_mdl` (2nd, identical WrenAI stack, compose project `wrenai-mdl`) | NL → SQL; project additionally carries the MDL in `wrenai_mdl/mdl/semantic_layer.yaml` (see below) | `POST http://localhost:3001/api/v1/generate_sql` (same API) |
 | **DB-GPT 0.8.2** (official `dbgpt-openai` image + psycopg2) | NL → SQL (chat_data mode) | `POST http://localhost:5670/api/v2/chat/completions` `{chat_mode:"chat_data", chat_param:"chinook", stream:false}`; SQL is parsed out of the `<chart-view content=…>` block in the reply |
 | **Cube Core 1.8.8 + LLM adapter (harness-built)** | Cube Core has **no OSS NL interface** (the AI API / D3 is Cube Cloud-only; OSS v1.8.8 api-gateway only has `/v1/load, /sql, /meta, /cubesql, /dry-run, …`). The harness gives the same LLM the `/v1/meta` model + join list and asks for a Cube REST query JSON (1 self-correction retry on Cube errors) | `POST http://localhost:4000/cubejs-api/v1/load` |
 
@@ -23,9 +24,12 @@ cp .env.example .env            # first time only (make up does this too)
 make up                          # docker up + connect WrenAI/DB-GPT to Postgres + deploy/index schema
 make verify                      # gold SQL check, Cube reference queries, API probe
 make bench REPEATS=3             # real run → results/<timestamp>/{results.csv,summary.md,raw.jsonl}
-.venv/bin/python bench/chart.py results/<run>   # → results/summary.png
+.venv/bin/python bench/chart.py results/<run>   # single-run chart (make report builds the combined 4-system results/summary.png)
 make mock                        # dry run without any LLM key (mock WrenAI/DB-GPT; Cube via reference queries)
 make bench SYSTEMS=wrenai,dbgpt  # subset of systems
+make wren-mdl                    # (after make up) start 2nd WrenAI stack (:3001/:5556) + build/deploy the semantic layer
+make bench SYSTEMS=wrenai_mdl REPEATS=3
+make report                      # combined 4-system report → results/combined_summary.md + results/summary.png
 make down / make clean           # stop / stop + delete volumes
 ```
 
@@ -52,6 +56,7 @@ recreates the containers whose env changed, re-deploys Wren (schema indexing) an
 ```
 docker-compose.yml          postgres, llm-meter, dbgpt, cube   (network nl2sql-net)
 wrenai/                     upstream WrenAI 0.29.2 compose + override joining nl2sql-net; .env/config.yaml are rendered
+wrenai_mdl/                 2nd WrenAI stack (symlinked compose, own override/.env/config.yaml) + mdl/semantic_layer.yaml, mdl/deployed_mdl.json
 dbgpt/                      Dockerfile (+psycopg2) and dbgpt-bench.toml
 cube/model/cubes/chinook.yml  generic Chinook semantic model (12 cubes incl. a `manager` self-join cube)
 meter/                      llm-meter proxy
@@ -60,7 +65,47 @@ bench/questions.yaml        29 questions (8 easy / 9 medium / 12 hard) with gold
 bench/cube_reference_queries.yaml  hand-written Cube queries proving the model covers 23/29 questions
 bench/harness.py            runner, scoring, report     bench/clients.py  per-system API clients
 bench/setup_connections.py  connects tools to the DB    bench/verify_gold.py, bench/probe.py
+bench/wren_mdl.py           builds/deploys the Wren semantic layer   bench/combine.py  combined 4-system report + summary.png
 ```
+
+## WrenAI + semantic layer (`wrenai_mdl`)
+
+Results (all four systems, OOTB vs MDL per question, by difficulty, latency, tokens, variance): `results/combined_summary.md`, `results/summary.png`.
+
+**Why a second stack:** the out-of-the-box project (`wrenai/`, UI :3000, AI :5555, meter prefix `/wren/`) is left exactly as it was
+benchmarked. `wrenai_mdl/` reuses the same upstream compose/config files (symlinks to `../wrenai/`), the same image digests, LLM,
+embedding model and `config.yaml` pipeline settings; only the compose project (`wrenai-mdl`), host ports (UI **3001**, AI **5556**) and
+the llm-meter prefix (`/wrenmdl/`, so tokens are counted separately) differ. It is not attached to `nl2sql-net` (same service names
+would collide); it reaches Postgres and llm-meter through `host.docker.internal` (published ports 5432/8089).
+
+**How it is built (`make wren-mdl` → `bench/wren_mdl.py`)** — only WrenAI's own modelling API (the GraphQL mutations the Wren UI calls),
+driven from `wrenai_mdl/mdl/semantic_layer.yaml`; idempotent; ends with `deploy` = `SUCCESS` and dumps the deployed MDL to
+`wrenai_mdl/mdl/deployed_mdl.json` (hash recorded there):
+1. Data source + all 11 tables + 10 primary keys + 11 FK relationships (MANY_TO_ONE from the referencing table), same code as OOTB.
+2. `updateModelMetadata`: display name + description for **all 11 models and all 64 columns**, description for all 11 relationships.
+3. `createCalculatedField` — 9 per-entity rollups (Wren 0.29.2 allows one aggregate/math function over a column reached through relationships):
+   `customer.lifetime_spend` = SUM(invoice.total), `customer.invoice_count` = COUNT(invoice.invoice_id),
+   `invoice.units_on_invoice` = SUM(invoice_line.quantity), `track.units_sold` = SUM(invoice_line.quantity),
+   `album.track_count` = COUNT(track.track_id), `artist.album_count` = COUNT(album.album_id), `genre.track_count` = COUNT(track.track_id),
+   `playlist.track_count` = COUNT(playlist_track.track_id), `employee.supported_customer_count` = COUNT(customer.customer_id).
+4. `createInstruction` (global, `isDefault: true`) — 9 generic rules, verbatim in the YAML: revenue definition (line level
+   `unit_price*quantity` for catalogue entities, `invoice.total` for customers/countries/periods); track minutes = ms/60000.0; support rep =
+   `customer.support_rep_id`, manager = `employee.reports_to`; dates = `invoice.invoice_date` with half-open year ranges; return only the requested
+   columns; top-N = `ORDER BY … LIMIT N` (RANK/DENSE_RANK only when ties are asked for); no LIMIT unless a number is asked for; names are
+   not unique → group by id too; Postgres rounding `ROUND(CAST(x AS NUMERIC), n)`.
+
+**Not added, and why**
+* **SQL pairs: none** (0 in `sql_pairs`). **Views: none** — a Wren view is stored and indexed as a question + SQL (`view_questions`), and the
+  obvious candidates (revenue by artist / genre / country / month) would paraphrase benchmark questions.
+* Metrics: WrenAI 0.29.2's UI/GraphQL has no metric-creation mutation (metrics exist only in the raw MDL schema), so none were added.
+* Row-level calculated fields (line revenue `unit_price*quantity`, full name concat, duration in minutes) cannot be expressed with the
+  0.29.2 calculated-field functions; they are described in column descriptions/instructions instead.
+
+**Leakage check:** no element copies or paraphrases any of the 29 benchmark questions or gold SQL. Caveat: the generic rollups and
+instructions are things a real modeller of Chinook would add, and some of them coincide with what certain questions need (e.g.
+`genre.track_count`, `artist.album_count`, `album.track_count`, `playlist.track_count`, the revenue definition, the ties/LIMIT rules) — that
+is the intended benefit of a semantic layer, but it means the comparison measures "WrenAI with a sensible, Chinook-aware model", authored
+by someone who had seen the question set.
 
 ## Metrics
 * **EX exact**: result multiset equals gold (column order free; numbers rounded to 2 dp; dates normalised; row order checked only for `order_matters` questions, on the sort key so ties don't count). **EX relaxed**: additionally allows extra columns.

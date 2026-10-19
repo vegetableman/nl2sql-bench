@@ -14,8 +14,9 @@ class WrenClient:
     returnSqlDialect=true -> ibis-server translates Wren-SQL into native Postgres SQL."""
     name = "wrenai"
 
-    def __init__(self, env):
-        self.url = f"http://localhost:{env.get('WREN_UI_PORT', '3000')}/api/v1/generate_sql"
+    def __init__(self, env, port=None):
+        port = port or env.get('WREN_UI_PORT', '3000')
+        self.url = f"http://localhost:{port}/api/v1/generate_sql"
 
     def generate(self, question):
         r = httpx.post(self.url, json={"question": question, "returnSqlDialect": True}, timeout=TIMEOUT)
@@ -26,6 +27,15 @@ class WrenClient:
         if r.status_code != 200 or not j.get("sql"):
             return {"error": f"HTTP {r.status_code}: {j.get('code', '')} {str(j.get('error') or j)[:400]}", "raw": j}
         return {"sql": j["sql"], "raw": {"threadId": j.get("threadId")}}
+
+
+class WrenMDLClient(WrenClient):
+    """Same WrenAI 0.29.2 API, second stack (wrenai_mdl) whose project carries the semantic layer
+    built by bench/wren_mdl.py from wrenai_mdl/mdl/semantic_layer.yaml."""
+    name = "wrenai_mdl"
+
+    def __init__(self, env):
+        super().__init__(env, port=env.get("WREN_MDL_UI_PORT", "3001"))
 
 
 class DBGPTClient:

@@ -9,6 +9,7 @@
 | └ wren-engine-ibis | 0.22.0 | ghcr.io/canner/wren-engine-ibis@sha256:54f1f060d64982c09d9b5f68420a95810a40e37da83449af8f68e8f25ae86940 |
 | └ qdrant | v1.15.0 | qdrant/qdrant@sha256:709bd2656bb929b745a956260f61a6395d09f8eed72c5bf2131985ae70f95974 |
 | └ wren-bootstrap | 0.1.5 | ghcr.io/canner/wren-bootstrap@sha256:731c3085cee5c87a79b07d27c9d10eb35f4830b0cac46a51ac8e9f6606698ada |
+| WrenAI 2nd stack (`wrenai_mdl`) | same 0.29.2 compose/images/digests as above (compose project `wrenai-mdl`, ports 3001/5556) | semantic layer: `wrenai_mdl/mdl/semantic_layer.yaml`; deployed MDL hash in `wrenai_mdl/mdl/deployed_mdl.json` |
 | DB-GPT | 0.8.2 (latest release) | eosphorosai/dbgpt-openai@sha256:bd7d35ce7994f0f977007c28c839fffcdc80cfa810fa12ead9aecfd4e9b3d11f + `psycopg2-binary==2.9.10` layer (`dbgpt/Dockerfile`, image `nl2sql-bench/dbgpt:v0.8.2-pg`) |
 | Cube Core | v1.8.8 (latest release) | cubejs/cube@sha256:fb9933de67b83c2ff9b1b61017d4f3cbafc8d248906b3e4923f57524b8c634d6 |
 | Postgres | 16.4 | postgres@sha256:e62fbf9d3e2b49816a32c400ed2dba83e3b361e6833e624024309c35d334b412 |
