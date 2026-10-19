@@ -307,7 +307,7 @@ Legend: ✅ exact, 🟡 extra columns, ❌ wrong result, 💥 SQL exec error, �
 
 ## Held-out set (15 new questions)
 
-Source: `bench/questions_holdout.yaml`. Models/prompts/MDL **unchanged**. 15 q × 3 runs each for `router`, `cube_v2`, `wrenai_mdl_noreason`.
+Source: `bench/questions_holdout.yaml`. Models/prompts/MDL **unchanged**. 15 q × 3 runs each for `router`, `cube_v2`, `wrenai_mdl_noreason`, `dbgpt`.
 Results: `results/run-gptoss120b-holdout-r3/`. Chart: `results/holdout_summary.png`.
 
 | System | EX exact | EX relaxed | p50 s | p95 s | avg prompt tok | avg LLM calls |
@@ -315,6 +315,7 @@ Results: `results/run-gptoss120b-holdout-r3/`. Chart: `results/holdout_summary.p
 | Router (cube_v2 → Wren noreason) | 39/45 (87%) | 39/45 (87%) | 3.54 | 7.77 | 11,327 | 1.9 |
 | cube_v2 | 25/45 (56%) | 25/45 (56%) | 1.92 | 5.26 | 3,436 | 1.2 |
 | WrenAI + semantic, no reasoning | 42/45 (93%) | 42/45 (93%) | 4.06 | 6.89 | 20,811 | 2.0 |
+| DB-GPT 0.8.2 | 39/45 (87%) | 39/45 (87%) | 2.61 | 4.32 | 1,693 | 1.0 |
 
 ### Router fallback / silent-wrong (holdout)
 
@@ -325,22 +326,27 @@ Results: `results/run-gptoss120b-holdout-r3/`. Chart: `results/holdout_summary.p
 - Silent-wrong (Cube answered, no fallback, not EX): 6 — ho12@r1, ho12@r2, ho14@r2, ho04@r3, ho12@r3, ho14@r3
 - Fell back but Wren still wrong: 0 — none
 
+### DB-GPT misses (holdout)
+
+- Non-exact: 6/45 — all `wrong_result` (no tool/exec errors or timeouts)
+- IDs: ho12, ho14 (each 0/3). ho12: returned 50 artists vs gold 110; ho14: week-number column mismatch.
+
 ### Per-question statuses (holdout)
 
-| id | diff | question | router | cube_v2 | wren noreason |
-|---|---|---|---|---|---|
-| ho01 | easy | How many distinct media types are there? | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| ho02 | easy | How many customers have a fax number recorded? | ✅ ✅ ✅ | ⛔ ⛔ ⛔ | ✅ ✅ ✅ |
-| ho03 | easy | How many tracks are larger than 15 megabytes (bytes > 15 * 1024 * 1024 | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| ho04 | easy | How many invoices have a billing address that contains the word Street | ✅ ✅ ❌ | ❌ ❌ ❌ | ✅ ✅ ✅ |
-| ho05 | medium | What is the average track file size in bytes for each media type? Retu | ✅ ✅ ✅ | ✅ ⛔ ⛔ | ✅ ✅ ✅ |
-| ho06 | medium | How many playlists contain tracks from at least 10 different genres? | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| ho07 | medium | List employees born in the 1970s. Return first name, last name and bir | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| ho08 | medium | How many customers have a phone number that starts with '+55'? | ✅ ✅ ✅ | ⛔ ⛔ ⛔ | ✅ ✅ ✅ |
-| ho09 | medium | What percentage of total sales revenue (unit price times quantity) com | ✅ ✅ ✅ | ✅ ❌ ❌ | ✅ ✅ ✅ |
-| ho10 | hard | For each day of the week in 2024, how many invoices were issued? Retur | ✅ ✅ ✅ | ✅ ✅ ⏱️ | ✅ ✅ ✅ |
-| ho11 | hard | For each support representative, which customer has the highest total  | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| ho12 | hard | Which artists have never had any track appear on an invoice line (neve | ❌ ❌ ❌ | ❌ 💥 ❌ | ✅ ✅ ✅ |
-| ho13 | hard | For each quarter of 2024, show the total invoice revenue and the previ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| ho14 | hard | Which ISO week numbers of 2023 had the highest invoice revenue? Return | ✅ ❌ ❌ | ✅ ✅ ✅ | ❌ ❌ ❌ |
-| ho15 | hard | How many distinct billing postal codes appear on invoices billed to Ca | ✅ ✅ ✅ | ⛔ ⛔ ⛔ | ✅ ✅ ✅ |
+| id | diff | question | router | cube_v2 | wren noreason | dbgpt |
+|---|---|---|---|---|---|---|
+| ho01 | easy | How many distinct media types are there? | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
+| ho02 | easy | How many customers have a fax number recorded? | ✅ ✅ ✅ | ⛔ ⛔ ⛔ | ✅ ✅ ✅ | ✅ ✅ ✅ |
+| ho03 | easy | How many tracks are larger than 15 megabytes (bytes > 15 * 1024 * | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
+| ho04 | easy | How many invoices have a billing address that contains the word S | ✅ ✅ ❌ | ❌ ❌ ❌ | ✅ ✅ ✅ | ✅ ✅ ✅ |
+| ho05 | medium | What is the average track file size in bytes for each media type? | ✅ ✅ ✅ | ✅ ⛔ ⛔ | ✅ ✅ ✅ | ✅ ✅ ✅ |
+| ho06 | medium | How many playlists contain tracks from at least 10 different genr | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
+| ho07 | medium | List employees born in the 1970s. Return first name, last name an | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
+| ho08 | medium | How many customers have a phone number that starts with '+55'? | ✅ ✅ ✅ | ⛔ ⛔ ⛔ | ✅ ✅ ✅ | ✅ ✅ ✅ |
+| ho09 | medium | What percentage of total sales revenue (unit price times quantity | ✅ ✅ ✅ | ✅ ❌ ❌ | ✅ ✅ ✅ | ✅ ✅ ✅ |
+| ho10 | hard | For each day of the week in 2024, how many invoices were issued?  | ✅ ✅ ✅ | ✅ ✅ ⏱️ | ✅ ✅ ✅ | ✅ ✅ ✅ |
+| ho11 | hard | For each support representative, which customer has the highest t | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
+| ho12 | hard | Which artists have never had any track appear on an invoice line  | ❌ ❌ ❌ | ❌ 💥 ❌ | ✅ ✅ ✅ | ❌ ❌ ❌ |
+| ho13 | hard | For each quarter of 2024, show the total invoice revenue and the  | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
+| ho14 | hard | Which ISO week numbers of 2023 had the highest invoice revenue? R | ✅ ❌ ❌ | ✅ ✅ ✅ | ❌ ❌ ❌ | ❌ ❌ ❌ |
+| ho15 | hard | How many distinct billing postal codes appear on invoices billed  | ✅ ✅ ✅ | ⛔ ⛔ ⛔ | ✅ ✅ ✅ | ✅ ✅ ✅ |

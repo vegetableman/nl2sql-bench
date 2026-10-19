@@ -267,7 +267,7 @@ fell back **0/87** times. To measure routing under distribution shift we added *
 * a few in-model controls (media-type count, track bytes, employee birth dates, playlists).
 
 **Models / prompts / MDL were not edited to fit these questions** — cube_v2 model, `CUBE_V2_ROUTER_SYSTEM`, and the Wren
-semantic layer stay exactly as benchmarked on the original 29. Run with `make bench-holdout REPEATS=3`.
+semantic layer stay exactly as benchmarked on the original 29. Run with `make bench-holdout REPEATS=3` (router/cube_v2/Wren noreason); DB-GPT was added to the same run dir with `--systems dbgpt --resume`.
 
 Results (`results/run-gptoss120b-holdout-r3/`, chart `results/holdout_summary.png`, 15 × 3):
 
@@ -276,10 +276,12 @@ Results (`results/run-gptoss120b-holdout-r3/`, chart `results/holdout_summary.pn
 | Router | 39/45 (87%) | 39/45 (87%) | 3.54 | 7.77 | 11,327 | 1.9 |
 | cube_v2 | 25/45 (56%) | 25/45 (56%) | 1.92 | 5.26 | 3,436 | 1.2 |
 | WrenAI + semantic, no reasoning | 42/45 (93%) | 42/45 (93%) | 4.06 | 6.89 | 20,811 | 2.0 |
+| DB-GPT 0.8.2 | 39/45 (87%) | 39/45 (87%) | 2.61 | 4.32 | 1,693 | 1.0 |
 
 Router fallback **17/45 (38%)** — triggers `cube_unsupported`×16, `cube_error`×1. Cube-answered path EX 22/28 (79%);
 fallback path EX 17/17 (100%). Silent-wrong (Cube answered, no fallback): `ho12`×3, `ho14`×2, `ho04`×1. No attempt
 fell back and then still failed under Wren. cube_v2's mean latency is pulled up by one 180 s timeout on `ho10`.
+DB-GPT (unchanged config) matches the router's 87% EX; misses are `ho12` and `ho14` (wrong_result all 3 runs each; no errors/timeouts).
 
 ## Cube notes (baseline `cube`)
 Not expressible as a single Cube REST query over the model (counted as failures for Cube, listed in the report):
