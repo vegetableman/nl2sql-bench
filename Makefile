@@ -6,7 +6,7 @@ WRENMDL := docker compose -p wrenai-mdl --project-directory wrenai_mdl --env-fil
 REPEATS ?= 1
 SYSTEMS ?= wrenai,dbgpt,cube
 
-.PHONY: wren-mdl wren-mdl-noreason wren-mdl-restore wren-mdl-up report up down clean setup bench mock verify probe status logs venv render docker netfix wait
+.PHONY: wren-mdl wren-mdl-noreason wren-mdl-restore wren-mdl-up report up down clean setup bench mock verify probe status logs venv render docker netfix wait bench-router
 
 up: docker netfix venv render          ## start everything and connect all tools to Postgres
 	docker compose up -d --build
@@ -83,6 +83,9 @@ mock:                                  ## dry-run of the harness without an LLM 
 
 bench:                                 ## real benchmark (needs LLM_API_KEY)
 	$(PY) bench/harness.py --repeats $(REPEATS) --systems $(SYSTEMS)
+
+bench-router: wren-mdl-noreason        ## router = cube_v2 (router prompt) → WrenAI semantic no-reasoning; 3 runs → results/run-gptoss120b-router-r3/
+	$(PY) bench/harness.py --repeats $(REPEATS) --systems router --out run-gptoss120b-router-r3
 
 status:
 	docker compose ps; $(WREN) ps; -$(WRENMDL) ps

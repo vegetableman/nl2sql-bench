@@ -1,4 +1,4 @@
-# nl2sql-bench — WrenAI (out of the box / + semantic layer / + semantic layer, no reasoning) vs DB-GPT vs Cube Core (+LLM adapter: baseline / rich model + SQL API v2)
+# nl2sql-bench — WrenAI (out of the box / + semantic layer / + semantic layer, no reasoning) vs DB-GPT vs Cube Core (+LLM adapter: baseline / rich model + SQL API v2) vs Router (cube_v2 → Wren noreason)
 
 Same natural-language questions, same Postgres database, same LLM, measured the same way.
 
@@ -10,6 +10,7 @@ Same natural-language questions, same Postgres database, same LLM, measured the 
 | **DB-GPT 0.8.2** (official `dbgpt-openai` image + psycopg2) | NL → SQL (chat_data mode) | `POST http://localhost:5670/api/v2/chat/completions` `{chat_mode:"chat_data", chat_param:"chinook", stream:false}`; SQL is parsed out of the `<chart-view content=…>` block in the reply |
 | **Cube Core 1.8.8 + LLM adapter (baseline)** — system `cube` | Cube Core has **no OSS NL interface** (the AI API / D3 is Cube Cloud-only; OSS v1.8.8 api-gateway only has `/v1/load, /sql, /meta, /cubesql, /dry-run, …`). The harness gives the same LLM the `/v1/meta` model + join list and asks for a Cube REST query JSON (1 self-correction retry on Cube errors) | `POST http://localhost:4000/cubejs-api/v1/load` |
 | **Cube Core 1.8.8 + rich model + LLM adapter v2 (harness-built)** — system `cube_v2` (service `cube_v2`, REST :4001, SQL API :15432) | same LLM gets the *views* of `cube_v2/model` (with descriptions) from `/v1/meta` and writes ONE Cube SQL API query (Postgres dialect, `MEASURE()`, push-down/post-processing); 1 repair retry on Cube errors | Cube SQL API (Postgres wire protocol) at `localhost:15432` — executed by Cube, never directly on Postgres |
+| **Router** — system `router` | try cube_v2 first (prompt copy that may reply `CANNOT_EXPRESS`); fall back to WrenAI + semantic layer, no reasoning on unsupported / Cube error / empty result. No gold used for routing. | cube_v2 SQL API + `POST http://localhost:3001/api/v1/generate_sql`; tokens under `/router/` (+ `/wrenmdlnr/` on fallback) |
 
 Fairness controls
 * One Postgres (Chinook 1.4.5) container; WrenAI, DB-GPT and Cube connect to it as the same **read-only role `bench`**.
@@ -33,9 +34,10 @@ make wren-mdl                    # (after make up) start 2nd WrenAI stack (:3001
 make bench SYSTEMS=wrenai_mdl REPEATS=3
 make wren-mdl-noreason           # switch 2nd stack to the no-reasoning variant, then:
 make bench SYSTEMS=wrenai_mdl_noreason REPEATS=3
+make bench-router REPEATS=3      # router (needs noreason variant; make target switches it)
 make wren-mdl-restore            # switch back (wrenai_mdl); config.yaml is re-rendered byte-identically
 .venv/bin/python bench/stage_latency.py   # per-stage latency from wren-ai-service logs (see below)
-make report                      # combined 5-system report → results/combined_summary.md + results/summary.png
+make report                      # combined report → results/combined_summary.md + results/summary.png
 make down / make clean           # stop / stop + delete volumes
 ```
 
@@ -70,7 +72,7 @@ db/                         Chinook SQL + read-only role
 bench/questions.yaml        29 questions (8 easy / 9 medium / 12 hard) with gold SQL
 bench/cube_reference_queries.yaml  hand-written Cube REST queries proving the baseline model covers 23/29 questions
 cube_v2/model/              cube_v2 model (cubes/ + views/)    bench/cube_v2_reference_sql.yaml + verify_cube_v2.py  SQL API references (29/29)
-bench/harness.py            runner, scoring, report     bench/clients.py  per-system API clients
+bench/harness.py            runner, scoring, report     bench/clients.py  per-system API clients (incl. router)
 bench/setup_connections.py  connects tools to the DB    bench/verify_gold.py, bench/probe.py
 bench/wren_mdl.py           builds/deploys the Wren semantic layer   bench/combine.py  combined 5-system report + summary.png
 bench/stage_latency.py      per-stage WrenAI latency from wren-ai-service logs (+ llm-meter timing events)
@@ -231,6 +233,24 @@ every question through cube_v2 and compares it with gold: 29/29 reproduce gold. 
 23/29 (h03, h04, h05, h07, h09 and h11 are not expressible as one REST query). One caveat: the prior-month measure
 uses true calendar shifting, so for January 2024 it returns December 2023's revenue rather than NULL, unlike a LAG
 within 2024.
+
+## Router (`router`): cube_v2 first, WrenAI semantic no-reasoning fallback
+
+**Idea.** Send every question to the cube_v2 path first (same Cube 1.8.8 model + SQL API as `cube_v2`, but a **prompt copy**
+`CUBE_V2_ROUTER_SYSTEM` that may reply `{"unsupported": "CANNOT_EXPRESS: …"}`). Fall back to WrenAI + semantic layer with
+reasoning off (`wrenai_mdl_noreason`, `make wren-mdl-noreason`) when the sentinel comes back, when Cube returns an error, or
+when Cube returns an empty result. **Gold answers are never used for routing.** Latency and llm-meter tokens count both
+paths when fallback fires (Cube under `/router/`, Wren under `/wrenmdlnr/`).
+
+**What this run measured** (`results/run-gptoss120b-router-r3/`, 29 q × 3): EX exact **86/87 (99%)**, EX relaxed 86/87,
+p50 **2.09 s** / p95 **4.49 s**, avg prompt tokens ~3106, avg LLM calls ~1.0. **Fallback rate 0/87** — with this model and
+prompt the LLM never declined, and Cube never errored or returned empty on these questions, so every attempt stayed on the
+Cube path. The one miss is a **silent-wrong**: `h10` run 2 (Cube returned non-empty wrong month labels via `EXTRACT(MONTH)`;
+no empty/error/sentinel, so no fallback). Same accuracy band as `wrenai_mdl_noreason` (86/87) at roughly cube_v2 latency.
+
+**Caveat (same as cube_v2 / Wren semantic layer).** Both the cube_v2 model and the WrenAI semantic layer were authored after
+seeing the question set. The router inherits that leakage; it does not invent a third model. A router only helps when Cube
+declines or fails loudly — silent wrongs (valid-looking wrong rows) still pass through.
 
 ## Cube notes (baseline `cube`)
 Not expressible as a single Cube REST query over the model (counted as failures for Cube, listed in the report):

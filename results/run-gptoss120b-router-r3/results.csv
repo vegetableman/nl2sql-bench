@@ -1,0 +1,263 @@
+run,id,difficulty,system,latency_s,status,exact,relaxed,reason,generated,error,cube_expressible,rate_limit_retries,router_path,fallback_reason,prompt_tokens,completion_tokens,embedding_tokens,chat_requests
+1,e01,easy,router,1.075,correct,True,True,match,SELECT MEASURE(track_count) FROM tracks,,True,0,cube_v2,,3019,74,0,1
+1,e02,easy,router,1.047,correct,True,True,match,SELECT name FROM genres,,True,0,cube_v2,,3019,52,0,1
+1,e03,easy,router,2.132,correct,True,True,match,SELECT MEASURE(customer_count) FROM customers WHERE country = 'Brazil',,True,0,cube_v2,,3018,193,0,1
+1,e04,easy,router,1.066,correct,True,True,match,"SELECT name FROM (SELECT track_id, name, duration_minutes FROM tracks) t WHERE duration_minutes > 20",,True,0,cube_v2,,3025,95,0,1
+1,e05,easy,router,2.084,correct,True,True,match,SELECT MEASURE(max_unit_price) FROM tracks,,True,0,cube_v2,,3021,202,0,1
+1,e06,easy,router,1.159,correct,True,True,match,"SELECT first_name, last_name FROM employees WHERE title = 'Sales Support Agent'",,True,0,cube_v2,,3027,95,0,1
+1,e07,easy,router,1.461,correct,True,True,match,SELECT MEASURE(invoice_count) AS invoice_count FROM invoices WHERE invoice_date >= '2023-01-01' AND invoice_date < '2024-01-01',,True,0,cube_v2,,3023,203,0,1
+1,e08,easy,router,1.314,correct,True,True,match,"SELECT first_name, last_name, company FROM customers WHERE is_business IS TRUE",,True,0,cube_v2,,3028,160,0,1
+1,m01,medium,router,1.147,correct,True,True,match,"SELECT genre_name, MEASURE(track_count) FROM tracks GROUP BY genre_name",,True,0,cube_v2,,3030,92,0,1
+1,m02,medium,router,2.856,correct,True,True,match,"SELECT artist_name, album_cnt AS album_count
+FROM (
+  SELECT artist_id, artist_name, MEASURE(album_count) AS album_cnt
+  FROM albums
+  GROUP BY artist_id, artist_name
+) t
+ORDER BY album_cnt DESC
+LIMIT 5",,True,0,cube_v2,,3036,365,0,1
+1,m03,medium,router,1.371,correct,True,True,match,"SELECT billing_country, MEASURE(total_sales) AS total_sales FROM invoices GROUP BY billing_country ORDER BY total_sales DESC",,True,0,cube_v2,,3033,140,0,1
+1,m04,medium,router,1.489,correct,True,True,match,"SELECT first_name, last_name FROM customers WHERE support_rep_first_name = 'Jane' AND support_rep_last_name = 'Peacock'",,True,0,cube_v2,,3028,203,0,1
+1,m05,medium,router,2.043,correct,True,True,match,"SELECT media_type_name, MEASURE(avg_duration_minutes) FROM tracks GROUP BY media_type_name",,True,0,cube_v2,,3036,134,0,1
+1,m06,medium,router,2.582,correct,True,True,match,"SELECT album_title, track_cnt FROM (SELECT album_id, album_title, MEASURE(track_count) AS track_cnt FROM tracks GROUP BY album_id, album_title) t WHERE track_cnt > 20",,True,0,cube_v2,,3030,270,0,1
+1,m07,medium,router,1.519,correct,True,True,match,"SELECT genre_name FROM (SELECT genre_name, MEASURE(track_count) AS track_cnt FROM tracks GROUP BY genre_name) t ORDER BY track_cnt DESC LIMIT 1",,True,0,cube_v2,,3023,169,0,1
+1,m08,medium,router,2.495,correct,True,True,match,SELECT track_count FROM (SELECT MEASURE(entry_count) AS track_count FROM playlists WHERE playlist_name = '90’s Music' GROUP BY playlist_name) t,,True,0,cube_v2,,3024,305,0,1
+1,m09,medium,router,1.491,correct,True,True,match,"SELECT EXTRACT(year FROM year_start)::int AS year, revenue FROM (SELECT DATE_TRUNC('year', invoice_date) AS year_start, MEASURE(total_sales) AS revenue FROM invoices GROUP BY DATE_TRUNC('year', invoice_date)) t ORDER BY year",,True,0,cube_v2,,3031,217,0,1
+1,h01,hard,router,1.539,correct,True,True,match,"SELECT genre_name, MEASURE(revenue) AS revenue FROM sales GROUP BY genre_name ORDER BY revenue DESC LIMIT 3",,True,0,cube_v2,,3043,184,0,1
+1,h02,hard,router,3.115,correct,True,True,match,"SELECT support_rep_first_name AS first_name,
+       support_rep_last_name AS last_name,
+       MEASURE(total_sales) AS total
+FROM invoices
+WHERE support_rep_title ILIKE '%Support%'
+GROUP BY support_rep_first_name, support_rep_last_name
+ORDER BY total DESC",,True,0,cube_v2,,3046,409,0,1
+1,h03,hard,router,5.185,correct,True,True,match,"SELECT first_name, last_name, lifetime_spend FROM customers WHERE lifetime_spend > (SELECT MEASURE(avg_lifetime_spend) FROM customers)",,False,0,cube_v2,,6313,712,0,2
+1,h04,hard,router,2.907,correct,True,True,match,"SELECT country, first_name, last_name, lifetime_spend AS total_spend FROM (SELECT country, first_name, last_name, lifetime_spend, RANK() OVER (PARTITION BY country ORDER BY lifetime_spend DESC) AS rnk FROM (SELECT country, first_name, last_name, lifetime_spend FROM customers) t) s WHERE rnk = 1",,False,0,cube_v2,,3039,459,0,1
+1,h05,hard,router,2.845,correct,True,True,match,"SELECT EXTRACT(MONTH FROM month_start)::int AS month,
+       revenue,
+       LAG(revenue) OVER (ORDER BY month_start) AS previous_month_revenue
+FROM (
+  SELECT DATE_TRUNC('month', invoice_date) AS month_start,
+         MEASURE(total_sales) AS revenue
+  FROM invoices
+  WHERE invoice_date >= '2024-01-01' AND invoice_date < '2025-01-01'
+  GROUP BY month_start
+) t
+ORDER BY month",,False,0,cube_v2,,3044,494,0,1
+1,h06,hard,router,2.331,correct,True,True,match,"SELECT artist_name, MEASURE(distinct_genres) AS genre_count
+FROM tracks
+GROUP BY artist_name
+HAVING MEASURE(distinct_genres) > 3
+ORDER BY genre_count DESC",,True,0,cube_v2,,3034,334,0,1
+1,h07,hard,router,5.246,correct,True,True,match,SELECT MEASURE(track_count) AS never_purchased_tracks FROM tracks WHERE units_sold = 0 OR units_sold IS NULL,,False,0,cube_v2,,6199,760,0,2
+1,h08,hard,router,3.496,correct,True,True,match,"SELECT first_name, last_name, manager_first_name, manager_last_name FROM employees WHERE manager_id IS NOT NULL",,True,0,cube_v2,,3048,224,0,1
+1,h09,hard,router,2.643,correct,True,True,match,"SELECT COUNT(*) AS customer_count FROM (
+  SELECT DISTINCT customer_id FROM invoices
+  WHERE invoice_date >= '2025-01-01' AND invoice_date < '2026-01-01'
+  EXCEPT
+  SELECT DISTINCT customer_id FROM invoices
+  WHERE invoice_date >= '2024-01-01' AND invoice_date < '2025-01-01'
+) t",,False,0,cube_v2,,3032,339,0,1
+1,h10,hard,router,4.119,correct,True,True,match,"SELECT DATE_TRUNC('month', invoice_date) AS month,
+       total_sales_year_to_date AS running_total
+FROM invoices
+WHERE invoice_date >= '2023-01-01' AND invoice_date < '2024-01-01'
+GROUP BY month, total_sales_year_to_date
+ORDER BY month",,True,0,cube_v2,,3050,566,0,1
+1,h11,hard,router,2.483,correct,True,True,match,"WITH per_media AS (
+  SELECT
+    media_type_name,
+    MEASURE(revenue) AS revenue
+  FROM sales
+  GROUP BY media_type_name
+)
+SELECT
+  media_type_name,
+  ROUND((revenue / total_rev) * 100, 2) AS percentage
+FROM (
+  SELECT
+    media_type_name,
+    revenue,
+    (SELECT SUM(revenue) FROM per_media) AS total_rev
+  FROM per_media
+) t
+ORDER BY percentage DESC",,False,0,cube_v2,,3041,370,0,1
+1,h12,hard,router,1.395,correct,True,True,match,"SELECT artist_name, MEASURE(revenue) AS revenue FROM sales GROUP BY artist_name ORDER BY revenue DESC LIMIT 5",,True,0,cube_v2,,3039,156,0,1
+2,e01,easy,router,1.319,correct,True,True,match,SELECT MEASURE(track_count) AS total_tracks FROM tracks,,True,0,cube_v2,,3019,95,0,1
+2,e02,easy,router,1.14,correct,True,True,match,SELECT name FROM genres,,True,0,cube_v2,,3019,52,0,1
+2,e03,easy,router,1.401,correct,True,True,match,SELECT MEASURE(customer_count) FROM customers WHERE country = 'Brazil',,True,0,cube_v2,,3018,114,0,1
+2,e04,easy,router,1.335,correct,True,True,match,SELECT name FROM tracks WHERE duration_minutes > 20,,True,0,cube_v2,,3025,81,0,1
+2,e05,easy,router,1.56,correct,True,True,match,SELECT MEASURE(max_unit_price) FROM tracks,,True,0,cube_v2,,3021,144,0,1
+2,e06,easy,router,1.239,correct,True,True,match,"SELECT first_name, last_name FROM employees WHERE title = 'Sales Support Agent'",,True,0,cube_v2,,3027,84,0,1
+2,e07,easy,router,3.47,correct,True,True,match,"WITH filtered AS (
+  SELECT invoice_date, MEASURE(invoice_count) AS cnt
+  FROM invoices
+  WHERE invoice_date >= '2023-01-01' AND invoice_date < '2024-01-01'
+  GROUP BY invoice_date
+)
+SELECT SUM(cnt) AS invoice_count FROM filtered",,True,0,cube_v2,,3023,351,0,1
+2,e08,easy,router,1.198,correct,True,True,match,"SELECT first_name, last_name, company FROM customers WHERE is_business IS TRUE",,True,0,cube_v2,,3028,127,0,1
+2,m01,medium,router,1.12,correct,True,True,match,"SELECT genre_name, MEASURE(track_count) FROM tracks GROUP BY genre_name",,True,0,cube_v2,,3030,106,0,1
+2,m02,medium,router,2.669,correct,True,True,match,"WITH agg AS (
+  SELECT artist_id,
+         artist_name,
+         MEASURE(album_count) AS album_count
+  FROM albums
+  GROUP BY artist_id, artist_name
+)
+SELECT artist_name,
+       album_count
+FROM agg
+ORDER BY album_count DESC
+LIMIT 5",,True,0,cube_v2,,3036,306,0,1
+2,m03,medium,router,1.343,correct,True,True,match,"SELECT billing_country, MEASURE(total_sales) AS total_sales FROM invoices GROUP BY billing_country ORDER BY total_sales DESC",,True,0,cube_v2,,3033,128,0,1
+2,m04,medium,router,2.261,correct,True,True,match,"SELECT first_name, last_name FROM customers WHERE support_rep_first_name = 'Jane' AND support_rep_last_name = 'Peacock'",,True,0,cube_v2,,3028,172,0,1
+2,m05,medium,router,1.575,correct,True,True,match,"SELECT media_type_name, MEASURE(avg_duration_minutes) AS average_length FROM tracks GROUP BY media_type_name",,True,0,cube_v2,,3036,196,0,1
+2,m06,medium,router,1.883,correct,True,True,match,"SELECT album_title, track_count FROM (SELECT album_id, album_title, MEASURE(track_count) AS track_count FROM tracks GROUP BY album_id, album_title) t WHERE track_count > 20",,True,0,cube_v2,,3030,312,0,1
+2,m07,medium,router,2.201,correct,True,True,match,"SELECT genre_name FROM (SELECT genre_name, MEASURE(track_count) AS track_cnt FROM tracks GROUP BY genre_name) t ORDER BY track_cnt DESC LIMIT 1",,True,0,cube_v2,,3023,240,0,1
+2,m08,medium,router,1.872,correct,True,True,match,SELECT MEASURE(entry_count) AS track_count FROM playlists WHERE playlist_name = '90’s Music',,True,0,cube_v2,,3024,266,0,1
+2,m09,medium,router,2.407,correct,True,True,match,"SELECT EXTRACT(year FROM year_date)::int AS year, revenue FROM (
+  SELECT DATE_TRUNC('year', invoice_date) AS year_date,
+         MEASURE(total_sales) AS revenue
+  FROM invoices
+  GROUP BY DATE_TRUNC('year', invoice_date)
+) t
+ORDER BY year",,True,0,cube_v2,,3031,229,0,1
+2,h01,hard,router,1.603,correct,True,True,match,"SELECT genre_name, MEASURE(revenue) AS revenue FROM sales GROUP BY genre_name ORDER BY revenue DESC LIMIT 3",,True,0,cube_v2,,3043,175,0,1
+2,h02,hard,router,2.535,correct,True,True,match,"SELECT support_rep_first_name, support_rep_last_name, MEASURE(total_sales) AS total FROM invoices GROUP BY support_rep_first_name, support_rep_last_name ORDER BY total DESC",,True,0,cube_v2,,3046,345,0,1
+2,h03,hard,router,2.067,correct,True,True,match,"WITH avg_spend AS (SELECT MEASURE(avg_lifetime_spend) AS avg_spend FROM customers) SELECT first_name, last_name, lifetime_spend FROM customers WHERE lifetime_spend > (SELECT avg_spend FROM avg_spend)",,False,0,cube_v2,,3037,393,0,1
+2,h04,hard,router,2.801,correct,True,True,match,"WITH cte AS (
+  SELECT country, first_name, last_name, lifetime_spend
+  FROM customers
+)
+SELECT country, first_name, last_name, lifetime_spend AS total_spend
+FROM (
+  SELECT country, first_name, last_name, lifetime_spend,
+         RANK() OVER (PARTITION BY country ORDER BY lifetime_spend DESC) AS r
+  FROM cte
+) t
+WHERE r = 1
+ORDER BY country, first_name, last_name",,False,0,cube_v2,,3039,420,0,1
+2,h05,hard,router,2.192,correct,True,True,match,"SELECT EXTRACT(MONTH FROM month_start)::int AS month,
+       revenue,
+       LAG(revenue) OVER (ORDER BY month_start) AS previous_month_revenue
+FROM (
+  SELECT DATE_TRUNC('month', invoice_date) AS month_start,
+         MEASURE(total_sales) AS revenue
+  FROM invoices
+  WHERE invoice_date >= '2024-01-01' AND invoice_date < '2025-01-01'
+  GROUP BY month_start
+) t
+ORDER BY month",,False,0,cube_v2,,3044,319,0,1
+2,h06,hard,router,2.115,correct,True,True,match,"SELECT artist_name, MEASURE(distinct_genres) AS genre_count
+FROM tracks
+GROUP BY artist_name
+HAVING MEASURE(distinct_genres) > 3",,True,0,cube_v2,,3034,305,0,1
+2,h07,hard,router,2.091,correct,True,True,match,SELECT MEASURE(track_count) AS never_purchased_tracks FROM (SELECT * FROM tracks WHERE units_sold = 0 OR units_sold IS NULL) t,,False,0,cube_v2,,3026,337,0,1
+2,h08,hard,router,4.7,correct,True,True,match,"SELECT first_name AS employee_first_name,
+       last_name AS employee_last_name,
+       manager_first_name,
+       manager_last_name
+FROM employees
+WHERE manager_id IS NOT NULL",,True,0,cube_v2,,3048,171,0,1
+2,h09,hard,router,3.052,correct,True,True,match,SELECT COUNT(*) AS customer_count FROM (SELECT DISTINCT customer_id FROM invoices WHERE invoice_date >= '2025-01-01' AND invoice_date < '2026-01-01' EXCEPT SELECT DISTINCT customer_id FROM invoices WHERE invoice_date >= '2024-01-01' AND invoice_date < '2025-01-01') t,,False,0,cube_v2,,3032,509,0,1
+2,h10,hard,router,3.467,wrong_result,False,False,no predicted column matches gold column 0,"SELECT EXTRACT(MONTH FROM month_date)::int AS month, ytd_total FROM (
+  SELECT DATE_TRUNC('month', invoice_date) AS month_date,
+         MEASURE(total_sales_year_to_date) AS ytd_total
+  FROM invoices
+  WHERE invoice_date >= '2023-01-01' AND invoice_date < '2024-01-01'
+  GROUP BY month_date
+) t
+ORDER BY month",,True,0,cube_v2,,3050,630,0,1
+2,h11,hard,router,2.317,correct,True,True,match,"WITH per_media AS (
+  SELECT
+    media_type_name,
+    MEASURE(revenue) AS revenue
+  FROM sales
+  GROUP BY media_type_name
+),
+total AS (
+  SELECT SUM(revenue) AS total_revenue FROM per_media
+)
+SELECT
+  media_type_name,
+  ROUND((revenue / total.total_revenue) * 100, 2) AS percentage
+FROM per_media, total
+ORDER BY percentage DESC",,False,0,cube_v2,,3041,350,0,1
+2,h12,hard,router,2.959,correct,True,True,match,"SELECT artist_name, MEASURE(revenue) AS revenue FROM sales GROUP BY artist_name ORDER BY revenue DESC LIMIT 5",,True,0,cube_v2,,3039,151,0,1
+3,e01,easy,router,1.41,correct,True,True,match,SELECT MEASURE(track_count) FROM tracks,,True,0,cube_v2,,3019,84,0,1
+3,e02,easy,router,1.175,correct,True,True,match,SELECT name FROM genres,,True,0,cube_v2,,3019,52,0,1
+3,e03,easy,router,1.77,correct,True,True,match,SELECT MEASURE(customer_count) AS customer_count FROM customers WHERE country = 'Brazil',,True,0,cube_v2,,3018,129,0,1
+3,e04,easy,router,1.52,correct,True,True,match,SELECT name FROM tracks WHERE duration_minutes > 20,,True,0,cube_v2,,3025,86,0,1
+3,e05,easy,router,1.811,correct,True,True,match,SELECT MEASURE(max_unit_price) FROM tracks,,True,0,cube_v2,,3021,158,0,1
+3,e06,easy,router,1.214,correct,True,True,match,"SELECT first_name, last_name FROM employees WHERE title = 'Sales Support Agent'",,True,0,cube_v2,,3027,84,0,1
+3,e07,easy,router,5.146,correct,True,True,match,SELECT MEASURE(invoice_count) AS invoice_count FROM (SELECT * FROM invoices WHERE invoice_date >= '2023-01-01' AND invoice_date < '2024-01-01') t,,True,0,cube_v2,,3023,661,0,1
+3,e08,easy,router,2.554,correct,True,True,match,"SELECT first_name, last_name, company FROM customers WHERE is_business IS TRUE",,True,0,cube_v2,,3028,194,0,1
+3,m01,medium,router,1.322,correct,True,True,match,"SELECT genre_name, MEASURE(track_count) AS track_count FROM tracks GROUP BY genre_name",,True,0,cube_v2,,3030,112,0,1
+3,m02,medium,router,1.706,correct,True,True,match,"SELECT artist_name, MEASURE(album_count) AS album_count FROM albums GROUP BY artist_name ORDER BY album_count DESC LIMIT 5",,True,0,cube_v2,,3036,196,0,1
+3,m03,medium,router,1.578,correct,True,True,match,"SELECT billing_country, MEASURE(total_sales) AS total_sales FROM invoices GROUP BY billing_country ORDER BY total_sales DESC",,True,0,cube_v2,,3033,129,0,1
+3,m04,medium,router,1.699,correct,True,True,match,"SELECT first_name, last_name FROM customers WHERE support_rep_first_name = 'Jane' AND support_rep_last_name = 'Peacock'",,True,0,cube_v2,,3028,210,0,1
+3,m05,medium,router,1.371,correct,True,True,match,"SELECT media_type_name, MEASURE(avg_duration_minutes) FROM tracks GROUP BY media_type_name",,True,0,cube_v2,,3036,127,0,1
+3,m06,medium,router,3.603,correct,True,True,match,"SELECT album_title, num_tracks FROM (
+  SELECT album_id, album_title, MEASURE(track_count) AS num_tracks
+  FROM tracks
+  GROUP BY album_id, album_title
+) t
+WHERE num_tracks > 20",,True,0,cube_v2,,3030,443,0,1
+3,m07,medium,router,1.639,correct,True,True,match,"SELECT genre_name FROM (SELECT genre_name, MEASURE(track_count) AS track_cnt FROM tracks GROUP BY genre_name) t ORDER BY track_cnt DESC LIMIT 1",,True,0,cube_v2,,3023,160,0,1
+3,m08,medium,router,2.451,correct,True,True,match,SELECT MEASURE(entry_count) AS track_count FROM playlists WHERE playlist_name = '90’s Music',,True,0,cube_v2,,3024,235,0,1
+3,m09,medium,router,1.796,correct,True,True,match,"SELECT EXTRACT(year FROM year_start)::int AS year, revenue FROM (SELECT DATE_TRUNC('year', invoice_date) AS year_start, MEASURE(total_sales) AS revenue FROM invoices GROUP BY year_start) t ORDER BY year",,True,0,cube_v2,,3031,205,0,1
+3,h01,hard,router,1.873,correct,True,True,match,"SELECT genre_name, MEASURE(revenue) AS revenue FROM sales GROUP BY genre_name ORDER BY revenue DESC LIMIT 3",,True,0,cube_v2,,3043,192,0,1
+3,h02,hard,router,3.39,correct,True,True,match,"WITH base AS (
+  SELECT support_rep_id,
+         support_rep_first_name,
+         support_rep_last_name,
+         MEASURE(total_sales) AS total_sales
+  FROM invoices
+  WHERE support_rep_title ILIKE '%Support Agent%'
+  GROUP BY support_rep_id, support_rep_first_name, support_rep_last_name
+)
+SELECT support_rep_first_name AS first_name,
+       support_rep_last_name AS last_name,
+       total_sales AS total
+FROM base
+ORDER BY total DESC",,True,0,cube_v2,,3046,550,0,1
+3,h03,hard,router,2.306,correct,True,True,match,"SELECT first_name, last_name, lifetime_spend
+FROM customers
+WHERE lifetime_spend > (SELECT MEASURE(avg_lifetime_spend) FROM customers)",,False,0,cube_v2,,3037,345,0,1
+3,h04,hard,router,2.21,correct,True,True,match,"WITH c AS (SELECT country, first_name, last_name, lifetime_spend FROM customers) SELECT country, first_name, last_name, lifetime_spend AS total_spend FROM (SELECT *, RANK() OVER (PARTITION BY country ORDER BY lifetime_spend DESC) AS rnk FROM c) t WHERE rnk = 1 ORDER BY country, first_name, last_name",,False,0,cube_v2,,3039,359,0,1
+3,h05,hard,router,2.597,correct,True,True,match,"WITH monthly AS (
+  SELECT DATE_TRUNC('month', invoice_date) AS month_start,
+         MEASURE(total_sales) AS revenue
+  FROM invoices
+  WHERE invoice_date >= '2024-01-01' AND invoice_date < '2025-01-01'
+  GROUP BY month_start
+)
+SELECT EXTRACT(MONTH FROM month_start)::int AS month,
+       revenue,
+       LAG(revenue) OVER (ORDER BY month_start) AS previous_month_revenue
+FROM monthly
+ORDER BY month",,False,0,cube_v2,,3044,440,0,1
+3,h06,hard,router,3.079,correct,True,True,match,"SELECT artist_name, COUNT(DISTINCT genre_name) AS distinct_genre_count
+FROM tracks
+GROUP BY artist_name
+HAVING COUNT(DISTINCT genre_name) > 3
+ORDER BY distinct_genre_count DESC",,True,0,cube_v2,,3034,443,0,1
+3,h07,hard,router,2.622,correct,True,True,match,SELECT MEASURE(track_count) AS never_purchased_tracks FROM tracks WHERE units_sold = 0 OR units_sold IS NULL,,False,0,cube_v2,,3026,304,0,1
+3,h08,hard,router,3.499,correct,True,True,match,"SELECT first_name, last_name, manager_first_name, manager_last_name FROM employees WHERE manager_id IS NOT NULL",,True,0,cube_v2,,3048,211,0,1
+3,h09,hard,router,2.501,correct,True,True,match,SELECT COUNT(*) AS customer_count FROM (SELECT DISTINCT customer_id FROM invoices WHERE invoice_date >= '2025-01-01' AND invoice_date < '2026-01-01' EXCEPT SELECT DISTINCT customer_id FROM invoices WHERE invoice_date >= '2024-01-01' AND invoice_date < '2025-01-01') t,,False,0,cube_v2,,3032,371,0,1
+3,h10,hard,router,3.747,correct,True,True,match,"WITH filtered AS (SELECT invoice_date, total_sales_year_to_date FROM invoices WHERE invoice_date >= '2023-01-01' AND invoice_date < '2024-01-01') SELECT DATE_TRUNC('month', invoice_date) AS month, MEASURE(total_sales_year_to_date) AS ytd_running_total FROM filtered GROUP BY month ORDER BY month",,True,0,cube_v2,,3050,573,0,1
+3,h11,hard,router,4.646,correct,True,True,match,"WITH per_media AS (
+  SELECT media_type_name, MEASURE(revenue) AS revenue
+  FROM sales
+  GROUP BY media_type_name
+), total AS (
+  SELECT SUM(revenue) AS total_rev
+  FROM (SELECT MEASURE(revenue) AS revenue FROM sales) x
+)
+SELECT per_media.media_type_name,
+       ROUND((per_media.revenue / total.total_rev) * 100, 2) AS percentage
+FROM per_media
+CROSS JOIN total
+ORDER BY percentage DESC",,False,0,cube_v2,,3041,595,0,1
+3,h12,hard,router,2.18,correct,True,True,match,"SELECT artist_name, MEASURE(revenue) AS revenue FROM sales GROUP BY artist_name ORDER BY revenue DESC LIMIT 5",,True,0,cube_v2,,3039,189,0,1

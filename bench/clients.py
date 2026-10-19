@@ -375,3 +375,140 @@ class MockSQLClient:
         if r < 0.20:
             return {"sql": "SELEC broken sql"}
         return {"sql": q["gold_sql"]}
+
+
+# ------------------------------------------------------------------ Router (cube_v2 first, WrenAI semantic no-reasoning fallback)
+# Prompt copy of CUBE_V2_SYSTEM with a clearer decline path. cube_v2 itself is unchanged.
+CUBE_V2_ROUTER_SYSTEM = """You answer business questions by writing ONE SQL query for Cube's SQL API (Postgres dialect, Cube Core 1.8.8).
+The SQL API exposes each Cube VIEW listed below as a table; its dimensions, measures and segments are columns.
+Reply with ONE JSON object only, no prose: {"sql": "<query>"}  — or, when the question cannot be expressed
+correctly with this semantic model, reply exactly:
+{"unsupported": "CANNOT_EXPRESS: <short reason>"}
+Use CANNOT_EXPRESS when you are not confident a single SQL API query over these views will return the
+right columns and rows (missing measure/grain, anti-patterns Cube mishandles, ambiguous mapping, etc.).
+Do not guess. Prefer CANNOT_EXPRESS over a speculative query.
+Rules:
+1. Query only the views listed below, with the column names exactly as listed. Each SELECT ... FROM reads ONE view;
+   do not join views. Use subqueries / CTEs over views when several steps are needed.
+2. A measure column must be wrapped in MEASURE(column) (SUM/COUNT/AVG/MIN/MAX only if they match the measure type).
+   Never aggregate a dimension with SUM/AVG/COUNT to compute a metric that exists as a measure.
+3. Grouping: put every selected dimension in GROUP BY when the SELECT has measures. A SELECT of dimensions only,
+   without GROUP BY, returns one row per row of the view (ungrouped).
+4. Cube ignores GROUP BY keys that are not in the SELECT list. When the result must have one row per entity and names
+   can repeat (tracks, albums, customers, employees, playlists), select the entity's id column in an inner query and
+   select only the requested columns in an outer query: SELECT name FROM (SELECT x_id, name, ... FROM view ...) t.
+5. Post-processing: first read the view in an inner SELECT (subquery or CTE), then apply window functions (RANK,
+   LAG, SUM() OVER), CASE, arithmetic, EXCEPT/INTERSECT, non-correlated scalar subqueries, EXTRACT and
+   ROUND(CAST(x AS NUMERIC), n) in the OUTER query. Correlated subqueries (referencing an outer alias) are not
+   supported by Cube.
+6. Filters on measures: compute the measure in a subquery and filter it in the outer WHERE.
+7. Dates: filter time columns with half-open ranges, e.g. invoice_date >= '2023-01-01' AND invoice_date < '2024-01-01'.
+   Group by period with DATE_TRUNC('month' | 'year', invoice_date); when a year or month NUMBER is asked for, compute
+   EXTRACT(...)::int in an outer query over the DATE_TRUNC result. Rolling-window and prior-period measures need a
+   DATE_TRUNC grouping on invoice_date in the same SELECT.
+8. Return exactly the columns the question asks for, in that order — no extra measures, ids, ranks or helper columns
+   in the final SELECT. Use ORDER BY when an order is asked for.
+9. Do not add LIMIT unless the question asks for a specific number of results; for "top N" use ORDER BY ... LIMIT N
+   (include ties with RANK() only when the question asks for ties).
+10. Joins inside a view are LEFT JOINs: e.g. employees without a manager have NULL manager_* columns.
+11. Cube 1.8.8 evaluates NOT EXISTS and LEFT JOIN ... IS NULL anti-joins incorrectly. To find rows of A that are not
+    in B use EXCEPT or `NOT IN (SELECT ...)`."""
+
+
+class RouterCubeClient(CubeV2Client):
+    """cube_v2 adapter copy for the router: same model/SQL API, distinct prompt + llm-meter prefix /router/.
+    Leaves CubeV2Client (and CUBE_V2_SYSTEM) untouched so cube_v2 results stay comparable."""
+    name = "router_cube"
+
+    def __init__(self, env, mock=False):
+        super().__init__(env, mock=mock)
+        self.llm_url = f"http://localhost:{env.get('METER_PORT', '8089')}/router/v1/chat/completions"
+
+    def generate(self, question, qid=None):
+        if self.mock:
+            sql = self.ref.get(qid)
+            return self._run(sql) if sql else {"error": "unsupported: CANNOT_EXPRESS: no reference query"}
+        msgs = [{"role": "system", "content": CUBE_V2_ROUTER_SYSTEM + "\n\nViews:\n" + self.meta_text()},
+                {"role": "user", "content": question}]
+        last = None
+        for attempt in range(2):
+            try:
+                content = self._llm(msgs)
+            except Exception as e:
+                return {"error": str(e)}
+            try:
+                j = json.loads(content)
+            except Exception:
+                last = {"error": f"invalid JSON from LLM: {content[:200]}"}
+                msgs += [{"role": "assistant", "content": content}, {"role": "user", "content": "Reply with valid JSON only."}]
+                continue
+            if "unsupported" in j:
+                reason = j["unsupported"]
+                if not str(reason).startswith("CANNOT_EXPRESS"):
+                    reason = f"CANNOT_EXPRESS: {reason}"
+                return {"error": f"unsupported: {reason}"}
+            sql = (j.get("sql") or "").strip().rstrip(";")
+            if not sql:
+                return {"error": "unsupported: CANNOT_EXPRESS: empty sql"}
+            res = self._run(sql)
+            res["attempts"] = attempt + 1
+            if "error" not in res:
+                return res
+            last = res
+            msgs += [{"role": "assistant", "content": content},
+                     {"role": "user", "content": f"Cube returned an error: {res['error']}\nFix the query and reply with JSON only. "
+                                                 f"If it cannot be expressed, reply {{\"unsupported\": \"CANNOT_EXPRESS: <reason>\"}}."}]
+        return last
+
+
+class RouterClient:
+    """Try cube_v2 (router prompt) first; fall back to WrenAI + semantic layer, no reasoning.
+    Fallback triggers (never uses gold): Cube CANNOT_EXPRESS/unsupported, Cube query error,
+    empty Cube result set, or missing/invalid Cube result. Records router_path + fallback_reason."""
+    name = "router"
+
+    def __init__(self, env, mock=False):
+        self.cube = RouterCubeClient(env, mock=mock)
+        self.wren = WrenMDLNoReasonClient(env) if not mock else MockSQLClient("wrenai_mdl_noreason", [])
+        self.mock = mock
+        self._mock_qs = None
+
+    def bind_mock_questions(self, questions):
+        """Harness calls this in --mock so Wren fallback has gold SQL."""
+        self.wren = MockSQLClient("wrenai_mdl_noreason", questions)
+        self._mock_qs = questions
+
+    def generate(self, question, qid=None):
+        cube_res = self.cube.generate(question, qid=qid)
+        reason = None
+        err = (cube_res.get("error") or "")
+        if err.startswith("unsupported"):
+            reason = "cube_unsupported"
+        elif err:
+            reason = "cube_error"
+        elif "rows" in cube_res:
+            if cube_res["rows"] is None:
+                reason = "cube_invalid"
+            elif len(cube_res["rows"]) == 0:
+                reason = "cube_empty"
+        elif not cube_res.get("sql"):
+            reason = "cube_invalid"
+        # else: Cube returned non-empty rows (or sql without rows — shouldn't happen for cube_v2)
+
+        if reason is None:
+            out = dict(cube_res)
+            out["router_path"] = "cube_v2"
+            out["fallback_reason"] = ""
+            return out
+
+        wren_res = self.wren.generate(question)
+        out = dict(wren_res)
+        out["router_path"] = "wrenai_mdl_noreason"
+        out["fallback_reason"] = reason
+        out["cube_attempt"] = {
+            "error": cube_res.get("error", ""),
+            "sql": cube_res.get("sql", ""),
+            "n_rows": len(cube_res["rows"]) if isinstance(cube_res.get("rows"), list) else None,
+            "attempts": cube_res.get("attempts"),
+        }
+        return out

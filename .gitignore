@@ -16,3 +16,4 @@ wrenai_mdl/.variant
 !results/run-gptoss120b-wrenmdl-noreason-r3/
 !results/stage-latency/
 !results/run-gptoss120b-cubev2-r3/
+!results/run-gptoss120b-router-r3/
