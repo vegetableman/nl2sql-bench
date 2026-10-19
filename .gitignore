@@ -17,3 +17,5 @@ wrenai_mdl/.variant
 !results/stage-latency/
 !results/run-gptoss120b-cubev2-r3/
 !results/run-gptoss120b-router-r3/
+!results/run-gptoss120b-holdout-r3/
+!results/holdout_summary.png

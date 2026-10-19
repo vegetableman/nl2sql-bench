@@ -1,0 +1,444 @@
+run,id,difficulty,system,latency_s,status,exact,relaxed,reason,generated,error,cube_expressible,rate_limit_retries,router_path,fallback_reason,prompt_tokens,completion_tokens,embedding_tokens,chat_requests
+1,ho01,easy,router,1.461,correct,True,True,match,SELECT MEASURE(media_type_count) FROM media_types,,True,0,cube_v2,,3019,143,0,1
+1,ho01,easy,cube_v2,1.538,correct,True,True,match,SELECT MEASURE(media_type_count) AS distinct_media_type_count FROM media_types,,True,0,,,2942,156,0,1
+1,ho01,easy,wrenai_mdl_noreason,6.164,correct,True,True,match,"SELECT COUNT(1) AS distinct_media_type_count FROM (SELECT __source.media_type_id AS media_type_id, __source.""name"" AS ""name"" FROM chinook.""public"".media_type AS __source) AS public_media_type",,True,0,,,20620,329,30,2
+1,ho02,easy,router,5.156,correct,True,True,match,"SELECT COUNT(1) AS ""count(*)"" FROM (SELECT public_customer.fax FROM (SELECT __source.fax AS fax FROM chinook.""public"".customer AS __source) AS public_customer) AS public_customer WHERE NOT public_customer.fax IS NULL",,True,0,wrenai_mdl_noreason,cube_unsupported,23914,496,36,3
+1,ho02,easy,cube_v2,1.874,unsupported,False,False,,,unsupported: No view contains a fax number column to filter on.,True,0,,,2943,140,0,1
+1,ho02,easy,wrenai_mdl_noreason,5.059,correct,True,True,match,"SELECT COUNT(1) AS customer_count FROM (SELECT public_customer.fax FROM (SELECT __source.fax AS fax FROM chinook.""public"".customer AS __source) AS public_customer) AS public_customer WHERE NOT public_customer.fax IS NULL",,True,0,,,20894,351,36,2
+1,ho03,easy,router,1.687,correct,True,True,match,SELECT MEASURE(track_count) FROM (SELECT * FROM tracks WHERE bytes > 15728640) t,,True,0,cube_v2,,3035,217,0,1
+1,ho03,easy,cube_v2,1.513,correct,True,True,match,SELECT MEASURE(track_count) AS track_count FROM tracks WHERE bytes > 15 * 1024 * 1024,,True,0,,,2958,186,0,1
+1,ho03,easy,wrenai_mdl_noreason,4.049,correct,True,True,match,"SELECT COUNT(1) AS ""count(*)"" FROM (SELECT public_track.""bytes"" FROM (SELECT __source.""bytes"" AS ""bytes"" FROM chinook.""public"".track AS __source) AS public_track) AS public_track WHERE public_track.""bytes"" > 15 * 1024 * 1024",,True,0,,,20571,430,75,2
+1,ho04,easy,router,10.075,correct,True,True,match,"SELECT COUNT(1) AS invoice_count FROM (SELECT public_invoice.billing_address FROM (SELECT __source.billing_address AS billing_address FROM chinook.""public"".invoice AS __source) AS public_invoice) AS public_invoice WHERE LOWER(public_invoice.billing_address) LIKE LOWER('%Street%')",,True,0,wrenai_mdl_noreason,cube_unsupported,23928,453,53,3
+1,ho04,easy,cube_v2,4.643,wrong_result,False,False,no predicted column matches gold column 0,SELECT MEASURE(invoice_count) FROM invoices WHERE billing_city ILIKE '%Street%',,True,0,,,6001,651,0,2
+1,ho04,easy,wrenai_mdl_noreason,3.044,correct,True,True,match,"SELECT COUNT(1) AS invoice_count FROM (SELECT public_invoice.billing_address FROM (SELECT __source.billing_address AS billing_address FROM chinook.""public"".invoice AS __source) AS public_invoice) AS public_invoice WHERE LOWER(public_invoice.billing_address) LIKE LOWER('%Street%')",,True,0,,,20904,350,53,2
+1,ho05,medium,router,6.757,correct,True,True,match,"SELECT public_media_type.""name"" AS ""Media Type Name"", AVG(CAST(public_track.""bytes"" AS DOUBLE PRECISION)) AS ""Average Bytes"" FROM (SELECT public_track.""bytes"", public_track.media_type_id FROM (SELECT __source.""bytes"" AS ""bytes"", __source.media_type_id AS media_type_id FROM chinook.""public"".track AS __source) AS public_track) AS public_track INNER JOIN (SELECT public_media_type.media_type_id, public_media_type.""name"" FROM (SELECT __source.media_type_id AS media_type_id, __source.""name"" AS ""name"" FROM chinook.""public"".media_type AS __source) AS public_media_type) AS public_media_type ON public_track.media_type_id = public_media_type.media_type_id GROUP BY public_media_type.media_type_id, public_media_type.""name""",,True,0,wrenai_mdl_noreason,cube_unsupported,23602,760,78,3
+1,ho05,medium,cube_v2,3.037,correct,True,True,match,"SELECT media_type_name, AVG(bytes) AS average_bytes FROM (SELECT media_type_name, bytes FROM tracks) t GROUP BY media_type_name",,True,0,,,2958,308,0,1
+1,ho05,medium,wrenai_mdl_noreason,4.052,correct,True,True,match,"SELECT public_media_type.""name"" AS ""Media Type Name"", AVG(CAST(public_track.""bytes"" AS DOUBLE PRECISION)) AS ""Average Bytes"" FROM (SELECT public_track.""bytes"", public_track.media_type_id FROM (SELECT __source.""bytes"" AS ""bytes"", __source.media_type_id AS media_type_id FROM chinook.""public"".track AS __source) AS public_track) AS public_track INNER JOIN (SELECT public_media_type.media_type_id, public_media_type.""name"" FROM (SELECT __source.media_type_id AS media_type_id, __source.""name"" AS ""name"" FROM chinook.""public"".media_type AS __source) AS public_media_type) AS public_media_type ON public_track.media_type_id = public_media_type.media_type_id GROUP BY public_media_type.media_type_id, public_media_type.""name""",,True,0,,,20567,536,78,2
+1,ho06,medium,router,4.475,correct,True,True,match,"WITH genre_counts AS (
+  SELECT playlist_id, COUNT(DISTINCT genre_name) AS genre_cnt
+  FROM playlists
+  GROUP BY playlist_id
+)
+SELECT COUNT(*) AS playlist_count
+FROM genre_counts
+WHERE genre_cnt >= 10",,True,0,cube_v2,,3024,607,0,1
+1,ho06,medium,cube_v2,3.462,correct,True,True,match,SELECT COUNT(*) AS playlist_count FROM (SELECT playlist_id FROM playlists GROUP BY playlist_id HAVING COUNT(DISTINCT genre_name) >= 10) t,,True,0,,,2947,498,0,1
+1,ho06,medium,wrenai_mdl_noreason,5.066,correct,True,True,match,"SELECT COUNT(1) AS playlist_count FROM (SELECT p.playlist_id FROM (SELECT public_playlist.playlist_id FROM (SELECT __source.playlist_id AS playlist_id FROM chinook.""public"".playlist AS __source) AS public_playlist) AS p INNER JOIN (SELECT public_playlist_track.playlist_id, public_playlist_track.track_id FROM (SELECT __source.playlist_id AS playlist_id, __source.track_id AS track_id FROM chinook.""public"".playlist_track AS __source) AS public_playlist_track) AS pt ON p.playlist_id = pt.playlist_id INNER JOIN (SELECT public_track.genre_id, public_track.track_id FROM (SELECT __source.genre_id AS genre_id, __source.track_id AS track_id FROM chinook.""public"".track AS __source) AS public_track) AS t ON pt.track_id = t.track_id GROUP BY p.playlist_id HAVING COUNT(DISTINCT t.genre_id) >= 10) AS sub",,True,0,,,20630,532,45,2
+1,ho07,medium,router,1.546,correct,True,True,match,"SELECT first_name, last_name, birth_date FROM employees WHERE birth_date >= '1970-01-01' AND birth_date < '1980-01-01' ORDER BY birth_date",,True,0,cube_v2,,3036,175,0,1
+1,ho07,medium,cube_v2,1.493,correct,True,True,match,"SELECT first_name, last_name, birth_date FROM employees WHERE birth_date >= '1970-01-01' AND birth_date < '1980-01-01' ORDER BY birth_date",,True,0,,,2959,141,0,1
+1,ho07,medium,wrenai_mdl_noreason,6.056,correct,True,True,match,"SELECT public_employee.first_name AS ""First Name"", public_employee.last_name AS ""Last Name"", public_employee.birth_date AS ""Birth Date"" FROM (SELECT public_employee.birth_date, public_employee.first_name, public_employee.last_name FROM (SELECT __source.birth_date AS birth_date, __source.first_name AS first_name, __source.last_name AS last_name FROM chinook.""public"".employee AS __source) AS public_employee) AS public_employee WHERE CAST(public_employee.birth_date AS TIMESTAMPTZ) >= CAST('1970-01-01 00:00:00' AS TIMESTAMPTZ) AND CAST(public_employee.birth_date AS TIMESTAMPTZ) < CAST('1980-01-01 00:00:00' AS TIMESTAMPTZ) ORDER BY public_employee.birth_date ASC",,True,0,,,20927,758,73,2
+1,ho08,medium,router,5.217,correct,True,True,match,"SELECT COUNT(1) AS customer_count FROM (SELECT public_customer.phone FROM (SELECT __source.phone AS phone FROM chinook.""public"".customer AS __source) AS public_customer) AS public_customer WHERE LOWER(public_customer.phone) LIKE LOWER('+55%')",,True,0,wrenai_mdl_noreason,cube_unsupported,23928,498,51,3
+1,ho08,medium,cube_v2,1.211,unsupported,False,False,,,unsupported: No phone number field available in any view to answer the query.,True,0,,,2947,158,0,1
+1,ho08,medium,wrenai_mdl_noreason,5.06,correct,True,True,match,"SELECT COUNT(1) AS customer_count FROM (SELECT public_customer.phone FROM (SELECT __source.phone AS phone FROM chinook.""public"".customer AS __source) AS public_customer) AS public_customer WHERE LOWER(public_customer.phone) LIKE LOWER('+55%')",,True,0,,,20904,402,51,2
+1,ho09,medium,router,12.333,correct,True,True,match,"SELECT ROUND(CAST(CAST(CAST(((CAST(rv.video_rev AS DOUBLE PRECISION) / ra.total_rev) * 100) AS DECIMAL(38, 10)) AS DOUBLE PRECISION) AS DECIMAL), 2) AS percentage FROM (SELECT SUM(il.unit_price * il.quantity) AS video_rev FROM (SELECT public_invoice_line.quantity, public_invoice_line.track_id, public_invoice_line.unit_price FROM (SELECT __source.quantity AS quantity, __source.track_id AS track_id, __source.unit_price AS unit_price FROM chinook.""public"".invoice_line AS __source) AS public_invoice_line) AS il INNER JOIN (SELECT public_track.media_type_id, public_track.track_id FROM (SELECT __source.media_type_id AS media_type_id, __source.track_id AS track_id FROM chinook.""public"".track AS __source) AS public_track) AS t ON il.track_id = t.track_id INNER JOIN (SELECT public_media_type.media_type_id, public_media_type.""name"" FROM (SELECT __source.media_type_id AS media_type_id, __source.""name"" AS ""name"" FROM chinook.""public"".media_type AS __source) AS public_media_type) AS mt ON t.media_type_id = mt.media_type_id WHERE LOWER(mt.""name"") LIKE LOWER('%video%')) AS rv CROSS JOIN (SELECT SUM(il.unit_price * il.quantity) AS total_rev FROM (SELECT public_invoice_line.quantity, public_invoice_line.track_id, public_invoice_line.unit_price FROM (SELECT __source.quantity AS quantity, __source.track_id AS track_id, __source.unit_price AS unit_price FROM chinook.""public"".invoice_line AS __source) AS public_invoice_line) AS il) AS ra",,True,0,wrenai_mdl_noreason,cube_error,27177,1577,96,4
+1,ho09,medium,cube_v2,5.85,correct,True,True,match,"WITH total AS (
+  SELECT MEASURE(revenue) AS total_rev FROM sales
+), video AS (
+  SELECT MEASURE(revenue) AS video_rev FROM sales WHERE media_type_name ILIKE '%video%'
+)
+SELECT ROUND((video.video_rev / total.total_rev) * 100, 2) AS percentage_of_total_revenue
+FROM total, video",,True,0,,,6047,750,0,2
+1,ho09,medium,wrenai_mdl_noreason,6.068,correct,True,True,match,"SELECT ROUND(CAST(CAST(CAST((CAST((media.media_rev * 100.0) AS DOUBLE PRECISION) / total.total_rev) AS DECIMAL(38, 10)) AS DOUBLE PRECISION) AS DECIMAL), 2) AS percentage FROM (SELECT SUM(il.unit_price * il.quantity) AS total_rev FROM (SELECT public_invoice_line.quantity, public_invoice_line.track_id, public_invoice_line.unit_price FROM (SELECT __source.quantity AS quantity, __source.track_id AS track_id, __source.unit_price AS unit_price FROM chinook.""public"".invoice_line AS __source) AS public_invoice_line) AS il) AS total CROSS JOIN (SELECT SUM(il.unit_price * il.quantity) AS media_rev FROM (SELECT public_invoice_line.quantity, public_invoice_line.track_id, public_invoice_line.unit_price FROM (SELECT __source.quantity AS quantity, __source.track_id AS track_id, __source.unit_price AS unit_price FROM chinook.""public"".invoice_line AS __source) AS public_invoice_line) AS il INNER JOIN (SELECT public_track.media_type_id, public_track.track_id FROM (SELECT __source.media_type_id AS media_type_id, __source.track_id AS track_id FROM chinook.""public"".track AS __source) AS public_track) AS t ON il.track_id = t.track_id INNER JOIN (SELECT public_media_type.media_type_id, public_media_type.""name"" FROM (SELECT __source.media_type_id AS media_type_id, __source.""name"" AS ""name"" FROM chinook.""public"".media_type AS __source) AS public_media_type) AS mt ON t.media_type_id = mt.media_type_id WHERE LOWER(mt.""name"") LIKE LOWER('%video%')) AS media",,True,0,,,20898,762,93,2
+1,ho10,hard,router,2.977,correct,True,True,match,"SELECT day_of_week, invoice_count FROM ( SELECT EXTRACT(DOW FROM invoice_date)::int AS day_of_week, MEASURE(invoice_count) AS invoice_count FROM invoices WHERE invoice_date >= '2024-01-01' AND invoice_date < '2025-01-01' GROUP BY EXTRACT(DOW FROM invoice_date) ) t ORDER BY day_of_week",,True,0,cube_v2,,3056,362,0,1
+1,ho10,hard,cube_v2,3.686,correct,True,True,match,"SELECT EXTRACT(DOW FROM invoice_date)::int AS day_of_week,
+       MEASURE(invoice_count) AS invoice_count
+FROM invoices
+WHERE invoice_date >= '2024-01-01' AND invoice_date < '2025-01-01'
+GROUP BY EXTRACT(DOW FROM invoice_date)
+ORDER BY day_of_week",,True,0,,,2979,593,0,1
+1,ho10,hard,wrenai_mdl_noreason,5.059,correct,True,True,match,"SELECT DATE_PART('DOW', public_invoice.invoice_date) AS day_of_week, COUNT(1) AS invoice_count FROM (SELECT public_invoice.invoice_date FROM (SELECT __source.invoice_date AS invoice_date FROM chinook.""public"".invoice AS __source) AS public_invoice) AS public_invoice WHERE CAST(public_invoice.invoice_date AS TIMESTAMPTZ) >= CAST('2024-01-01 00:00:00' AS TIMESTAMPTZ) AND CAST(public_invoice.invoice_date AS TIMESTAMPTZ) < CAST('2025-01-01 00:00:00' AS TIMESTAMPTZ) GROUP BY DATE_PART('DOW', public_invoice.invoice_date) ORDER BY day_of_week ASC",,True,0,,,20966,612,159,2
+1,ho11,hard,router,3.541,correct,True,True,match,"WITH per_customer AS (
+  SELECT
+    support_rep_id,
+    support_rep_first_name,
+    support_rep_last_name,
+    customer_id,
+    customer_first_name,
+    customer_last_name,
+    MEASURE(total_sales) AS total_spend
+  FROM invoices
+  GROUP BY
+    support_rep_id,
+    support_rep_first_name,
+    support_rep_last_name,
+    customer_id,
+    customer_first_name,
+    customer_last_name
+),
+ranked AS (
+  SELECT
+    support_rep_first_name,
+    support_rep_last_name,
+    customer_first_name,
+    customer_last_name,
+    total_spend,
+    RANK() OVER (PARTITION BY support_rep_id ORDER BY total_spend DESC) AS rnk
+  FROM per_customer
+)
+SELECT
+  support_rep_first_name,
+  support_rep_last_name,
+  customer_first_name,
+  customer_last_name,
+  total_spend
+FROM ranked
+WHERE rnk = 1
+ORDER BY support_rep_last_name, support_rep_first_name, customer_last_name, customer_first_name",,True,0,cube_v2,,3050,831,0,1
+1,ho11,hard,cube_v2,4.023,correct,True,True,match,"WITH per_customer AS (
+  SELECT
+    support_rep_id,
+    support_rep_first_name,
+    support_rep_last_name,
+    customer_id,
+    customer_first_name,
+    customer_last_name,
+    MEASURE(total_sales) AS spend
+  FROM invoices
+  GROUP BY support_rep_id, support_rep_first_name, support_rep_last_name,
+           customer_id, customer_first_name, customer_last_name
+)
+SELECT
+  support_rep_first_name,
+  support_rep_last_name,
+  customer_first_name,
+  customer_last_name,
+  spend
+FROM (
+  SELECT
+    *,
+    RANK() OVER (PARTITION BY support_rep_id ORDER BY spend DESC) AS rnk
+  FROM per_customer
+) ranked
+WHERE rnk = 1
+ORDER BY support_rep_last_name, support_rep_first_name, customer_last_name, customer_first_name",,True,0,,,2973,826,0,1
+1,ho11,hard,wrenai_mdl_noreason,7.07,correct,True,True,match,"SELECT e.first_name AS rep_first_name, e.last_name AS rep_last_name, cs.customer_first_name AS cust_first_name, cs.customer_last_name AS cust_last_name, cs.spend FROM (SELECT cs.customer_id, cs.customer_first_name, cs.customer_last_name, cs.support_rep_id, cs.spend, DENSE_RANK() OVER (PARTITION BY cs.support_rep_id ORDER BY cs.spend DESC NULLS LAST) AS rnk FROM (SELECT c.customer_id, c.first_name AS customer_first_name, c.last_name AS customer_last_name, c.support_rep_id, c.lifetime_spend AS spend FROM (SELECT __relation__1.customer_id, __relation__1.first_name, __relation__1.last_name, __relation__1.lifetime_spend, __relation__1.support_rep_id FROM (SELECT public_customer.customer_id, public_customer.first_name, public_customer.last_name, lifetime_spend.lifetime_spend, public_customer.support_rep_id FROM (SELECT __relation__1.customer_id AS customer_id, SUM(__relation__1.total) AS lifetime_spend FROM (SELECT public_invoice.customer_id, public_invoice.total FROM (SELECT public_invoice.customer_id, public_invoice.total FROM (SELECT public_invoice.customer_id, public_invoice.total FROM (SELECT __source.customer_id AS customer_id, __source.total AS total FROM chinook.""public"".invoice AS __source) AS public_invoice) AS public_invoice) AS public_invoice RIGHT OUTER JOIN (SELECT __source.customer_id AS customer_id FROM chinook.""public"".customer AS __source) AS public_customer ON public_invoice.customer_id = public_customer.customer_id) AS __relation__1 GROUP BY __relation__1.customer_id) AS lifetime_spend RIGHT OUTER JOIN (SELECT __source.customer_id AS customer_id, __source.first_name AS first_name, __source.last_name AS last_name, __source.support_rep_id AS support_rep_id FROM chinook.""public"".customer AS __source) AS public_customer ON lifetime_spend.customer_id = public_customer.customer_id) AS __relation__1) AS c) AS cs) AS cs INNER JOIN (SELECT public_employee.employee_id, public_employee.first_name, public_employee.last_name FROM (SELECT __source.employee_id AS employee_id, __source.first_name AS first_name, __source.last_name AS last_name FROM chinook.""public"".employee AS __source) AS public_employee) AS e ON cs.support_rep_id = e.employee_id WHERE cs.rnk = 1 ORDER BY e.employee_id ASC, cs.customer_id ASC",,True,0,,,20953,1288,138,2
+1,ho12,hard,router,2.501,wrong_result,False,False,rows differ or order differs,"SELECT name FROM (SELECT artist_id, name FROM artists) a WHERE artist_id NOT IN (SELECT DISTINCT artist_id FROM sales) ORDER BY name ASC",,True,0,cube_v2,,3035,252,0,1
+1,ho12,hard,cube_v2,3.194,wrong_result,False,False,rows differ or order differs,SELECT name FROM (SELECT name FROM artists EXCEPT SELECT artist_name FROM (SELECT DISTINCT artist_name FROM sales) s) t ORDER BY name,,True,0,,,6010,611,0,2
+1,ho12,hard,wrenai_mdl_noreason,7.07,correct,True,True,match,"SELECT public_artist.""name"" AS ""Artist Name"" FROM (SELECT public_artist.artist_id, public_artist.""name"" FROM (SELECT __source.artist_id AS artist_id, __source.""name"" AS ""name"" FROM chinook.""public"".artist AS __source) AS public_artist) AS public_artist WHERE NOT EXISTS(SELECT 1 FROM (SELECT public_album.album_id, public_album.artist_id FROM (SELECT __source.album_id AS album_id, __source.artist_id AS artist_id FROM chinook.""public"".album AS __source) AS public_album) AS public_album INNER JOIN (SELECT public_track.album_id, public_track.track_id FROM (SELECT __source.album_id AS album_id, __source.track_id AS track_id FROM chinook.""public"".track AS __source) AS public_track) AS public_track ON public_album.album_id = public_track.album_id INNER JOIN (SELECT public_invoice_line.track_id FROM (SELECT __source.track_id AS track_id FROM chinook.""public"".invoice_line AS __source) AS public_invoice_line) AS public_invoice_line ON public_track.track_id = public_invoice_line.track_id WHERE public_album.artist_id = public_artist.artist_id) ORDER BY public_artist.""name"" ASC",,True,0,,,20567,990,87,2
+1,ho13,hard,router,1.854,correct,True,True,match,"WITH quarterly AS (
+  SELECT DATE_TRUNC('quarter', invoice_date) AS quarter_start,
+         MEASURE(total_sales) AS revenue
+  FROM invoices
+  WHERE invoice_date >= '2024-01-01' AND invoice_date < '2025-01-01'
+  GROUP BY quarter_start
+)
+SELECT EXTRACT(quarter FROM quarter_start)::int AS quarter_number,
+       revenue,
+       LAG(revenue) OVER (ORDER BY quarter_start) AS previous_quarter_revenue
+FROM quarterly
+ORDER BY quarter_number",,True,0,cube_v2,,3045,333,0,1
+1,ho13,hard,cube_v2,1.886,correct,True,True,match,"WITH quarterly AS (
+  SELECT DATE_TRUNC('quarter', invoice_date) AS quarter_start,
+         MEASURE(total_sales) AS revenue
+  FROM invoices
+  WHERE invoice_date >= '2024-01-01' AND invoice_date < '2025-01-01'
+  GROUP BY quarter_start
+)
+SELECT EXTRACT(quarter FROM quarter_start)::int AS quarter,
+       revenue,
+       LAG(revenue) OVER (ORDER BY quarter_start) AS previous_quarter_revenue
+FROM quarterly
+ORDER BY quarter",,True,0,,,2968,328,0,1
+1,ho13,hard,wrenai_mdl_noreason,6.064,correct,True,True,match,"SELECT q.quarter_number, q.total_invoice_revenue, LAG(q.total_invoice_revenue) OVER (ORDER BY q.quarter_number ASC) AS previous_quarter_revenue FROM (SELECT CAST(DATE_PART('quarter', CAST(i.invoice_date AS TIMESTAMPTZ)) AS INT) AS quarter_number, SUM(i.total) AS total_invoice_revenue FROM (SELECT public_invoice.invoice_date, public_invoice.total FROM (SELECT __source.invoice_date AS invoice_date, __source.total AS total FROM chinook.""public"".invoice AS __source) AS public_invoice) AS i WHERE CAST(i.invoice_date AS TIMESTAMPTZ) >= CAST('2024-01-01 00:00:00' AS TIMESTAMPTZ) AND CAST(i.invoice_date AS TIMESTAMPTZ) < CAST('2025-01-01 00:00:00' AS TIMESTAMPTZ) GROUP BY CAST(DATE_PART('quarter', CAST(i.invoice_date AS TIMESTAMPTZ)) AS INT)) AS q ORDER BY q.quarter_number ASC",,True,0,,,20938,1023,110,2
+1,ho14,hard,router,6.226,correct,True,True,match,"SELECT week_number, revenue FROM (
+  SELECT EXTRACT('week' FROM invoice_date)::int AS week_number,
+         MEASURE(total_sales) AS revenue
+  FROM invoices
+  WHERE invoice_date >= '2023-01-01' AND invoice_date < '2024-01-01'
+  GROUP BY week_number
+) t
+ORDER BY revenue DESC
+LIMIT 3",,True,0,cube_v2,,6314,1149,0,2
+1,ho14,hard,cube_v2,5.368,correct,True,True,match,"SELECT week_number, revenue FROM (SELECT EXTRACT(week FROM invoice_date)::int AS week_number, MEASURE(total_sales) AS revenue FROM invoices WHERE invoice_date >= '2023-01-01' AND invoice_date < '2024-01-01' GROUP BY week_number) t ORDER BY revenue DESC LIMIT 3",,True,0,,,6043,872,0,2
+1,ho14,hard,wrenai_mdl_noreason,5.058,wrong_result,False,False,no predicted column matches gold column 0,"SELECT ""WeekNumber"", ""Revenue"" FROM (SELECT weekly_rev.week_number AS ""WeekNumber"", weekly_rev.revenue AS ""Revenue"", weekly_rev.revenue FROM (SELECT CAST(DATE_PART('week', public_invoice.invoice_date) AS INT) AS week_number, SUM(public_invoice.total) AS revenue FROM (SELECT public_invoice.invoice_date, public_invoice.total FROM (SELECT __source.invoice_date AS invoice_date, __source.total AS total FROM chinook.""public"".invoice AS __source) AS public_invoice) AS public_invoice WHERE CAST(public_invoice.invoice_date AS TIMESTAMPTZ) >= CAST('2023-01-01 00:00:00' AS TIMESTAMPTZ) AND CAST(public_invoice.invoice_date AS TIMESTAMPTZ) < CAST('2024-01-01 00:00:00' AS TIMESTAMPTZ) GROUP BY DATE_PART('week', public_invoice.invoice_date)) AS weekly_rev ORDER BY weekly_rev.revenue DESC NULLS LAST) LIMIT 3",,True,0,,,20937,929,97,2
+1,ho15,hard,router,5.178,correct,True,True,match,"SELECT COUNT(DISTINCT public_invoice.billing_postal_code) FROM (SELECT public_invoice.billing_country, public_invoice.billing_postal_code FROM (SELECT __source.billing_country AS billing_country, __source.billing_postal_code AS billing_postal_code FROM chinook.""public"".invoice AS __source) AS public_invoice) AS public_invoice WHERE LOWER(public_invoice.billing_country) = LOWER('Canada')",,True,0,wrenai_mdl_noreason,cube_unsupported,23931,475,56,3
+1,ho15,hard,cube_v2,1.049,unsupported,False,False,,,unsupported: No billing postal code column available in the provided views.,True,0,,,2947,68,0,1
+1,ho15,hard,wrenai_mdl_noreason,4.047,correct,True,True,match,"SELECT COUNT(DISTINCT public_invoice.billing_postal_code) FROM (SELECT public_invoice.billing_country, public_invoice.billing_postal_code FROM (SELECT __source.billing_country AS billing_country, __source.billing_postal_code AS billing_postal_code FROM chinook.""public"".invoice AS __source) AS public_invoice) AS public_invoice WHERE LOWER(public_invoice.billing_country) = LOWER('Canada')",,True,0,,,20907,403,56,2
+2,ho01,easy,router,1.39,correct,True,True,match,SELECT MEASURE(media_type_count) FROM media_types,,True,0,cube_v2,,3019,155,0,1
+2,ho01,easy,cube_v2,1.556,correct,True,True,match,SELECT MEASURE(media_type_count) FROM media_types,,True,0,,,2942,151,0,1
+2,ho01,easy,wrenai_mdl_noreason,4.046,correct,True,True,match,"SELECT COUNT(DISTINCT public_media_type.media_type_id) AS distinct_media_type_count FROM (SELECT public_media_type.media_type_id FROM (SELECT __source.media_type_id AS media_type_id FROM chinook.""public"".media_type AS __source) AS public_media_type) AS public_media_type",,True,0,,,20620,298,30,2
+2,ho02,easy,router,5.218,correct,True,True,match,"SELECT COUNT(1) AS customer_count FROM (SELECT public_customer.fax FROM (SELECT __source.fax AS fax FROM chinook.""public"".customer AS __source) AS public_customer) AS public_customer WHERE NOT public_customer.fax IS NULL",,True,0,wrenai_mdl_noreason,cube_unsupported,23914,486,36,3
+2,ho02,easy,cube_v2,1.114,unsupported,False,False,,,unsupported: No view contains a fax number column for customers.,True,0,,,2943,143,0,1
+2,ho02,easy,wrenai_mdl_noreason,3.041,correct,True,True,match,"SELECT COUNT(1) AS customer_count FROM (SELECT public_customer.fax FROM (SELECT __source.fax AS fax FROM chinook.""public"".customer AS __source) AS public_customer) AS public_customer WHERE NOT public_customer.fax IS NULL AND public_customer.fax <> ''",,True,0,,,20894,391,36,2
+2,ho03,easy,router,1.358,correct,True,True,match,SELECT MEASURE(track_count) AS track_count FROM tracks WHERE bytes > 15 * 1024 * 1024,,True,0,cube_v2,,3035,205,0,1
+2,ho03,easy,cube_v2,1.37,correct,True,True,match,SELECT MEASURE(track_count) FROM (SELECT * FROM tracks WHERE bytes > 15 * 1024 * 1024) t,,True,0,,,2958,171,0,1
+2,ho03,easy,wrenai_mdl_noreason,3.04,correct,True,True,match,"SELECT COUNT(1) AS track_count FROM (SELECT public_track.""bytes"" FROM (SELECT __source.""bytes"" AS ""bytes"" FROM chinook.""public"".track AS __source) AS public_track) AS public_track WHERE public_track.""bytes"" > 15 * 1024 * 1024",,True,0,,,20571,399,75,2
+2,ho04,easy,router,4.106,correct,True,True,match,"SELECT COUNT(1) AS invoice_count FROM (SELECT public_invoice.billing_address FROM (SELECT __source.billing_address AS billing_address FROM chinook.""public"".invoice AS __source) AS public_invoice) AS public_invoice WHERE LOWER(public_invoice.billing_address) LIKE LOWER('%Street%')",,True,0,wrenai_mdl_noreason,cube_unsupported,23928,448,53,3
+2,ho04,easy,cube_v2,4.828,wrong_result,False,False,no predicted column matches gold column 0,SELECT MEASURE(invoice_count) AS invoice_count FROM invoices WHERE billing_city ILIKE '%Street%',,True,0,,,6007,663,0,2
+2,ho04,easy,wrenai_mdl_noreason,4.062,correct,True,True,match,"SELECT COUNT(1) AS ""count(*)"" FROM (SELECT public_invoice.billing_address FROM (SELECT __source.billing_address AS billing_address FROM chinook.""public"".invoice AS __source) AS public_invoice) AS public_invoice WHERE LOWER(public_invoice.billing_address) LIKE LOWER('%Street%')",,True,0,,,20904,362,53,2
+2,ho05,medium,router,6.494,correct,True,True,match,"SELECT public_media_type.""name"" AS ""Media Type Name"", AVG(CAST(public_track.""bytes"" AS DOUBLE PRECISION)) AS ""Average Bytes"" FROM (SELECT public_track.""bytes"", public_track.media_type_id FROM (SELECT __source.""bytes"" AS ""bytes"", __source.media_type_id AS media_type_id FROM chinook.""public"".track AS __source) AS public_track) AS public_track INNER JOIN (SELECT public_media_type.media_type_id, public_media_type.""name"" FROM (SELECT __source.media_type_id AS media_type_id, __source.""name"" AS ""name"" FROM chinook.""public"".media_type AS __source) AS public_media_type) AS public_media_type ON public_track.media_type_id = public_media_type.media_type_id GROUP BY public_media_type.media_type_id, public_media_type.""name""",,True,0,wrenai_mdl_noreason,cube_unsupported,23602,861,78,3
+2,ho05,medium,cube_v2,1.921,unsupported,False,False,,,unsupported: Average of a dimension (bytes) is not a defined measure in the tracks view,True,0,,,2958,276,0,1
+2,ho05,medium,wrenai_mdl_noreason,5.053,correct,True,True,match,"SELECT public_media_type.""name"" AS ""Media Type Name"", AVG(CAST(public_track.""bytes"" AS DOUBLE PRECISION)) AS average_bytes FROM (SELECT public_track.""bytes"", public_track.media_type_id FROM (SELECT __source.""bytes"" AS ""bytes"", __source.media_type_id AS media_type_id FROM chinook.""public"".track AS __source) AS public_track) AS public_track INNER JOIN (SELECT public_media_type.media_type_id, public_media_type.""name"" FROM (SELECT __source.media_type_id AS media_type_id, __source.""name"" AS ""name"" FROM chinook.""public"".media_type AS __source) AS public_media_type) AS public_media_type ON public_track.media_type_id = public_media_type.media_type_id GROUP BY public_media_type.""name"" ORDER BY public_media_type.""name"" ASC",,True,0,,,20567,673,78,2
+2,ho06,medium,router,8.022,correct,True,True,match,"SELECT COUNT(1) AS playlist_count FROM (SELECT pt.playlist_id FROM (SELECT public_playlist_track.playlist_id, public_playlist_track.track_id FROM (SELECT __source.playlist_id AS playlist_id, __source.track_id AS track_id FROM chinook.""public"".playlist_track AS __source) AS public_playlist_track) AS pt INNER JOIN (SELECT public_track.genre_id, public_track.track_id FROM (SELECT __source.genre_id AS genre_id, __source.track_id AS track_id FROM chinook.""public"".track AS __source) AS public_track) AS t ON pt.track_id = t.track_id GROUP BY pt.playlist_id HAVING COUNT(DISTINCT t.genre_id) >= 10) AS sub",,True,0,wrenai_mdl_noreason,cube_unsupported,23654,1123,45,3
+2,ho06,medium,cube_v2,3.504,correct,True,True,match,SELECT COUNT(*) AS playlist_count FROM (SELECT playlist_id FROM playlists GROUP BY playlist_id HAVING COUNT(DISTINCT genre_name) >= 10) t,,True,0,,,2947,550,0,1
+2,ho06,medium,wrenai_mdl_noreason,5.054,correct,True,True,match,"SELECT COUNT(1) AS playlist_count FROM (SELECT pt.playlist_id FROM (SELECT public_playlist_track.playlist_id, public_playlist_track.track_id FROM (SELECT __source.playlist_id AS playlist_id, __source.track_id AS track_id FROM chinook.""public"".playlist_track AS __source) AS public_playlist_track) AS pt INNER JOIN (SELECT public_track.genre_id, public_track.track_id FROM (SELECT __source.genre_id AS genre_id, __source.track_id AS track_id FROM chinook.""public"".track AS __source) AS public_track) AS t ON pt.track_id = t.track_id GROUP BY pt.playlist_id HAVING COUNT(DISTINCT t.genre_id) >= 10) AS sub",,True,0,,,20629,522,45,2
+2,ho07,medium,router,1.564,correct,True,True,match,"SELECT first_name, last_name, birth_date FROM employees WHERE birth_date >= '1970-01-01' AND birth_date < '1980-01-01' ORDER BY birth_date",,True,0,cube_v2,,3036,208,0,1
+2,ho07,medium,cube_v2,1.359,correct,True,True,match,"SELECT first_name, last_name, birth_date FROM employees WHERE birth_date >= '1970-01-01' AND birth_date < '1980-01-01' ORDER BY birth_date",,True,0,,,2959,174,0,1
+2,ho07,medium,wrenai_mdl_noreason,5.058,correct,True,True,match,"SELECT public_employee.first_name, public_employee.last_name, public_employee.birth_date FROM (SELECT public_employee.birth_date, public_employee.first_name, public_employee.last_name FROM (SELECT __source.birth_date AS birth_date, __source.first_name AS first_name, __source.last_name AS last_name FROM chinook.""public"".employee AS __source) AS public_employee) AS public_employee WHERE CAST(public_employee.birth_date AS TIMESTAMPTZ) >= CAST('1970-01-01 00:00:00' AS TIMESTAMPTZ) AND CAST(public_employee.birth_date AS TIMESTAMPTZ) < CAST('1980-01-01 00:00:00' AS TIMESTAMPTZ) ORDER BY public_employee.birth_date ASC",,True,0,,,20926,684,72,2
+2,ho08,medium,router,5.172,correct,True,True,match,"SELECT COUNT(1) AS customer_count FROM (SELECT public_customer.phone FROM (SELECT __source.phone AS phone FROM chinook.""public"".customer AS __source) AS public_customer) AS public_customer WHERE public_customer.phone LIKE '+55%'",,True,0,wrenai_mdl_noreason,cube_unsupported,23928,498,51,3
+2,ho08,medium,cube_v2,1.246,unsupported,False,False,,,unsupported: No phone number column available in any view,True,0,,,2947,153,0,1
+2,ho08,medium,wrenai_mdl_noreason,4.046,correct,True,True,match,"SELECT COUNT(1) AS customer_count FROM (SELECT public_customer.phone FROM (SELECT __source.phone AS phone FROM chinook.""public"".customer AS __source) AS public_customer) AS public_customer WHERE LOWER(public_customer.phone) LIKE LOWER('+55%')",,True,0,,,20904,411,51,2
+2,ho09,medium,router,5.782,correct,True,True,match,"WITH video AS (
+  SELECT MEASURE(revenue) AS video_rev
+  FROM sales
+  WHERE media_type_name ILIKE '%video%'
+), total AS (
+  SELECT MEASURE(revenue) AS total_rev
+  FROM sales
+)
+SELECT ROUND(CAST((video.video_rev / total.total_rev) * 100 AS NUMERIC), 2) AS percentage
+FROM video, total",,True,0,cube_v2,,6224,1035,0,2
+2,ho09,medium,cube_v2,1.76,wrong_result,False,False,no predicted column matches gold column 0,"SELECT ROUND((video_rev::numeric / total_rev) * 100, 2) AS revenue_percentage FROM (SELECT MEASURE(revenue) AS total_rev FROM sales) t_total, (SELECT MEASURE(revenue) AS video_rev FROM sales WHERE media_type_name ILIKE '%video%') t_video",,True,0,,,2963,312,0,1
+2,ho09,medium,wrenai_mdl_noreason,4.057,correct,True,True,match,"SELECT ROUND(CAST(CAST(((CAST(media_rev.media_rev AS DOUBLE PRECISION) / total.total_rev) * 100) AS DOUBLE PRECISION) AS DECIMAL), 2) AS percentage FROM (SELECT SUM(il.unit_price * il.quantity) AS total_rev FROM (SELECT public_invoice_line.quantity, public_invoice_line.track_id, public_invoice_line.unit_price FROM (SELECT __source.quantity AS quantity, __source.track_id AS track_id, __source.unit_price AS unit_price FROM chinook.""public"".invoice_line AS __source) AS public_invoice_line) AS il) AS total CROSS JOIN (SELECT SUM(il.unit_price * il.quantity) AS media_rev FROM (SELECT public_invoice_line.quantity, public_invoice_line.track_id, public_invoice_line.unit_price FROM (SELECT __source.quantity AS quantity, __source.track_id AS track_id, __source.unit_price AS unit_price FROM chinook.""public"".invoice_line AS __source) AS public_invoice_line) AS il INNER JOIN (SELECT public_track.media_type_id, public_track.track_id FROM (SELECT __source.media_type_id AS media_type_id, __source.track_id AS track_id FROM chinook.""public"".track AS __source) AS public_track) AS t ON il.track_id = t.track_id INNER JOIN (SELECT public_media_type.media_type_id, public_media_type.""name"" FROM (SELECT __source.media_type_id AS media_type_id, __source.""name"" AS ""name"" FROM chinook.""public"".media_type AS __source) AS public_media_type) AS mt ON t.media_type_id = mt.media_type_id WHERE LOWER(mt.""name"") LIKE LOWER('%video%')) AS media_rev",,True,0,,,20898,675,93,2
+2,ho10,hard,router,2.389,correct,True,True,match,"SELECT EXTRACT(DOW FROM invoice_date)::int AS day_of_week,
+       SUM(cnt) AS invoice_count
+FROM (
+  SELECT invoice_date,
+         MEASURE(invoice_count) AS cnt
+  FROM invoices
+  WHERE invoice_date >= '2024-01-01' AND invoice_date < '2025-01-01'
+  GROUP BY invoice_date
+) t
+GROUP BY day_of_week
+ORDER BY day_of_week",,True,0,cube_v2,,3056,540,0,1
+2,ho10,hard,cube_v2,1.755,correct,True,True,match,"SELECT EXTRACT(DOW FROM invoice_date)::int AS day_of_week,
+       MEASURE(invoice_count) AS invoice_count
+FROM invoices
+WHERE invoice_date >= '2024-01-01' AND invoice_date < '2025-01-01'
+GROUP BY day_of_week
+ORDER BY day_of_week",,True,0,,,2979,289,0,1
+2,ho10,hard,wrenai_mdl_noreason,4.05,correct,True,True,match,"SELECT CAST(DATE_PART('DOW', CAST(public_invoice.invoice_date AS TIMESTAMPTZ)) AS INT) AS day_of_week, COUNT(1) AS invoice_count FROM (SELECT public_invoice.invoice_date FROM (SELECT __source.invoice_date AS invoice_date FROM chinook.""public"".invoice AS __source) AS public_invoice) AS public_invoice WHERE CAST(public_invoice.invoice_date AS TIMESTAMPTZ) >= CAST('2024-01-01 00:00:00' AS TIMESTAMPTZ) AND CAST(public_invoice.invoice_date AS TIMESTAMPTZ) < CAST('2025-01-01 00:00:00' AS TIMESTAMPTZ) GROUP BY DATE_PART('DOW', CAST(public_invoice.invoice_date AS TIMESTAMPTZ)) ORDER BY day_of_week ASC",,True,0,,,20966,805,159,2
+2,ho11,hard,router,2.625,correct,True,True,match,"SELECT support_rep_first_name, support_rep_last_name, customer_first_name, customer_last_name, spend FROM (SELECT support_rep_id, support_rep_first_name, support_rep_last_name, customer_id, customer_first_name, customer_last_name, MEASURE(total_sales) AS spend, RANK() OVER (PARTITION BY support_rep_id ORDER BY MEASURE(total_sales) DESC) AS rnk FROM invoices GROUP BY support_rep_id, support_rep_first_name, support_rep_last_name, customer_id, customer_first_name, customer_last_name) t WHERE rnk = 1",,True,0,cube_v2,,3050,641,0,1
+2,ho11,hard,cube_v2,3.828,correct,True,True,match,"WITH customer_spend AS (
+  SELECT
+    support_rep_id,
+    support_rep_first_name,
+    support_rep_last_name,
+    customer_id,
+    customer_first_name,
+    customer_last_name,
+    MEASURE(total_sales) AS spend
+  FROM invoices
+  GROUP BY
+    support_rep_id,
+    support_rep_first_name,
+    support_rep_last_name,
+    customer_id,
+    customer_first_name,
+    customer_last_name
+), max_spend_per_rep AS (
+  SELECT
+    support_rep_id,
+    MAX(spend) AS max_spend
+  FROM customer_spend
+  GROUP BY support_rep_id
+)
+SELECT
+  cs.support_rep_first_name,
+  cs.support_rep_last_name,
+  cs.customer_first_name,
+  cs.customer_last_name,
+  cs.spend
+FROM customer_spend cs
+WHERE cs.spend = (
+  SELECT m.max_spend
+  FROM max_spend_per_rep m
+  WHERE m.support_rep_id = cs.support_rep_id
+)
+ORDER BY cs.support_rep_last_name, cs.support_rep_first_name, cs.customer_last_name, cs.customer_first_name",,True,0,,,2973,842,0,1
+2,ho11,hard,wrenai_mdl_noreason,7.084,correct,True,True,match,"SELECT e.first_name, e.last_name, c.customer_first_name, c.customer_last_name, c.lifetime_spend AS spend FROM (SELECT e.employee_id, e.first_name, e.last_name, c.customer_id, c.first_name AS customer_first_name, c.last_name AS customer_last_name, c.lifetime_spend, DENSE_RANK() OVER (PARTITION BY e.employee_id ORDER BY c.lifetime_spend DESC NULLS LAST) AS rnk FROM (SELECT __relation__1.customer_id, __relation__1.first_name, __relation__1.last_name, __relation__1.lifetime_spend, __relation__1.support_rep_id FROM (SELECT public_customer.customer_id, public_customer.first_name, public_customer.last_name, lifetime_spend.lifetime_spend, public_customer.support_rep_id FROM (SELECT __relation__1.customer_id AS customer_id, SUM(__relation__1.total) AS lifetime_spend FROM (SELECT public_invoice.customer_id, public_invoice.total FROM (SELECT public_invoice.customer_id, public_invoice.total FROM (SELECT public_invoice.customer_id, public_invoice.total FROM (SELECT __source.customer_id AS customer_id, __source.total AS total FROM chinook.""public"".invoice AS __source) AS public_invoice) AS public_invoice) AS public_invoice RIGHT OUTER JOIN (SELECT __source.customer_id AS customer_id FROM chinook.""public"".customer AS __source) AS public_customer ON public_invoice.customer_id = public_customer.customer_id) AS __relation__1 GROUP BY __relation__1.customer_id) AS lifetime_spend RIGHT OUTER JOIN (SELECT __source.customer_id AS customer_id, __source.first_name AS first_name, __source.last_name AS last_name, __source.support_rep_id AS support_rep_id FROM chinook.""public"".customer AS __source) AS public_customer ON lifetime_spend.customer_id = public_customer.customer_id) AS __relation__1) AS c INNER JOIN (SELECT public_employee.employee_id, public_employee.first_name, public_employee.last_name FROM (SELECT __source.employee_id AS employee_id, __source.first_name AS first_name, __source.last_name AS last_name FROM chinook.""public"".employee AS __source) AS public_employee) AS e ON c.support_rep_id = e.employee_id) AS c INNER JOIN (SELECT public_employee.employee_id, public_employee.first_name, public_employee.last_name FROM (SELECT __source.employee_id AS employee_id, __source.first_name AS first_name, __source.last_name AS last_name FROM chinook.""public"".employee AS __source) AS public_employee) AS e ON c.employee_id = e.employee_id WHERE c.rnk = 1",,True,0,,,20952,1377,137,2
+2,ho12,hard,router,2.421,wrong_result,False,False,rows differ or order differs,SELECT name FROM (SELECT name FROM artists EXCEPT SELECT DISTINCT artist_name FROM sales) t ORDER BY name,,True,0,cube_v2,,3035,585,0,1
+2,ho12,hard,cube_v2,4.216,exec_error,False,False,,SELECT name FROM (SELECT name FROM artists EXCEPT SELECT artist_name FROM sales) t ORDER BY name,"cube: Rewrite Error: Use __cubeJoinField to join Cubes. Please check logs for additional information
+QUERY: SELECT name FROM (SELECT name FROM artists EXCEPT SELECT artist_name FROM sales) t ORDER BY name",True,0,,,6011,882,0,2
+2,ho12,hard,wrenai_mdl_noreason,4.054,correct,True,True,match,"SELECT a.""name"" AS ""Artist Name"" FROM (SELECT public_artist.artist_id, public_artist.""name"" FROM (SELECT __source.artist_id AS artist_id, __source.""name"" AS ""name"" FROM chinook.""public"".artist AS __source) AS public_artist) AS a WHERE NOT EXISTS(SELECT 1 FROM (SELECT public_album.album_id, public_album.artist_id FROM (SELECT __source.album_id AS album_id, __source.artist_id AS artist_id FROM chinook.""public"".album AS __source) AS public_album) AS al INNER JOIN (SELECT public_track.album_id, public_track.track_id FROM (SELECT __source.album_id AS album_id, __source.track_id AS track_id FROM chinook.""public"".track AS __source) AS public_track) AS t ON al.album_id = t.album_id INNER JOIN (SELECT public_invoice_line.track_id FROM (SELECT __source.track_id AS track_id FROM chinook.""public"".invoice_line AS __source) AS public_invoice_line) AS il ON t.track_id = il.track_id WHERE al.artist_id = a.artist_id) ORDER BY ""Artist Name"" ASC",,True,0,,,20567,652,87,2
+2,ho13,hard,router,2.091,correct,True,True,match,"WITH quarterly AS (
+  SELECT DATE_TRUNC('quarter', invoice_date) AS quarter_start,
+         MEASURE(total_sales) AS revenue
+  FROM invoices
+  WHERE invoice_date >= '2024-01-01' AND invoice_date < '2025-01-01'
+  GROUP BY quarter_start
+)
+SELECT EXTRACT(quarter FROM quarter_start)::int AS quarter_number,
+       revenue,
+       LAG(revenue) OVER (ORDER BY quarter_start) AS previous_quarter_revenue
+FROM quarterly
+ORDER BY quarter_number",,True,0,cube_v2,,3045,330,0,1
+2,ho13,hard,cube_v2,2.272,correct,True,True,match,"WITH quarterly AS (
+  SELECT 
+    DATE_TRUNC('quarter', invoice_date) AS quarter_start,
+    EXTRACT(quarter FROM invoice_date)::int AS quarter_num,
+    MEASURE(total_sales) AS revenue
+  FROM invoices
+  WHERE invoice_date >= '2024-01-01' AND invoice_date < '2025-01-01'
+  GROUP BY quarter_start, quarter_num
+)
+SELECT 
+  quarter_num AS quarter,
+  revenue,
+  LAG(revenue) OVER (ORDER BY quarter_num) AS previous_quarter_revenue
+FROM quarterly
+ORDER BY quarter",,True,0,,,2968,459,0,1
+2,ho13,hard,wrenai_mdl_noreason,4.056,correct,True,True,match,"SELECT q.""quarter"", q.revenue, prev.revenue AS previous_quarter_revenue FROM (SELECT CAST(DATE_PART('QUARTER', public_invoice.invoice_date) AS INT) AS ""quarter"", SUM(public_invoice.total) AS revenue FROM (SELECT public_invoice.invoice_date, public_invoice.total FROM (SELECT __source.invoice_date AS invoice_date, __source.total AS total FROM chinook.""public"".invoice AS __source) AS public_invoice) AS public_invoice WHERE CAST(public_invoice.invoice_date AS TIMESTAMPTZ) >= CAST('2024-01-01 00:00:00' AS TIMESTAMPTZ) AND CAST(public_invoice.invoice_date AS TIMESTAMPTZ) < CAST('2025-01-01 00:00:00' AS TIMESTAMPTZ) GROUP BY DATE_PART('QUARTER', public_invoice.invoice_date)) AS q LEFT OUTER JOIN (SELECT CAST(DATE_PART('QUARTER', public_invoice.invoice_date) AS INT) AS ""quarter"", SUM(public_invoice.total) AS revenue FROM (SELECT public_invoice.invoice_date, public_invoice.total FROM (SELECT __source.invoice_date AS invoice_date, __source.total AS total FROM chinook.""public"".invoice AS __source) AS public_invoice) AS public_invoice WHERE CAST(public_invoice.invoice_date AS TIMESTAMPTZ) >= CAST('2024-01-01 00:00:00' AS TIMESTAMPTZ) AND CAST(public_invoice.invoice_date AS TIMESTAMPTZ) < CAST('2025-01-01 00:00:00' AS TIMESTAMPTZ) GROUP BY DATE_PART('QUARTER', public_invoice.invoice_date)) AS prev ON q.""quarter"" - 1 = prev.""quarter"" ORDER BY q.""quarter"" ASC",,True,0,,,20944,815,117,2
+2,ho14,hard,router,2.826,wrong_result,False,False,no predicted column matches gold column 0,"WITH weekly AS (
+  SELECT
+    EXTRACT('week' FROM invoice_date)::int AS week_number,
+    MEASURE(total_sales) AS revenue
+  FROM invoices
+  WHERE EXTRACT('isoyear' FROM invoice_date)::int = 2023
+  GROUP BY EXTRACT('week' FROM invoice_date)
+)
+SELECT week_number, revenue
+FROM weekly
+ORDER BY revenue DESC
+LIMIT 3",,True,0,cube_v2,,3040,539,0,1
+2,ho14,hard,cube_v2,3.487,correct,True,True,match,"SELECT week_number, revenue FROM (SELECT EXTRACT(week FROM invoice_date)::int AS week_number, MEASURE(total_sales) AS revenue FROM invoices WHERE invoice_date >= '2023-01-01' AND invoice_date < '2024-01-01' GROUP BY week_number) t ORDER BY revenue DESC LIMIT 3",,True,0,,,6043,591,0,2
+2,ho14,hard,wrenai_mdl_noreason,4.052,wrong_result,False,False,no predicted column matches gold column 0,"SELECT CAST(DATE_PART('week', public_invoice.invoice_date) AS INT) AS ""Week_Number"", SUM(public_invoice.total) AS ""Revenue"" FROM (SELECT public_invoice.invoice_date, public_invoice.total FROM (SELECT __source.invoice_date AS invoice_date, __source.total AS total FROM chinook.""public"".invoice AS __source) AS public_invoice) AS public_invoice WHERE CAST(public_invoice.invoice_date AS TIMESTAMPTZ) >= CAST('2023-01-01 00:00:00' AS TIMESTAMPTZ) AND CAST(public_invoice.invoice_date AS TIMESTAMPTZ) < CAST('2024-01-01 00:00:00' AS TIMESTAMPTZ) GROUP BY DATE_PART('week', public_invoice.invoice_date) ORDER BY ""Revenue"" DESC NULLS LAST LIMIT 3",,True,0,,,20934,772,93,2
+2,ho15,hard,router,4.015,correct,True,True,match,"SELECT COUNT(DISTINCT public_invoice.billing_postal_code) FROM (SELECT public_invoice.billing_country, public_invoice.billing_postal_code FROM (SELECT __source.billing_country AS billing_country, __source.billing_postal_code AS billing_postal_code FROM chinook.""public"".invoice AS __source) AS public_invoice) AS public_invoice WHERE LOWER(public_invoice.billing_country) = LOWER('Canada')",,True,0,wrenai_mdl_noreason,cube_unsupported,23926,481,51,3
+2,ho15,hard,cube_v2,0.986,unsupported,False,False,,,unsupported: No postal code dimension available in the provided views.,True,0,,,2947,81,0,1
+2,ho15,hard,wrenai_mdl_noreason,3.045,correct,True,True,match,"SELECT COUNT(DISTINCT public_invoice.billing_postal_code) AS distinct_billing_postal_codes FROM (SELECT public_invoice.billing_country, public_invoice.billing_postal_code FROM (SELECT __source.billing_country AS billing_country, __source.billing_postal_code AS billing_postal_code FROM chinook.""public"".invoice AS __source) AS public_invoice) AS public_invoice WHERE LOWER(public_invoice.billing_country) = LOWER('Canada')",,True,0,,,20902,357,51,2
+3,ho01,easy,router,2.456,correct,True,True,match,SELECT MEASURE(media_type_count) FROM media_types,,True,0,cube_v2,,3019,126,0,1
+3,ho01,easy,cube_v2,1.264,correct,True,True,match,SELECT MEASURE(media_type_count) FROM media_types,,True,0,,,2942,125,0,1
+3,ho01,easy,wrenai_mdl_noreason,4.055,correct,True,True,match,"SELECT COUNT(DISTINCT public_media_type.media_type_id) AS distinct_media_type_count FROM (SELECT public_media_type.media_type_id FROM (SELECT __source.media_type_id AS media_type_id FROM chinook.""public"".media_type AS __source) AS public_media_type) AS public_media_type",,True,0,,,20620,305,30,2
+3,ho02,easy,router,5.277,correct,True,True,match,"SELECT COUNT(1) AS ""count(*)"" FROM (SELECT public_customer.fax FROM (SELECT __source.fax AS fax FROM chinook.""public"".customer AS __source) AS public_customer) AS public_customer WHERE NOT public_customer.fax IS NULL AND public_customer.fax <> ''",,True,0,wrenai_mdl_noreason,cube_unsupported,23914,461,36,3
+3,ho02,easy,cube_v2,1.159,unsupported,False,False,,,unsupported: No fax number column available in any view,True,0,,,2943,126,0,1
+3,ho02,easy,wrenai_mdl_noreason,3.043,correct,True,True,match,"SELECT COUNT(1) AS ""count(*)"" FROM (SELECT public_customer.fax FROM (SELECT __source.fax AS fax FROM chinook.""public"".customer AS __source) AS public_customer) AS public_customer WHERE NOT public_customer.fax IS NULL AND public_customer.fax <> ''",,True,0,,,20894,358,36,2
+3,ho03,easy,router,1.353,correct,True,True,match,SELECT MEASURE(track_count) AS track_count FROM tracks WHERE bytes > 15 * 1024 * 1024,,True,0,cube_v2,,3035,205,0,1
+3,ho03,easy,cube_v2,1.544,correct,True,True,match,SELECT MEASURE(track_count) FROM (SELECT * FROM tracks WHERE bytes > 15 * 1024 * 1024) t,,True,0,,,2958,212,0,1
+3,ho03,easy,wrenai_mdl_noreason,4.049,correct,True,True,match,"SELECT COUNT(1) AS track_count FROM (SELECT public_track.""bytes"" FROM (SELECT __source.""bytes"" AS ""bytes"" FROM chinook.""public"".track AS __source) AS public_track) AS public_track WHERE public_track.""bytes"" > 15 * 1024 * 1024",,True,0,,,20571,394,75,2
+3,ho04,easy,router,1.726,wrong_result,False,False,no predicted column matches gold column 0,SELECT MEASURE(invoice_count) FROM (SELECT * FROM invoices WHERE billing_city ILIKE '%Street%') t,,True,0,cube_v2,,3024,253,0,1
+3,ho04,easy,cube_v2,1.811,wrong_result,False,False,no predicted column matches gold column 0,SELECT MEASURE(invoice_count) FROM invoices WHERE billing_city ILIKE '%Street%',,True,0,,,2947,223,0,1
+3,ho04,easy,wrenai_mdl_noreason,3.042,correct,True,True,match,"SELECT COUNT(1) AS invoice_count FROM (SELECT public_invoice.billing_address FROM (SELECT __source.billing_address AS billing_address FROM chinook.""public"".invoice AS __source) AS public_invoice) AS public_invoice WHERE LOWER(public_invoice.billing_address) LIKE LOWER('%Street%')",,True,0,,,20904,348,53,2
+3,ho05,medium,router,5.56,correct,True,True,match,"SELECT public_media_type.""name"" AS media_type_name, AVG(CAST(public_track.""bytes"" AS DOUBLE PRECISION)) AS average_bytes FROM (SELECT public_track.""bytes"", public_track.media_type_id FROM (SELECT __source.""bytes"" AS ""bytes"", __source.media_type_id AS media_type_id FROM chinook.""public"".track AS __source) AS public_track) AS public_track INNER JOIN (SELECT public_media_type.media_type_id, public_media_type.""name"" FROM (SELECT __source.media_type_id AS media_type_id, __source.""name"" AS ""name"" FROM chinook.""public"".media_type AS __source) AS public_media_type) AS public_media_type ON public_track.media_type_id = public_media_type.media_type_id GROUP BY public_media_type.""name""",,True,0,wrenai_mdl_noreason,cube_unsupported,23602,772,78,3
+3,ho05,medium,cube_v2,2.066,unsupported,False,False,,,unsupported: Average of bytes not available as a measure in tracks view,True,0,,,2958,402,0,1
+3,ho05,medium,wrenai_mdl_noreason,4.047,correct,True,True,match,"SELECT public_media_type.""name"" AS ""Media Type Name"", AVG(CAST(public_track.""bytes"" AS DOUBLE PRECISION)) AS ""Average Bytes"" FROM (SELECT public_track.""bytes"", public_track.media_type_id FROM (SELECT __source.""bytes"" AS ""bytes"", __source.media_type_id AS media_type_id FROM chinook.""public"".track AS __source) AS public_track) AS public_track INNER JOIN (SELECT public_media_type.media_type_id, public_media_type.""name"" FROM (SELECT __source.media_type_id AS media_type_id, __source.""name"" AS ""name"" FROM chinook.""public"".media_type AS __source) AS public_media_type) AS public_media_type ON public_track.media_type_id = public_media_type.media_type_id GROUP BY public_media_type.media_type_id, public_media_type.""name""",,True,0,,,20567,615,78,2
+3,ho06,medium,router,6.314,correct,True,True,match,"SELECT COUNT(1) AS ""Playlist Count"" FROM (SELECT pt.playlist_id FROM (SELECT public_playlist_track.playlist_id, public_playlist_track.track_id FROM (SELECT __source.playlist_id AS playlist_id, __source.track_id AS track_id FROM chinook.""public"".playlist_track AS __source) AS public_playlist_track) AS pt INNER JOIN (SELECT public_track.genre_id, public_track.track_id FROM (SELECT __source.genre_id AS genre_id, __source.track_id AS track_id FROM chinook.""public"".track AS __source) AS public_track) AS t ON pt.track_id = t.track_id GROUP BY pt.playlist_id HAVING COUNT(DISTINCT t.genre_id) >= 10) AS sub",,True,0,wrenai_mdl_noreason,cube_unsupported,23654,1000,45,3
+3,ho06,medium,cube_v2,3.164,correct,True,True,match,"SELECT COUNT(*) AS playlist_count FROM (SELECT playlist_id, COUNT(DISTINCT genre_name) AS genre_cnt FROM playlists GROUP BY playlist_id) t WHERE genre_cnt >= 10",,True,0,,,2947,758,0,1
+3,ho06,medium,wrenai_mdl_noreason,4.053,correct,True,True,match,"SELECT COUNT(1) AS playlist_count FROM (SELECT public_playlist_track.playlist_id FROM (SELECT public_playlist_track.playlist_id, public_playlist_track.track_id FROM (SELECT __source.playlist_id AS playlist_id, __source.track_id AS track_id FROM chinook.""public"".playlist_track AS __source) AS public_playlist_track) AS public_playlist_track INNER JOIN (SELECT public_track.genre_id, public_track.track_id FROM (SELECT __source.genre_id AS genre_id, __source.track_id AS track_id FROM chinook.""public"".track AS __source) AS public_track) AS public_track ON public_playlist_track.track_id = public_track.track_id GROUP BY public_playlist_track.playlist_id HAVING COUNT(DISTINCT public_track.genre_id) >= 10) AS sub",,True,0,,,20630,502,45,2
+3,ho07,medium,router,1.232,correct,True,True,match,"SELECT first_name, last_name, birth_date FROM employees WHERE birth_date >= '1970-01-01' AND birth_date < '1980-01-01' ORDER BY birth_date",,True,0,cube_v2,,3036,173,0,1
+3,ho07,medium,cube_v2,1.284,correct,True,True,match,"SELECT first_name, last_name, birth_date FROM employees WHERE birth_date >= '1970-01-01' AND birth_date < '1980-01-01' ORDER BY birth_date",,True,0,,,2959,173,0,1
+3,ho07,medium,wrenai_mdl_noreason,4.051,correct,True,True,match,"SELECT public_employee.first_name, public_employee.last_name, public_employee.birth_date FROM (SELECT public_employee.birth_date, public_employee.first_name, public_employee.last_name FROM (SELECT __source.birth_date AS birth_date, __source.first_name AS first_name, __source.last_name AS last_name FROM chinook.""public"".employee AS __source) AS public_employee) AS public_employee WHERE CAST(public_employee.birth_date AS TIMESTAMPTZ) >= CAST('1970-01-01 00:00:00' AS TIMESTAMPTZ) AND CAST(public_employee.birth_date AS TIMESTAMPTZ) < CAST('1980-01-01 00:00:00' AS TIMESTAMPTZ) ORDER BY public_employee.birth_date ASC",,True,0,,,20926,727,72,2
+3,ho08,medium,router,6.324,correct,True,True,match,"SELECT COUNT(1) AS ""count(*)"" FROM (SELECT public_customer.phone FROM (SELECT __source.phone AS phone FROM chinook.""public"".customer AS __source) AS public_customer) AS public_customer WHERE LOWER(public_customer.phone) LIKE LOWER('+55%')",,True,0,wrenai_mdl_noreason,cube_unsupported,23928,494,51,3
+3,ho08,medium,cube_v2,1.265,unsupported,False,False,,,unsupported: No phone number field is available in the provided views.,True,0,,,2947,156,0,1
+3,ho08,medium,wrenai_mdl_noreason,4.048,correct,True,True,match,"SELECT COUNT(1) AS customer_count FROM (SELECT public_customer.phone FROM (SELECT __source.phone AS phone FROM chinook.""public"".customer AS __source) AS public_customer) AS public_customer WHERE LOWER(public_customer.phone) LIKE LOWER('+55%')",,True,0,,,20904,397,51,2
+3,ho09,medium,router,1.947,correct,True,True,match,"SELECT ROUND((video_rev / total_rev) * 100, 2) AS percentage FROM (SELECT MEASURE(revenue) AS video_rev FROM sales WHERE media_type_name ILIKE '%video%') v, (SELECT MEASURE(revenue) AS total_rev FROM sales) t",,True,0,cube_v2,,3040,300,0,1
+3,ho09,medium,cube_v2,2.266,wrong_result,False,False,no predicted column matches gold column 0,"WITH total AS (SELECT MEASURE(revenue) AS total_rev FROM sales), video AS (SELECT MEASURE(revenue) AS video_rev FROM sales WHERE media_type_name ILIKE '%video%') SELECT ROUND((video.video_rev::numeric / total.total_rev) * 100, 2) AS percentage FROM total, video",,True,0,,,2963,368,0,1
+3,ho09,medium,wrenai_mdl_noreason,5.059,correct,True,True,match,"SELECT ROUND(CAST(CAST(CAST((CAST((mr.media_rev * 100.0) AS DOUBLE PRECISION) / t.total_rev) AS DECIMAL(38, 10)) AS DOUBLE PRECISION) AS DECIMAL), 2) AS percentage FROM (SELECT SUM(il.unit_price * il.quantity) AS total_rev FROM (SELECT public_invoice_line.quantity, public_invoice_line.track_id, public_invoice_line.unit_price FROM (SELECT __source.quantity AS quantity, __source.track_id AS track_id, __source.unit_price AS unit_price FROM chinook.""public"".invoice_line AS __source) AS public_invoice_line) AS il) AS t CROSS JOIN (SELECT SUM(il.unit_price * il.quantity) AS media_rev FROM (SELECT public_invoice_line.quantity, public_invoice_line.track_id, public_invoice_line.unit_price FROM (SELECT __source.quantity AS quantity, __source.track_id AS track_id, __source.unit_price AS unit_price FROM chinook.""public"".invoice_line AS __source) AS public_invoice_line) AS il INNER JOIN (SELECT public_track.media_type_id, public_track.track_id FROM (SELECT __source.media_type_id AS media_type_id, __source.track_id AS track_id FROM chinook.""public"".track AS __source) AS public_track) AS t ON il.track_id = t.track_id INNER JOIN (SELECT public_media_type.media_type_id, public_media_type.""name"" FROM (SELECT __source.media_type_id AS media_type_id, __source.""name"" AS ""name"" FROM chinook.""public"".media_type AS __source) AS public_media_type) AS mt ON t.media_type_id = mt.media_type_id WHERE LOWER(mt.""name"") LIKE LOWER('%video%')) AS mr",,True,0,,,20898,901,93,2
+3,ho10,hard,router,3.456,correct,True,True,match,"SELECT EXTRACT(DOW FROM invoice_date)::int AS day_of_week,
+       MEASURE(invoice_count) AS invoice_count
+FROM invoices
+WHERE invoice_date >= '2024-01-01' AND invoice_date < '2025-01-01'
+GROUP BY day_of_week
+ORDER BY day_of_week",,True,0,cube_v2,,6346,627,0,2
+3,ho10,hard,cube_v2,180.001,timeout,False,False,,,timeout: no response within 180s,True,0,,,0,0,0,1
+3,ho10,hard,wrenai_mdl_noreason,6.087,correct,True,True,match,"SELECT CAST(DATE_PART('DOW', public_invoice.invoice_date) AS INT) AS day_of_week, COUNT(1) AS invoice_count FROM (SELECT public_invoice.invoice_date FROM (SELECT __source.invoice_date AS invoice_date FROM chinook.""public"".invoice AS __source) AS public_invoice) AS public_invoice WHERE CAST(public_invoice.invoice_date AS TIMESTAMPTZ) >= CAST('2024-01-01 00:00:00' AS TIMESTAMPTZ) AND CAST(public_invoice.invoice_date AS TIMESTAMPTZ) < CAST('2025-01-01 00:00:00' AS TIMESTAMPTZ) GROUP BY CAST(DATE_PART('DOW', public_invoice.invoice_date) AS INT) ORDER BY day_of_week ASC",,True,0,,,20966,764,159,2
+3,ho11,hard,router,3.249,correct,True,True,match,"WITH per_rep AS (
+  SELECT
+    support_rep_id,
+    support_rep_first_name,
+    support_rep_last_name,
+    customer_id,
+    customer_first_name,
+    customer_last_name,
+    MEASURE(total_sales) AS spend
+  FROM invoices
+  GROUP BY
+    support_rep_id,
+    support_rep_first_name,
+    support_rep_last_name,
+    customer_id,
+    customer_first_name,
+    customer_last_name
+)
+SELECT
+  support_rep_first_name,
+  support_rep_last_name,
+  customer_first_name,
+  customer_last_name,
+  spend
+FROM (
+  SELECT *, RANK() OVER (PARTITION BY support_rep_id ORDER BY spend DESC) AS rnk
+  FROM per_rep
+) t
+WHERE rnk = 1
+ORDER BY support_rep_last_name, support_rep_first_name, customer_last_name, customer_first_name",,True,0,cube_v2,,3050,822,0,1
+3,ho11,hard,cube_v2,3.707,correct,True,True,match,"WITH cust_spend AS (
+  SELECT
+    support_rep_id,
+    support_rep_first_name,
+    support_rep_last_name,
+    customer_id,
+    customer_first_name,
+    customer_last_name,
+    MEASURE(total_sales) AS spend
+  FROM invoices
+  GROUP BY support_rep_id, support_rep_first_name, support_rep_last_name,
+           customer_id, customer_first_name, customer_last_name
+),
+ranked AS (
+  SELECT *,
+    RANK() OVER (PARTITION BY support_rep_id ORDER BY spend DESC) AS rnk
+  FROM cust_spend
+)
+SELECT
+  support_rep_first_name,
+  support_rep_last_name,
+  customer_first_name,
+  customer_last_name,
+  spend
+FROM ranked
+WHERE rnk = 1
+ORDER BY support_rep_last_name, support_rep_first_name, customer_last_name, customer_first_name",,True,0,,,2973,830,0,1
+3,ho11,hard,wrenai_mdl_noreason,6.078,correct,True,True,match,"SELECT e.first_name AS employee_first_name, e.last_name AS employee_last_name, cs.customer_first_name, cs.customer_last_name, cs.lifetime_spend AS spend FROM (SELECT customer_spend.customer_id, customer_spend.customer_first_name, customer_spend.customer_last_name, customer_spend.support_rep_id, customer_spend.lifetime_spend, DENSE_RANK() OVER (PARTITION BY customer_spend.support_rep_id ORDER BY customer_spend.lifetime_spend DESC NULLS LAST) AS rnk FROM (SELECT c.customer_id, c.first_name AS customer_first_name, c.last_name AS customer_last_name, c.support_rep_id, c.lifetime_spend FROM (SELECT __relation__1.customer_id, __relation__1.first_name, __relation__1.last_name, __relation__1.lifetime_spend, __relation__1.support_rep_id FROM (SELECT public_customer.customer_id, public_customer.first_name, public_customer.last_name, lifetime_spend.lifetime_spend, public_customer.support_rep_id FROM (SELECT __relation__1.customer_id AS customer_id, SUM(__relation__1.total) AS lifetime_spend FROM (SELECT public_invoice.customer_id, public_invoice.total FROM (SELECT public_invoice.customer_id, public_invoice.total FROM (SELECT public_invoice.customer_id, public_invoice.total FROM (SELECT __source.customer_id AS customer_id, __source.total AS total FROM chinook.""public"".invoice AS __source) AS public_invoice) AS public_invoice) AS public_invoice RIGHT OUTER JOIN (SELECT __source.customer_id AS customer_id FROM chinook.""public"".customer AS __source) AS public_customer ON public_invoice.customer_id = public_customer.customer_id) AS __relation__1 GROUP BY __relation__1.customer_id) AS lifetime_spend RIGHT OUTER JOIN (SELECT __source.customer_id AS customer_id, __source.first_name AS first_name, __source.last_name AS last_name, __source.support_rep_id AS support_rep_id FROM chinook.""public"".customer AS __source) AS public_customer ON lifetime_spend.customer_id = public_customer.customer_id) AS __relation__1) AS c) AS customer_spend) AS cs INNER JOIN (SELECT public_employee.employee_id, public_employee.first_name, public_employee.last_name FROM (SELECT __source.employee_id AS employee_id, __source.first_name AS first_name, __source.last_name AS last_name FROM chinook.""public"".employee AS __source) AS public_employee) AS e ON cs.support_rep_id = e.employee_id WHERE cs.rnk = 1 ORDER BY e.first_name ASC, e.last_name ASC, cs.customer_first_name ASC, cs.customer_last_name ASC",,True,0,,,20952,961,137,2
+3,ho12,hard,router,5.419,wrong_result,False,False,rows differ or order differs,SELECT name FROM (SELECT name FROM artists EXCEPT SELECT DISTINCT artist_name FROM sales) t ORDER BY name,,True,0,cube_v2,,6216,709,0,2
+3,ho12,hard,cube_v2,2.663,wrong_result,False,False,rows differ or order differs,"SELECT name FROM (
+  SELECT name FROM artists
+  EXCEPT
+  SELECT DISTINCT artist_name FROM sales
+) t
+ORDER BY name",,True,0,,,2958,339,0,1
+3,ho12,hard,wrenai_mdl_noreason,6.072,correct,True,True,match,"SELECT public_artist.""name"" AS ""Artist Name"" FROM (SELECT public_artist.artist_id, public_artist.""name"" FROM (SELECT __source.artist_id AS artist_id, __source.""name"" AS ""name"" FROM chinook.""public"".artist AS __source) AS public_artist) AS public_artist WHERE NOT EXISTS(SELECT 1 FROM (SELECT public_album.album_id, public_album.artist_id FROM (SELECT __source.album_id AS album_id, __source.artist_id AS artist_id FROM chinook.""public"".album AS __source) AS public_album) AS public_album INNER JOIN (SELECT public_track.album_id, public_track.track_id FROM (SELECT __source.album_id AS album_id, __source.track_id AS track_id FROM chinook.""public"".track AS __source) AS public_track) AS public_track ON public_album.album_id = public_track.album_id INNER JOIN (SELECT public_invoice_line.track_id FROM (SELECT __source.track_id AS track_id FROM chinook.""public"".invoice_line AS __source) AS public_invoice_line) AS public_invoice_line ON public_track.track_id = public_invoice_line.track_id WHERE public_album.artist_id = public_artist.artist_id) ORDER BY public_artist.""name"" ASC",,True,0,,,20567,800,87,2
+3,ho13,hard,router,2.033,correct,True,True,match,"SELECT EXTRACT(quarter FROM quarter_start)::int AS quarter,
+       revenue,
+       LAG(revenue) OVER (ORDER BY quarter_start) AS previous_quarter_revenue
+FROM (
+  SELECT DATE_TRUNC('quarter', invoice_date) AS quarter_start,
+         MEASURE(total_sales) AS revenue
+  FROM invoices
+  WHERE invoice_date >= '2024-01-01' AND invoice_date < '2025-01-01'
+  GROUP BY quarter_start
+) t
+ORDER BY quarter",,True,0,cube_v2,,3045,440,0,1
+3,ho13,hard,cube_v2,2.598,correct,True,True,match,"WITH quarterly AS (
+  SELECT DATE_TRUNC('quarter', invoice_date) AS quarter_start,
+         EXTRACT(QUARTER FROM invoice_date)::int AS quarter,
+         MEASURE(total_sales) AS revenue
+  FROM invoices
+  WHERE invoice_date >= '2024-01-01' AND invoice_date < '2025-01-01'
+  GROUP BY DATE_TRUNC('quarter', invoice_date), EXTRACT(QUARTER FROM invoice_date)
+)
+SELECT quarter,
+       revenue,
+       LAG(revenue) OVER (ORDER BY quarter) AS previous_quarter_revenue
+FROM quarterly
+ORDER BY quarter",,True,0,,,2968,465,0,1
+3,ho13,hard,wrenai_mdl_noreason,6.173,correct,True,True,match,"SELECT q.""quarter"" AS quarter_number, q.revenue AS total_invoice_revenue, p.revenue AS previous_quarter_revenue FROM (SELECT DATE_PART('quarter', public_invoice.invoice_date) AS ""quarter"", SUM(public_invoice.total) AS revenue FROM (SELECT public_invoice.invoice_date, public_invoice.total FROM (SELECT __source.invoice_date AS invoice_date, __source.total AS total FROM chinook.""public"".invoice AS __source) AS public_invoice) AS public_invoice WHERE CAST(public_invoice.invoice_date AS TIMESTAMPTZ) >= CAST('2024-01-01 00:00:00' AS TIMESTAMPTZ) AND CAST(public_invoice.invoice_date AS TIMESTAMPTZ) < CAST('2025-01-01 00:00:00' AS TIMESTAMPTZ) GROUP BY DATE_PART('quarter', public_invoice.invoice_date)) AS q LEFT OUTER JOIN (SELECT DATE_PART('quarter', public_invoice.invoice_date) AS ""quarter"", SUM(public_invoice.total) AS revenue FROM (SELECT public_invoice.invoice_date, public_invoice.total FROM (SELECT __source.invoice_date AS invoice_date, __source.total AS total FROM chinook.""public"".invoice AS __source) AS public_invoice) AS public_invoice WHERE CAST(public_invoice.invoice_date AS TIMESTAMPTZ) >= CAST('2024-01-01 00:00:00' AS TIMESTAMPTZ) AND CAST(public_invoice.invoice_date AS TIMESTAMPTZ) < CAST('2025-01-01 00:00:00' AS TIMESTAMPTZ) GROUP BY DATE_PART('quarter', public_invoice.invoice_date)) AS p ON q.""quarter"" - 1 = p.""quarter"" ORDER BY q.""quarter"" ASC",,True,0,,,20938,1149,110,2
+3,ho14,hard,router,5.907,wrong_result,False,False,no predicted column matches gold column 0,"SELECT EXTRACT(week FROM invoice_date)::int AS week_number,
+       SUM(invoice_total) AS revenue
+FROM invoices
+WHERE EXTRACT(isoyear FROM invoice_date)::int = 2023
+GROUP BY week_number
+ORDER BY revenue DESC
+LIMIT 3",,True,0,cube_v2,,6314,949,0,2
+3,ho14,hard,cube_v2,4.358,correct,True,True,match,"SELECT week_number, revenue FROM (
+  SELECT EXTRACT(week FROM invoice_date)::int AS week_number,
+         MEASURE(total_sales) AS revenue
+  FROM invoices
+  WHERE invoice_date >= '2023-01-01' AND invoice_date < '2024-01-01'
+  GROUP BY week_number
+) t
+ORDER BY revenue DESC
+LIMIT 3",,True,0,,,6056,708,0,2
+3,ho14,hard,wrenai_mdl_noreason,5.053,wrong_result,False,False,no predicted column matches gold column 0,"SELECT CAST(DATE_PART('week', public_invoice.invoice_date) AS INT) AS iso_week, SUM(public_invoice.total) AS revenue FROM (SELECT public_invoice.invoice_date, public_invoice.total FROM (SELECT __source.invoice_date AS invoice_date, __source.total AS total FROM chinook.""public"".invoice AS __source) AS public_invoice) AS public_invoice WHERE CAST(public_invoice.invoice_date AS TIMESTAMPTZ) >= CAST('2023-01-01 00:00:00' AS TIMESTAMPTZ) AND CAST(public_invoice.invoice_date AS TIMESTAMPTZ) < CAST('2024-01-01 00:00:00' AS TIMESTAMPTZ) GROUP BY DATE_PART('week', public_invoice.invoice_date) ORDER BY revenue DESC NULLS LAST LIMIT 3",,True,0,,,20894,838,90,2
+3,ho15,hard,router,5.202,correct,True,True,match,"SELECT COUNT(DISTINCT public_invoice.billing_postal_code) FROM (SELECT public_invoice.billing_country, public_invoice.billing_postal_code FROM (SELECT __source.billing_country AS billing_country, __source.billing_postal_code AS billing_postal_code FROM chinook.""public"".invoice AS __source) AS public_invoice) AS public_invoice WHERE LOWER(public_invoice.billing_country) = LOWER('Canada')",,True,0,wrenai_mdl_noreason,cube_unsupported,23926,482,51,3
+3,ho15,hard,cube_v2,1.149,unsupported,False,False,,,unsupported: No postal code dimension available in the provided views.,True,0,,,2947,81,0,1
+3,ho15,hard,wrenai_mdl_noreason,5.058,correct,True,True,match,"SELECT COUNT(DISTINCT public_invoice.billing_postal_code) AS distinct_billing_postal_codes FROM (SELECT public_invoice.billing_country, public_invoice.billing_postal_code FROM (SELECT __source.billing_country AS billing_country, __source.billing_postal_code AS billing_postal_code FROM chinook.""public"".invoice AS __source) AS public_invoice) AS public_invoice WHERE LOWER(public_invoice.billing_country) = LOWER('Canada')",,True,0,,,20902,441,51,2

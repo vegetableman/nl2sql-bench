@@ -35,6 +35,7 @@ make bench SYSTEMS=wrenai_mdl REPEATS=3
 make wren-mdl-noreason           # switch 2nd stack to the no-reasoning variant, then:
 make bench SYSTEMS=wrenai_mdl_noreason REPEATS=3
 make bench-router REPEATS=3      # router (needs noreason variant; make target switches it)
+make bench-holdout REPEATS=3     # 15 held-out q × router,cube_v2,wrenai_mdl_noreason → results/run-gptoss120b-holdout-r3/
 make wren-mdl-restore            # switch back (wrenai_mdl); config.yaml is re-rendered byte-identically
 .venv/bin/python bench/stage_latency.py   # per-stage latency from wren-ai-service logs (see below)
 make report                      # combined report → results/combined_summary.md + results/summary.png
@@ -70,6 +71,7 @@ cube/model/cubes/chinook.yml  generic Chinook semantic model (12 cubes incl. a `
 meter/                      llm-meter proxy
 db/                         Chinook SQL + read-only role
 bench/questions.yaml        29 questions (8 easy / 9 medium / 12 hard) with gold SQL
+bench/questions_holdout.yaml 15 held-out questions (models/prompts/MDL left unchanged)
 bench/cube_reference_queries.yaml  hand-written Cube REST queries proving the baseline model covers 23/29 questions
 cube_v2/model/              cube_v2 model (cubes/ + views/)    bench/cube_v2_reference_sql.yaml + verify_cube_v2.py  SQL API references (29/29)
 bench/harness.py            runner, scoring, report     bench/clients.py  per-system API clients (incl. router)
@@ -251,6 +253,33 @@ no empty/error/sentinel, so no fallback). Same accuracy band as `wrenai_mdl_nore
 **Caveat (same as cube_v2 / Wren semantic layer).** Both the cube_v2 model and the WrenAI semantic layer were authored after
 seeing the question set. The router inherits that leakage; it does not invent a third model. A router only helps when Cube
 declines or fails loudly — silent wrongs (valid-looking wrong rows) still pass through.
+
+
+## Held-out evaluation (`questions_holdout.yaml`)
+
+The original 29 questions were the tuning set for `cube_v2` and the WrenAI semantic layer, so the first router run
+fell back **0/87** times. To measure routing under distribution shift we added **15 new** Chinook questions in
+`bench/questions_holdout.yaml` that are **not** paraphrases of the original set. They deliberately include:
+
+* columns **absent from cube_v2** (`customer.fax`, `customer.phone`, `invoice.billing_address`, `invoice.billing_postal_code`);
+* unusual time grains (day-of-week, ISO week, quarter + LAG);
+* ranking within groups, artist-level anti-joins, and a video-revenue percentage;
+* a few in-model controls (media-type count, track bytes, employee birth dates, playlists).
+
+**Models / prompts / MDL were not edited to fit these questions** — cube_v2 model, `CUBE_V2_ROUTER_SYSTEM`, and the Wren
+semantic layer stay exactly as benchmarked on the original 29. Run with `make bench-holdout REPEATS=3`.
+
+Results (`results/run-gptoss120b-holdout-r3/`, chart `results/holdout_summary.png`, 15 × 3):
+
+| System | EX exact | EX relaxed | p50 s | p95 s | avg prompt tok | avg LLM calls |
+|---|---|---|---|---|---|---|
+| Router | 39/45 (87%) | 39/45 (87%) | 3.54 | 7.77 | 11,327 | 1.9 |
+| cube_v2 | 25/45 (56%) | 25/45 (56%) | 1.92 | 5.26 | 3,436 | 1.2 |
+| WrenAI + semantic, no reasoning | 42/45 (93%) | 42/45 (93%) | 4.06 | 6.89 | 20,811 | 2.0 |
+
+Router fallback **17/45 (38%)** — triggers `cube_unsupported`×16, `cube_error`×1. Cube-answered path EX 22/28 (79%);
+fallback path EX 17/17 (100%). Silent-wrong (Cube answered, no fallback): `ho12`×3, `ho14`×2, `ho04`×1. No attempt
+fell back and then still failed under Wren. cube_v2's mean latency is pulled up by one 180 s timeout on `ho10`.
 
 ## Cube notes (baseline `cube`)
 Not expressible as a single Cube REST query over the model (counted as failures for Cube, listed in the report):

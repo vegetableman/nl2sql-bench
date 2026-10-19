@@ -304,3 +304,43 @@ Polling: the time between the ask actually finishing and wren-ui's next poll is 
 | h12 | hard | ✅ 🟡 ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
 
 Legend: ✅ exact, 🟡 extra columns, ❌ wrong result, 💥 SQL exec error, ⚠️ tool/API error, ⏱️ timeout (failure), ⛔ declared unsupported.
+
+## Held-out set (15 new questions)
+
+Source: `bench/questions_holdout.yaml`. Models/prompts/MDL **unchanged**. 15 q × 3 runs each for `router`, `cube_v2`, `wrenai_mdl_noreason`.
+Results: `results/run-gptoss120b-holdout-r3/`. Chart: `results/holdout_summary.png`.
+
+| System | EX exact | EX relaxed | p50 s | p95 s | avg prompt tok | avg LLM calls |
+|---|---|---|---|---|---|---|
+| Router (cube_v2 → Wren noreason) | 39/45 (87%) | 39/45 (87%) | 3.54 | 7.77 | 11,327 | 1.9 |
+| cube_v2 | 25/45 (56%) | 25/45 (56%) | 1.92 | 5.26 | 3,436 | 1.2 |
+| WrenAI + semantic, no reasoning | 42/45 (93%) | 42/45 (93%) | 4.06 | 6.89 | 20,811 | 2.0 |
+
+### Router fallback / silent-wrong (holdout)
+
+- Fallback rate: **17/45 (38%)**
+- Triggers: cube_error=1, cube_unsupported=16
+- Cube-answered path: EX 22/28 (79%), p50/p95 2.40/5.86 s
+- Fallback path: EX 17/17 (100%), p50/p95 5.28/10.53 s
+- Silent-wrong (Cube answered, no fallback, not EX): 6 — ho12@r1, ho12@r2, ho14@r2, ho04@r3, ho12@r3, ho14@r3
+- Fell back but Wren still wrong: 0 — none
+
+### Per-question statuses (holdout)
+
+| id | diff | question | router | cube_v2 | wren noreason |
+|---|---|---|---|---|---|
+| ho01 | easy | How many distinct media types are there? | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
+| ho02 | easy | How many customers have a fax number recorded? | ✅ ✅ ✅ | ⛔ ⛔ ⛔ | ✅ ✅ ✅ |
+| ho03 | easy | How many tracks are larger than 15 megabytes (bytes > 15 * 1024 * 1024 | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
+| ho04 | easy | How many invoices have a billing address that contains the word Street | ✅ ✅ ❌ | ❌ ❌ ❌ | ✅ ✅ ✅ |
+| ho05 | medium | What is the average track file size in bytes for each media type? Retu | ✅ ✅ ✅ | ✅ ⛔ ⛔ | ✅ ✅ ✅ |
+| ho06 | medium | How many playlists contain tracks from at least 10 different genres? | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
+| ho07 | medium | List employees born in the 1970s. Return first name, last name and bir | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
+| ho08 | medium | How many customers have a phone number that starts with '+55'? | ✅ ✅ ✅ | ⛔ ⛔ ⛔ | ✅ ✅ ✅ |
+| ho09 | medium | What percentage of total sales revenue (unit price times quantity) com | ✅ ✅ ✅ | ✅ ❌ ❌ | ✅ ✅ ✅ |
+| ho10 | hard | For each day of the week in 2024, how many invoices were issued? Retur | ✅ ✅ ✅ | ✅ ✅ ⏱️ | ✅ ✅ ✅ |
+| ho11 | hard | For each support representative, which customer has the highest total  | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
+| ho12 | hard | Which artists have never had any track appear on an invoice line (neve | ❌ ❌ ❌ | ❌ 💥 ❌ | ✅ ✅ ✅ |
+| ho13 | hard | For each quarter of 2024, show the total invoice revenue and the previ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
+| ho14 | hard | Which ISO week numbers of 2023 had the highest invoice revenue? Return | ✅ ❌ ❌ | ✅ ✅ ✅ | ❌ ❌ ❌ |
+| ho15 | hard | How many distinct billing postal codes appear on invoices billed to Ca | ✅ ✅ ✅ | ⛔ ⛔ ⛔ | ✅ ✅ ✅ |

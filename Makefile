@@ -5,8 +5,9 @@ WREN  := docker compose --project-directory wrenai --env-file wrenai/.env -f wre
 WRENMDL := docker compose -p wrenai-mdl --project-directory wrenai_mdl --env-file wrenai_mdl/.env -f wrenai_mdl/docker-compose.yaml -f wrenai_mdl/docker-compose.override.yaml
 REPEATS ?= 1
 SYSTEMS ?= wrenai,dbgpt,cube
+QUESTIONS ?= bench/questions.yaml
 
-.PHONY: wren-mdl wren-mdl-noreason wren-mdl-restore wren-mdl-up report up down clean setup bench mock verify probe status logs venv render docker netfix wait bench-router
+.PHONY: wren-mdl wren-mdl-noreason wren-mdl-restore wren-mdl-up report up down clean setup bench mock verify probe status logs venv render docker netfix wait bench-router bench-holdout
 
 up: docker netfix venv render          ## start everything and connect all tools to Postgres
 	docker compose up -d --build
@@ -79,13 +80,16 @@ probe:
 	cd bench && ../$(PY) probe.py
 
 mock:                                  ## dry-run of the harness without an LLM key
-	$(PY) bench/harness.py --mock --repeats $(REPEATS) --systems $(SYSTEMS)
+	$(PY) bench/harness.py --mock --repeats $(REPEATS) --systems $(SYSTEMS) --questions $(QUESTIONS)
 
 bench:                                 ## real benchmark (needs LLM_API_KEY)
-	$(PY) bench/harness.py --repeats $(REPEATS) --systems $(SYSTEMS)
+	$(PY) bench/harness.py --repeats $(REPEATS) --systems $(SYSTEMS) --questions $(QUESTIONS)
 
 bench-router: wren-mdl-noreason        ## router = cube_v2 (router prompt) → WrenAI semantic no-reasoning; 3 runs → results/run-gptoss120b-router-r3/
 	$(PY) bench/harness.py --repeats $(REPEATS) --systems router --out run-gptoss120b-router-r3
+
+bench-holdout: wren-mdl-noreason       ## held-out 15q: router + cube_v2 + wrenai_mdl_noreason x3 → results/run-gptoss120b-holdout-r3/
+	$(PY) bench/harness.py --repeats $(REPEATS) --systems router,cube_v2,wrenai_mdl_noreason --questions bench/questions_holdout.yaml --out run-gptoss120b-holdout-r3
 
 status:
 	docker compose ps; $(WREN) ps; -$(WRENMDL) ps
