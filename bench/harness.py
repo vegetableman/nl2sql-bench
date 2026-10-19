@@ -7,10 +7,10 @@ import argparse, concurrent.futures as cf, csv, datetime as dt, json, statistics
 import httpx, psycopg, yaml
 from zoneinfo import ZoneInfo
 from common import ROOT, load_env, compare
-from clients import WrenClient, WrenMDLClient, WrenMDLNoReasonClient, DBGPTClient, CubeClient, MockSQLClient
+from clients import WrenClient, WrenMDLClient, WrenMDLNoReasonClient, DBGPTClient, CubeClient, CubeV2Client, MockSQLClient
 
-METER_KEY = {"wrenai": "wren", "wrenai_mdl": "wrenmdl", "wrenai_mdl_noreason": "wrenmdlnr"}  # llm-meter path prefix per system
-LABELS = {"wrenai": "WrenAI 0.29.2 (out of the box)", "wrenai_mdl": "WrenAI 0.29.2 + semantic layer", "wrenai_mdl_noreason": "WrenAI 0.29.2 + semantic layer, no reasoning", "dbgpt": "DB-GPT 0.8.2", "cube": "Cube Core 1.8.8 + LLM adapter (harness-built)"}
+METER_KEY = {"cube_v2": "cube2", "wrenai": "wren", "wrenai_mdl": "wrenmdl", "wrenai_mdl_noreason": "wrenmdlnr"}  # llm-meter path prefix per system
+LABELS = {"wrenai": "WrenAI 0.29.2 (out of the box)", "wrenai_mdl": "WrenAI 0.29.2 + semantic layer", "wrenai_mdl_noreason": "WrenAI 0.29.2 + semantic layer, no reasoning", "dbgpt": "DB-GPT 0.8.2", "cube": "Cube Core 1.8.8 + LLM adapter (baseline)", "cube_v2": "Cube Core 1.8.8 + rich model + LLM adapter v2 (harness-built)"}
 
 
 def run_sql(conn, sql, limit_rows=100000):
@@ -84,6 +84,8 @@ def main():
     for s in systems:
         if s == "cube":
             clients[s] = CubeClient(env, mock=a.mock)
+        elif s == "cube_v2":
+            clients[s] = CubeV2Client(env, mock=a.mock)
         elif a.mock:
             clients[s] = MockSQLClient(s, qs)
         else:
@@ -119,7 +121,7 @@ def main():
                     before = meter_totals(env)
                     t_wall0 = time.time()
                     t0 = time.perf_counter()
-                    fut = pool.submit(lambda: c.generate(q["question"], qid=q["id"]) if s == "cube" else c.generate(q["question"]))
+                    fut = pool.submit(lambda: c.generate(q["question"], qid=q["id"]) if s in ("cube", "cube_v2") else c.generate(q["question"]))
                     try:
                         res = fut.result(timeout=a.timeout)
                     except cf.TimeoutError:
@@ -147,7 +149,8 @@ def main():
                 if res.get("timeout") or rec["error"].startswith("client exception: ") and "timed out" in rec["error"].lower():
                     rec["status"] = "timeout"
                 elif rec["error"]:
-                    rec["status"] = "unsupported" if rec["error"].startswith("unsupported") else "tool_error"
+                    rec["status"] = ("unsupported" if rec["error"].startswith("unsupported")
+                                     else "exec_error" if s == "cube_v2" and rec["error"].startswith("cube: ") else "tool_error")
                 elif "rows" in res:
                     pred = res["rows"]
                 else:

@@ -1,4 +1,4 @@
-# nl2sql-bench — WrenAI (out of the box / + semantic layer / + semantic layer, no reasoning) vs DB-GPT vs Cube Core (+LLM adapter)
+# nl2sql-bench — WrenAI (out of the box / + semantic layer / + semantic layer, no reasoning) vs DB-GPT vs Cube Core (+LLM adapter: baseline / rich model + SQL API v2)
 
 Same natural-language questions, same Postgres database, same LLM, measured the same way.
 
@@ -8,7 +8,8 @@ Same natural-language questions, same Postgres database, same LLM, measured the 
 | **WrenAI 0.29.2 + semantic layer** — system `wrenai_mdl` (2nd, identical WrenAI stack, compose project `wrenai-mdl`) | NL → SQL; project additionally carries the MDL in `wrenai_mdl/mdl/semantic_layer.yaml` (see below) | `POST http://localhost:3001/api/v1/generate_sql` (same API) |
 | **WrenAI 0.29.2 + semantic layer, no reasoning** — system `wrenai_mdl_noreason` (same 2nd stack, switched with `make wren-mdl-noreason`) | identical to `wrenai_mdl` except wren-ai-service setting `allow_sql_generation_reasoning: false` | `POST http://localhost:3001/api/v1/generate_sql` |
 | **DB-GPT 0.8.2** (official `dbgpt-openai` image + psycopg2) | NL → SQL (chat_data mode) | `POST http://localhost:5670/api/v2/chat/completions` `{chat_mode:"chat_data", chat_param:"chinook", stream:false}`; SQL is parsed out of the `<chart-view content=…>` block in the reply |
-| **Cube Core 1.8.8 + LLM adapter (harness-built)** | Cube Core has **no OSS NL interface** (the AI API / D3 is Cube Cloud-only; OSS v1.8.8 api-gateway only has `/v1/load, /sql, /meta, /cubesql, /dry-run, …`). The harness gives the same LLM the `/v1/meta` model + join list and asks for a Cube REST query JSON (1 self-correction retry on Cube errors) | `POST http://localhost:4000/cubejs-api/v1/load` |
+| **Cube Core 1.8.8 + LLM adapter (baseline)** — system `cube` | Cube Core has **no OSS NL interface** (the AI API / D3 is Cube Cloud-only; OSS v1.8.8 api-gateway only has `/v1/load, /sql, /meta, /cubesql, /dry-run, …`). The harness gives the same LLM the `/v1/meta` model + join list and asks for a Cube REST query JSON (1 self-correction retry on Cube errors) | `POST http://localhost:4000/cubejs-api/v1/load` |
+| **Cube Core 1.8.8 + rich model + LLM adapter v2 (harness-built)** — system `cube_v2` (service `cube_v2`, REST :4001, SQL API :15432) | same LLM gets the *views* of `cube_v2/model` (with descriptions) from `/v1/meta` and writes ONE Cube SQL API query (Postgres dialect, `MEASURE()`, push-down/post-processing); 1 repair retry on Cube errors | Cube SQL API (Postgres wire protocol) at `localhost:15432` — executed by Cube, never directly on Postgres |
 
 Fairness controls
 * One Postgres (Chinook 1.4.5) container; WrenAI, DB-GPT and Cube connect to it as the same **read-only role `bench`**.
@@ -59,7 +60,7 @@ recreates the containers whose env changed, re-deploys Wren (schema indexing) an
 
 ## Layout
 ```
-docker-compose.yml          postgres, llm-meter, dbgpt, cube   (network nl2sql-net)
+docker-compose.yml          postgres, llm-meter, ollama, dbgpt, cube, cube_v2   (network nl2sql-net)
 wrenai/                     upstream WrenAI 0.29.2 compose + override joining nl2sql-net; .env/config.yaml are rendered
 wrenai_mdl/                 2nd WrenAI stack (symlinked compose, own override/.env/config.yaml) + mdl/semantic_layer.yaml, mdl/deployed_mdl.json
 dbgpt/                      Dockerfile (+psycopg2) and dbgpt-bench.toml
@@ -67,7 +68,8 @@ cube/model/cubes/chinook.yml  generic Chinook semantic model (12 cubes incl. a `
 meter/                      llm-meter proxy
 db/                         Chinook SQL + read-only role
 bench/questions.yaml        29 questions (8 easy / 9 medium / 12 hard) with gold SQL
-bench/cube_reference_queries.yaml  hand-written Cube queries proving the model covers 23/29 questions
+bench/cube_reference_queries.yaml  hand-written Cube REST queries proving the baseline model covers 23/29 questions
+cube_v2/model/              cube_v2 model (cubes/ + views/)    bench/cube_v2_reference_sql.yaml + verify_cube_v2.py  SQL API references (29/29)
 bench/harness.py            runner, scoring, report     bench/clients.py  per-system API clients
 bench/setup_connections.py  connects tools to the DB    bench/verify_gold.py, bench/probe.py
 bench/wren_mdl.py           builds/deploys the Wren semantic layer   bench/combine.py  combined 5-system report + summary.png
@@ -147,7 +149,90 @@ and the poll that picks the result up. Raw logs are saved next to it.
 * **Tokens**: prompt/completion per question from llm-meter (embedding tokens separately). Background LLM work a tool does between questions is attributed to the next question.
 * Status per attempt: `correct`, `correct_extra_cols`, `wrong_result`, `exec_error`, `tool_error`, `unsupported` (Cube adapter declined).
 
-## Cube notes
+## Cube v2 (`cube_v2`): rich model + SQL API adapter
+
+**Why the SQL API (not REST, not hybrid).** A REST `/v1/load` query is one aggregation shape (measures × dimensions +
+filters), so comparisons against an aggregate of aggregates, per-group top-N, LAG, anti-joins / set differences and
+share-of-total over arbitrary groupings cannot be expressed in a single query (the baseline's 15 `unsupported`).
+Cube's SQL API (enabled with `CUBEJS_PG_SQL_PORT=15432`; query push-down is on by default since 1.0 and set explicitly,
+`CUBESQL_SQL_PUSH_DOWN=true`) turns each `SELECT … FROM <view>` into a Cube query and runs window functions,
+subqueries, EXCEPT etc. as post-processing / push-down — still compiled and executed by Cube against Postgres. Every
+REST query shape is also expressible as an SQL API query, so a REST fallback would add a second prompt format without
+adding coverage; v2 therefore uses the SQL API only. Cube stays at **v1.8.8** (the latest release on Docker Hub on
+2026-10-19; no upgrade needed or possible). Tesseract (needed for multi-stage measures) is on by default in 1.8.8
+(`CUBEJS_TESSERACT_SQL_PLANNER=true`, also set explicitly).
+
+**Data model** (`cube_v2/model/`, the baseline model `cube/model/` is untouched):
+* 13 cubes (`cubes/catalog.yml`, `cubes/sales.yml`) with descriptions on cubes and members: artist, album, genre, media_type,
+  track, playlist, playlist_track, employee, `manager` and `support_rep` (both `extends: employee`), customer, invoice, invoice_line.
+* Joins: many_to_one along every FK (album→artist, track→album/genre/media_type, playlist_track→playlist/track,
+  invoice_line→invoice/track, invoice→customer, customer→support_rep, employee→manager) plus one_to_many where a
+  rollup needs it (artist→album, track→invoice_line, customer→invoice). Cube joins are LEFT JOINs; the employees view
+  description says the top manager has NULL manager fields.
+* Subquery dimensions (`sub_query: true`): `track.units_sold` (COALESCE(units sold, 0)), `customer.lifetime_spend`,
+  `customer.invoice_count`, `customer.first_purchase_date`, `customer.last_purchase_date`.
+* Derived dimension: `track.duration_minutes` (= milliseconds / 60000.0).
+* Measures: count on every cube; track total/avg duration, max/min/avg list price, distinct genres / albums;
+  playlist_track count + distinct tracks; customer avg lifetime spend; invoice total_sales, avg invoice total,
+  purchasing customers, first/last invoice date; invoice_line revenue (unit_price × quantity), quantity_sold, line count.
+* Rolling windows: `invoice.total_sales_running_total` (trailing unbounded), `total_sales_year_to_date` (to_date year),
+  `total_sales_trailing_3_months`.
+* Multi-stage measures (Tesseract): `invoice.total_sales_prior_month` and `total_sales_prior_year` (time_shift, prior),
+  `invoice_line.revenue_share_of_total_pct` (= 100 × revenue / grand total via a hidden helper with `grain: {keep_only: []}`).
+  A generic multi-stage `rank` measure was tried and dropped: without naming the dimension to rank over
+  (`grain.exclude`), it returned 1 for every row.
+* Segments: `track.is_video`, `employee.has_manager`, `customer.is_business`.
+* Views (`views/business.yml`) = the business entities the LLM sees: `sales` (line level, with invoice, customer, support
+  rep, track, album, artist, genre, media type), `invoices`, `customers`, `tracks`, `albums`, `artists`, `genres`,
+  `media_types`, `playlists`, `employees` (with manager). Members from joined cubes get explicit aliases (`artist_name`,
+  `support_rep_first_name`, `manager_id`, …).
+
+**Adapter v2 prompt** (`CUBE_V2_SYSTEM` in `bench/clients.py`; the LLM also gets every view's dimensions, measures
+and segments with their types and descriptions from `/v1/meta`). It returns `{"sql": …}` or `{"unsupported": …}`.
+Rules, in short:
+1. Query only the listed views; one view per SELECT, no joins between views.
+2. Wrap measures in MEASURE().
+3. Selected dimensions go in GROUP BY; a dimensions-only SELECT without GROUP BY is ungrouped.
+4. Cube drops GROUP BY keys that are not selected. For one row per entity, select the id in an inner query and only
+   the requested columns in an outer query.
+5. Window functions, CASE, EXCEPT and similar go in an outer query over a view subquery; no correlated subqueries.
+6. Filter measures in an outer WHERE.
+7. Use half-open date ranges and DATE_TRUNC grouping, with EXTRACT in an outer query when a number is asked for;
+   rolling and prior-period measures need DATE_TRUNC.
+8. Return only the requested columns.
+9. No LIMIT unless a number is asked for; top-N → ORDER BY … LIMIT N; ties only when asked.
+10. View joins are LEFT JOINs.
+11. Anti-joins: use EXCEPT or NOT IN.
+
+Rules 4, 5 and 11 come from testing Cube 1.8.8 directly:
+* `SELECT name … GROUP BY track_id, name` returned 207 rows, not 212.
+* A window function written directly over a view, or a correlated subquery, fails with "Can't detect Cube query".
+* **`NOT EXISTS` is planned as `EXISTS`.** `EXPLAIN` shows `Subquery: types=[Exists]` with the NOT dropped, and
+  `LEFT JOIN … IS NULL` returns 0. Both give wrong results silently, while `EXCEPT` and `NOT IN` are correct.
+
+**Leakage check.** No member, view, segment or prompt rule is named after a benchmark question, and no question
+or gold SQL is in the prompt. `bench/cube_v2_reference_sql.yaml` is used only by `make verify` and `--mock`.
+These generic elements line up with what particular questions need (they are what a Chinook modeller would add,
+but the author had seen the question set):
+* `track.units_sold` and rule 11 → h07, h09
+* `customer.lifetime_spend` → h03, h04
+* `total_sales_prior_month` → h05
+* `revenue_share_of_total_pct` → h11
+* `total_sales_year_to_date` → h10
+* `duration_minutes` → e04, m05
+* `has_manager` / LEFT JOIN rule 10 → h08
+* `is_business` → e08
+* `distinct_genres` → h06
+* rule 4 → e04
+* rules 8 and 9 → e07, m07, h10, e04
+
+**Expressibility.** `make verify` runs `bench/verify_cube_v2.py`, which executes the hand-written SQL API query for
+every question through cube_v2 and compares it with gold: 29/29 reproduce gold. The baseline REST model covers
+23/29 (h03, h04, h05, h07, h09 and h11 are not expressible as one REST query). One caveat: the prior-month measure
+uses true calendar shifting, so for January 2024 it returns December 2023's revenue rather than NULL, unlike a LAG
+within 2024.
+
+## Cube notes (baseline `cube`)
 Not expressible as a single Cube REST query over the model (counted as failures for Cube, listed in the report):
 h03 (compare with average of per-customer totals), h04 (per-country top-N/window), h05 (LAG), h07 (anti-join), h09 (set difference), h11 (share of total).
 m07 can only be relaxed-correct in Cube (ordering by a measure requires the measure in the result).

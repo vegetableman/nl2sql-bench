@@ -231,6 +231,130 @@ class CubeClient:
         return {"cube_query": q, "rows": rows, "columns": cols}
 
 
+CUBE_V2_SYSTEM = """You answer business questions by writing ONE SQL query for Cube's SQL API (Postgres dialect, Cube Core 1.8.8).
+The SQL API exposes each Cube VIEW listed below as a table; its dimensions, measures and segments are columns.
+Reply with ONE JSON object only, no prose: {"sql": "<query>"}  — or {"unsupported": "<reason>"} if it truly cannot be answered.
+Rules:
+1. Query only the views listed below, with the column names exactly as listed. Each SELECT ... FROM reads ONE view;
+   do not join views. Use subqueries / CTEs over views when several steps are needed.
+2. A measure column must be wrapped in MEASURE(column) (SUM/COUNT/AVG/MIN/MAX only if they match the measure type).
+   Never aggregate a dimension with SUM/AVG/COUNT to compute a metric that exists as a measure.
+3. Grouping: put every selected dimension in GROUP BY when the SELECT has measures. A SELECT of dimensions only,
+   without GROUP BY, returns one row per row of the view (ungrouped).
+4. Cube ignores GROUP BY keys that are not in the SELECT list. When the result must have one row per entity and names
+   can repeat (tracks, albums, customers, employees, playlists), select the entity's id column in an inner query and
+   select only the requested columns in an outer query: SELECT name FROM (SELECT x_id, name, ... FROM view ...) t.
+5. Post-processing: first read the view in an inner SELECT (subquery or CTE), then apply window functions (RANK,
+   LAG, SUM() OVER), CASE, arithmetic, EXCEPT/INTERSECT, non-correlated scalar subqueries, EXTRACT and
+   ROUND(CAST(x AS NUMERIC), n) in the OUTER query. Correlated subqueries (referencing an outer alias) are not
+   supported by Cube.
+6. Filters on measures: compute the measure in a subquery and filter it in the outer WHERE.
+7. Dates: filter time columns with half-open ranges, e.g. invoice_date >= '2023-01-01' AND invoice_date < '2024-01-01'.
+   Group by period with DATE_TRUNC('month' | 'year', invoice_date); when a year or month NUMBER is asked for, compute
+   EXTRACT(...)::int in an outer query over the DATE_TRUNC result. Rolling-window and prior-period measures need a
+   DATE_TRUNC grouping on invoice_date in the same SELECT.
+8. Return exactly the columns the question asks for, in that order — no extra measures, ids, ranks or helper columns
+   in the final SELECT. Use ORDER BY when an order is asked for.
+9. Do not add LIMIT unless the question asks for a specific number of results; for "top N" use ORDER BY ... LIMIT N
+   (include ties with RANK() only when the question asks for ties).
+10. Joins inside a view are LEFT JOINs: e.g. employees without a manager have NULL manager_* columns.
+11. Cube 1.8.8 evaluates NOT EXISTS and LEFT JOIN ... IS NULL anti-joins incorrectly. To find rows of A that are not
+    in B use EXCEPT or `NOT IN (SELECT ...)`."""
+
+
+def _cube_v2_model_text(meta):
+    out = []
+    for c in meta["cubes"]:
+        if c.get("type") != "view":
+            continue
+        out.append(f"VIEW {c['name']}: {(c.get('description') or '').strip()}")
+        for d in c["dimensions"]:
+            if d.get("public", True) is False:
+                continue
+            out.append(f"  dimension {d['name'].split('.', 1)[1]} ({d['type']}){': ' + d['description'] if d.get('description') else ''}")
+        for m in c["measures"]:
+            if m.get("public", True) is False:
+                continue
+            out.append(f"  measure {m['name'].split('.', 1)[1]} ({m.get('aggType') or m['type']}){': ' + m['description'] if m.get('description') else ''}")
+        for sg in c.get("segments", []):
+            out.append(f"  segment {sg['name'].split('.', 1)[1]} (boolean, use in WHERE: col IS TRUE){': ' + sg['description'] if sg.get('description') else ''}")
+    return "\n".join(out)
+
+
+class CubeV2Client:
+    """cube_v2: Cube Core 1.8.8 with the richer model in cube_v2/model and its SQL API (Postgres wire protocol,
+    query push-down on). HARNESS-BUILT adapter v2: the same LLM (llm-meter prefix /cube2/) gets the views from
+    /v1/meta (with descriptions) and writes one SQL API query; it is executed by Cube (never directly on Postgres).
+    One repair retry when Cube returns an error."""
+    name = "cube_v2"
+
+    def __init__(self, env, mock=False):
+        self.base = f"http://localhost:{env.get('CUBE_V2_PORT', '4001')}/cubejs-api/v1"
+        self.secret = env["CUBEJS_API_SECRET"]
+        self.pg = dict(host="localhost", port=int(env.get("CUBE_V2_SQL_PORT", "15432")), user=env.get("CUBE_SQL_USER", "cube"),
+                       password=env.get("CUBE_SQL_PASSWORD", "cube-local"), dbname="db", autocommit=True, connect_timeout=10)
+        self.model = env["LLM_MODEL"]
+        self.llm_url = f"http://localhost:{env.get('METER_PORT', '8089')}/cube2/v1/chat/completions"
+        self.key = env.get("LLM_API_KEY") or ""
+        self.mock = mock
+        self.ref = yaml.safe_load((ROOT / "bench" / "cube_v2_reference_sql.yaml").read_text())
+        self._meta_text = None
+
+    def meta_text(self):
+        if self._meta_text is None:
+            meta = httpx.get(f"{self.base}/meta", headers={"Authorization": cube_token(self.secret)}, timeout=60).json()
+            self._meta_text = _cube_v2_model_text(meta)
+        return self._meta_text
+
+    def _llm(self, messages):
+        hdr = {"Authorization": f"Bearer {self.key}"} if self.key else {}
+        r = httpx.post(self.llm_url, headers=hdr, timeout=TIMEOUT, json={
+            "model": self.model, "temperature": 0, "response_format": {"type": "json_object"}, "messages": messages})
+        j = r.json()
+        if r.status_code != 200:
+            raise RuntimeError(f"LLM HTTP {r.status_code}: {str(j.get('error', j))[:300]}")
+        return j["choices"][0]["message"]["content"]
+
+    def _run(self, sql):
+        import psycopg
+        try:
+            with psycopg.connect(**self.pg) as c, c.cursor() as cur:
+                cur.execute(sql)
+                return {"sql": sql, "rows": [list(r) for r in cur.fetchall()], "columns": [d.name for d in cur.description or []]}
+        except Exception as e:
+            return {"sql": sql, "error": f"cube: {str(e).strip()[:500]}"}
+
+    def generate(self, question, qid=None):
+        if self.mock:
+            sql = self.ref.get(qid)
+            return self._run(sql) if sql else {"error": "unsupported: no reference query"}
+        msgs = [{"role": "system", "content": CUBE_V2_SYSTEM + "\n\nViews:\n" + self.meta_text()},
+                {"role": "user", "content": question}]
+        last = None
+        for attempt in range(2):
+            try:
+                content = self._llm(msgs)
+            except Exception as e:
+                return {"error": str(e)}
+            try:
+                j = json.loads(content)
+            except Exception:
+                last = {"error": f"invalid JSON from LLM: {content[:200]}"}
+                msgs += [{"role": "assistant", "content": content}, {"role": "user", "content": "Reply with valid JSON only."}]
+                continue
+            if "unsupported" in j:
+                return {"error": f"unsupported: {j['unsupported']}"}
+            sql = (j.get("sql") or "").strip().rstrip(";")
+            res = self._run(sql)
+            res["attempts"] = attempt + 1
+            if "error" not in res:
+                return res
+            last = res
+            msgs += [{"role": "assistant", "content": content},
+                     {"role": "user", "content": f"Cube returned an error: {res['error']}\nFix the query and reply with JSON only."}]
+        return last
+
+
 class MockSQLClient:
     """--mock stand-in for WrenAI/DB-GPT (no LLM key needed): returns the gold SQL, except a few
     deliberately broken/wrong answers, with synthetic latency, to exercise scoring/report paths."""

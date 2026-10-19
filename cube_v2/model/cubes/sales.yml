@@ -1,0 +1,159 @@
+# nl2sql-bench cube_v2 — people and sales cubes (Chinook).
+cubes:
+  - name: employee
+    sql_table: public.employee
+    description: >-
+      Company employees. Sales Support Agents are assigned to customers as support reps. Every employee except the
+      top manager reports to a manager (reports_to); the `manager` join is a LEFT JOIN, so employees without a
+      manager have NULL manager fields.
+    joins:
+      - {name: manager, sql: "{CUBE}.reports_to = {manager}.employee_id", relationship: many_to_one}
+    dimensions:
+      - {name: employee_id, sql: employee_id, type: number, primary_key: true, public: true, description: Employee identifier}
+      - {name: first_name, sql: first_name, type: string}
+      - {name: last_name, sql: last_name, type: string}
+      - {name: title, sql: title, type: string, description: "Job title, e.g. 'Sales Support Agent', 'Sales Manager', 'IT Staff', 'General Manager'"}
+      - {name: reports_to, sql: reports_to, type: number, description: employee_id of the manager (NULL for the top manager)}
+      - {name: city, sql: city, type: string}
+      - {name: state, sql: state, type: string}
+      - {name: country, sql: country, type: string}
+      - {name: email, sql: email, type: string}
+      - {name: hire_date, sql: hire_date, type: time}
+      - {name: birth_date, sql: birth_date, type: time}
+    measures:
+      - {name: count, type: count, description: Number of employees}
+    segments:
+      - {name: has_manager, sql: "{CUBE}.reports_to IS NOT NULL", description: Employees that report to a manager}
+
+  - name: manager
+    extends: employee
+    description: The manager an employee reports to (self-join of employee via reports_to).
+    joins: []
+
+  - name: support_rep
+    extends: employee
+    description: The employee assigned to a customer as support representative (via customer.support_rep_id).
+    joins: []
+
+  - name: customer
+    sql_table: public.customer
+    description: Customers. Each customer has one support rep (an employee) and many invoices.
+    joins:
+      - {name: support_rep, sql: "{CUBE}.support_rep_id = {support_rep}.employee_id", relationship: many_to_one}
+      - {name: invoice, sql: "{CUBE}.customer_id = {invoice}.customer_id", relationship: one_to_many}
+    dimensions:
+      - {name: customer_id, sql: customer_id, type: number, primary_key: true, public: true, description: Customer identifier}
+      - {name: first_name, sql: first_name, type: string}
+      - {name: last_name, sql: last_name, type: string}
+      - {name: company, sql: company, type: string, description: Employer company; NULL for private customers}
+      - {name: city, sql: city, type: string}
+      - {name: state, sql: state, type: string}
+      - {name: country, sql: country, type: string, description: Country of residence}
+      - {name: email, sql: email, type: string}
+      - {name: support_rep_id, sql: support_rep_id, type: number, description: employee_id of the support rep}
+      - name: lifetime_spend
+        sql: "{invoice.total_sales}"
+        type: number
+        sub_query: true
+        description: Sum of all invoice totals of the customer (lifetime spend)
+        meta: {kind: subquery dimension}
+      - name: invoice_count
+        sql: "{invoice.count}"
+        type: number
+        sub_query: true
+        description: Number of invoices of the customer
+        meta: {kind: subquery dimension}
+      - name: first_purchase_date
+        sql: "{invoice.first_invoice_date}"
+        type: time
+        sub_query: true
+        description: Date of the customer's first invoice
+        meta: {kind: subquery dimension}
+      - name: last_purchase_date
+        sql: "{invoice.last_invoice_date}"
+        type: time
+        sub_query: true
+        description: Date of the customer's most recent invoice
+        meta: {kind: subquery dimension}
+    measures:
+      - {name: count, type: count, description: Number of customers}
+      - {name: avg_lifetime_spend, sql: "{lifetime_spend}", type: avg, description: Average lifetime spend per customer}
+    segments:
+      - {name: is_business, sql: "{CUBE}.company IS NOT NULL", description: Customers with a company listed}
+
+  - name: invoice
+    sql_table: public.invoice
+    description: >-
+      Sales invoices — one purchase by one customer on one date. invoice.total equals the sum of its invoice lines
+      (unit_price x quantity). Use invoice_date for all sales-period analysis.
+    joins:
+      - {name: customer, sql: "{CUBE}.customer_id = {customer}.customer_id", relationship: many_to_one}
+    dimensions:
+      - {name: invoice_id, sql: invoice_id, type: number, primary_key: true, public: true, description: Invoice identifier}
+      - {name: customer_id, sql: customer_id, type: number, description: Purchasing customer's id}
+      - {name: invoice_date, sql: invoice_date, type: time, description: Date/time of the sale}
+      - {name: billing_city, sql: billing_city, type: string}
+      - {name: billing_state, sql: billing_state, type: string}
+      - {name: billing_country, sql: billing_country, type: string, description: Country the invoice was billed to}
+      - {name: total, sql: total, type: number, description: Amount of this single invoice (USD)}
+    measures:
+      - {name: count, type: count, description: Number of invoices}
+      - {name: total_sales, sql: total, type: sum, description: Sales revenue = sum of invoice totals (USD)}
+      - {name: avg_invoice_total, sql: total, type: avg, description: Average invoice amount}
+      - {name: purchasing_customers, sql: customer_id, type: count_distinct, description: Number of distinct customers who purchased}
+      - {name: first_invoice_date, sql: invoice_date, type: min, description: Earliest invoice date}
+      - {name: last_invoice_date, sql: invoice_date, type: max, description: Latest invoice date}
+      - name: total_sales_running_total
+        sql: total
+        type: sum
+        rolling_window: {trailing: unbounded}
+        description: Cumulative sales from the beginning of the data up to each period (use with invoice_date + granularity)
+      - name: total_sales_year_to_date
+        sql: total
+        type: sum
+        rolling_window: {type: to_date, granularity: year}
+        description: Year-to-date cumulative sales, resetting every January (use with invoice_date + granularity)
+      - name: total_sales_trailing_3_months
+        sql: total
+        type: sum
+        rolling_window: {trailing: 3 month, offset: end}
+        description: Sales over the trailing 3 months ending at each period (use with invoice_date + granularity)
+      - name: total_sales_prior_month
+        multi_stage: true
+        sql: "{total_sales}"
+        type: number
+        time_shift: [{time_dimension: invoice_date, interval: 1 month, type: prior}]
+        description: Multi-stage — total_sales of the month before (use with invoice_date at month granularity)
+      - name: total_sales_prior_year
+        multi_stage: true
+        sql: "{total_sales}"
+        type: number
+        time_shift: [{time_dimension: invoice_date, interval: 1 year, type: prior}]
+        description: Multi-stage — total_sales of the same period one year earlier
+
+  - name: invoice_line
+    sql_table: public.invoice_line
+    description: Invoice line items — each line is the purchase of one track. Line revenue = unit_price x quantity.
+    joins:
+      - {name: invoice, sql: "{CUBE}.invoice_id = {invoice}.invoice_id", relationship: many_to_one}
+      - {name: track, sql: "{CUBE}.track_id = {track}.track_id", relationship: many_to_one}
+    dimensions:
+      - {name: invoice_line_id, sql: invoice_line_id, type: number, primary_key: true, public: true}
+      - {name: unit_price, sql: unit_price, type: number, description: Price charged per unit on this line}
+      - {name: quantity, sql: quantity, type: number, description: Units purchased on this line}
+    measures:
+      - {name: count, type: count, description: Number of invoice lines}
+      - {name: quantity_sold, sql: quantity, type: sum, description: Units (tracks) sold}
+      - {name: revenue, sql: "{CUBE}.unit_price * {CUBE}.quantity", type: sum, description: Line-level sales revenue = SUM(unit_price x quantity)}
+      - name: revenue_grand_total
+        multi_stage: true
+        sql: "{revenue}"
+        type: sum
+        grain: {keep_only: []}
+        description: Multi-stage helper — revenue over all rows matching the filters, ignoring the query's dimensions
+        public: false
+      - name: revenue_share_of_total_pct
+        multi_stage: true
+        sql: "100.0 * {revenue} / NULLIF({revenue_grand_total}, 0)"
+        type: number
+        description: Multi-stage — percentage of total revenue contributed by each row of the query's dimensions

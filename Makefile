@@ -44,7 +44,7 @@ _wren-mdl-reload:
 	@printf "waiting for wren-ai-service "; for i in $$(seq 1 90); do curl -sf -o /dev/null http://localhost:5556/health && break; printf .; sleep 2; done; echo " ok"
 	cd bench && ../$(PY) wren_mdl.py --redeploy
 
-report:                                ## combined 4-system report -> results/combined_summary.md + results/summary.png
+report:                                ## combined report (all systems) -> results/combined_summary.md + results/summary.png
 	$(PY) bench/combine.py
 
 venv: .venv/.ok
@@ -66,14 +66,14 @@ netfix:                                ## this box has legacy iptables FORWARD=D
 	  echo "netfix: legacy FORWARD rules ensured"; fi
 
 wait:                                  ## wait until services answer
-	@for u in "http://localhost:8089/health" "http://localhost:5555/health" "http://localhost:3000" "http://localhost:5670/api/v2/serve/datasources" "http://localhost:4000/readyz"; do \
+	@for u in "http://localhost:8089/health" "http://localhost:5555/health" "http://localhost:3000" "http://localhost:5670/api/v2/serve/datasources" "http://localhost:4000/readyz" "http://localhost:4001/readyz"; do \
 	  printf "waiting for %s " $$u; for i in $$(seq 1 90); do curl -sf -o /dev/null $$u && break; printf .; sleep 2; done; echo " ok"; done
 
 setup:                                 ## (re)connect WrenAI + DB-GPT to Postgres, redeploy/re-embed schema
 	cd bench && ../$(PY) setup_connections.py
 
-verify:                                ## gold SQL runs + Cube reference queries reproduce gold + API probe
-	cd bench && ../$(PY) verify_gold.py && ../$(PY) probe.py
+verify:                                ## gold SQL runs + Cube reference queries (baseline REST + cube_v2 SQL API) reproduce gold + API probe
+	cd bench && ../$(PY) verify_gold.py && ../$(PY) verify_cube_v2.py && ../$(PY) probe.py
 
 probe:
 	cd bench && ../$(PY) probe.py

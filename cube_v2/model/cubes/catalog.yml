@@ -1,0 +1,99 @@
+# nl2sql-bench cube_v2 — catalogue cubes (Chinook). Generic model, written the way a data team would model
+# Chinook for self-service analytics; no member is named after / dedicated to a single benchmark question.
+cubes:
+  - name: artist
+    sql_table: public.artist
+    description: Recording artists and bands. One artist releases many albums.
+    joins:
+      - {name: album, sql: "{CUBE}.artist_id = {album}.artist_id", relationship: one_to_many}
+    dimensions:
+      - {name: artist_id, sql: artist_id, type: number, primary_key: true, public: true, description: Artist identifier}
+      - {name: name, sql: name, type: string, description: Artist / band name}
+    measures:
+      - {name: count, type: count, description: Number of artists}
+
+  - name: album
+    sql_table: public.album
+    description: Albums. Each album belongs to exactly one artist and contains many tracks. Album titles are not guaranteed unique.
+    joins:
+      - {name: artist, sql: "{CUBE}.artist_id = {artist}.artist_id", relationship: many_to_one}
+    dimensions:
+      - {name: album_id, sql: album_id, type: number, primary_key: true, public: true, description: Album identifier}
+      - {name: title, sql: title, type: string, description: Album title}
+    measures:
+      - {name: count, type: count, description: Number of albums}
+
+  - name: genre
+    sql_table: public.genre
+    description: Musical genres (Rock, Jazz, ...). A genre has many tracks.
+    dimensions:
+      - {name: genre_id, sql: genre_id, type: number, primary_key: true, public: true, description: Genre identifier}
+      - {name: name, sql: name, type: string, description: Genre name}
+    measures:
+      - {name: count, type: count, description: Number of genres}
+
+  - name: media_type
+    sql_table: public.media_type
+    description: File / media format of a track (e.g. 'MPEG audio file', 'Protected MPEG-4 video file').
+    dimensions:
+      - {name: media_type_id, sql: media_type_id, type: number, primary_key: true, public: true, description: Media type identifier}
+      - {name: name, sql: name, type: string, description: Media type name}
+    measures:
+      - {name: count, type: count, description: Number of media types}
+
+  - name: track
+    sql_table: public.track
+    description: >-
+      Purchasable tracks (songs, videos, episodes). Each track belongs to one album, one genre and one media type.
+      Track names are not unique — use track_id to tell tracks apart.
+    joins:
+      - {name: album, sql: "{CUBE}.album_id = {album}.album_id", relationship: many_to_one}
+      - {name: genre, sql: "{CUBE}.genre_id = {genre}.genre_id", relationship: many_to_one}
+      - {name: media_type, sql: "{CUBE}.media_type_id = {media_type}.media_type_id", relationship: many_to_one}
+      - {name: invoice_line, sql: "{CUBE}.track_id = {invoice_line}.track_id", relationship: one_to_many}
+    dimensions:
+      - {name: track_id, sql: track_id, type: number, primary_key: true, public: true, description: Track identifier (unique)}
+      - {name: name, sql: name, type: string, description: Track title (not unique)}
+      - {name: composer, sql: composer, type: string, description: Composer(s); may be NULL}
+      - {name: milliseconds, sql: milliseconds, type: number, description: Track length in milliseconds}
+      - {name: duration_minutes, sql: "{CUBE}.milliseconds / 60000.0", type: number, description: Track length in minutes}
+      - {name: bytes, sql: bytes, type: number, description: File size in bytes}
+      - {name: unit_price, sql: unit_price, type: number, description: Catalogue (list) price of the track in USD}
+      - name: units_sold
+        sql: "COALESCE({invoice_line.quantity_sold}, 0)"
+        type: number
+        sub_query: true
+        description: Total units of this track sold over all invoices (0 when the track was never sold)
+        meta: {kind: subquery dimension}
+    measures:
+      - {name: count, type: count, description: Number of tracks}
+      - {name: total_milliseconds, sql: milliseconds, type: sum, description: Total length in milliseconds}
+      - {name: avg_duration_minutes, sql: "{CUBE}.milliseconds / 60000.0", type: avg, description: Average track length in minutes}
+      - {name: max_unit_price, sql: unit_price, type: max, description: Highest catalogue price}
+      - {name: min_unit_price, sql: unit_price, type: min, description: Lowest catalogue price}
+      - {name: avg_unit_price, sql: unit_price, type: avg, description: Average catalogue price}
+      - {name: distinct_genres, sql: genre_id, type: count_distinct, description: Number of distinct genres among the tracks}
+      - {name: distinct_albums, sql: album_id, type: count_distinct, description: Number of distinct albums among the tracks}
+    segments:
+      - {name: is_video, sql: "{CUBE}.media_type_id IN (SELECT media_type_id FROM public.media_type WHERE name ILIKE '%video%')", description: Tracks whose media type is a video format}
+
+  - name: playlist
+    sql_table: public.playlist
+    description: Curated playlists. Playlist names are NOT unique (some names occur twice with different ids).
+    dimensions:
+      - {name: playlist_id, sql: playlist_id, type: number, primary_key: true, public: true, description: Playlist identifier}
+      - {name: name, sql: name, type: string, description: Playlist name (not unique)}
+    measures:
+      - {name: count, type: count, description: Number of playlists}
+
+  - name: playlist_track
+    sql: SELECT playlist_id, track_id, playlist_id::text || '-' || track_id::text AS pk FROM public.playlist_track
+    description: Playlist membership — one row per (playlist, track) pair (bridge between playlist and track).
+    joins:
+      - {name: playlist, sql: "{CUBE}.playlist_id = {playlist}.playlist_id", relationship: many_to_one}
+      - {name: track, sql: "{CUBE}.track_id = {track}.track_id", relationship: many_to_one}
+    dimensions:
+      - {name: pk, sql: pk, type: string, primary_key: true}
+    measures:
+      - {name: count, type: count, description: Number of playlist entries (track-in-playlist rows)}
+      - {name: distinct_tracks, sql: track_id, type: count_distinct, description: Number of distinct tracks}

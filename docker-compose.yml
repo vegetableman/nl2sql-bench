@@ -100,3 +100,32 @@ services:
     restart: unless-stopped
     networks: [nl2sql-net]
     mem_limit: 1g
+  cube_v2:
+    # cube_v2: same Cube Core release, richer model (./cube_v2/model) + SQL API (Postgres wire protocol) enabled.
+    image: cubejs/cube:v1.8.8
+    environment:
+      CUBEJS_DB_TYPE: postgres
+      CUBEJS_DB_HOST: ${BENCH_PG_HOST:-bench-postgres}
+      CUBEJS_DB_PORT: ${BENCH_PG_PORT:-5432}
+      CUBEJS_DB_NAME: ${BENCH_PG_DB:-chinook}
+      CUBEJS_DB_USER: ${BENCH_PG_USER:-bench}
+      CUBEJS_DB_PASS: ${BENCH_PG_PASSWORD:-bench}
+      CUBEJS_API_SECRET: ${CUBEJS_API_SECRET:-nl2sql-bench-local-secret}
+      CUBEJS_DEV_MODE: "true"
+      CUBEJS_TELEMETRY: "false"
+      CUBEJS_SCHEMA_PATH: model
+      CUBEJS_PG_SQL_PORT: "15432"
+      CUBEJS_SQL_USER: ${CUBE_SQL_USER:-cube}
+      CUBEJS_SQL_PASSWORD: ${CUBE_SQL_PASSWORD:-cube-local}
+      CUBESQL_SQL_PUSH_DOWN: "true"
+      CUBEJS_TESSERACT_SQL_PLANNER: "true"
+    volumes:
+      - ./cube_v2/model:/cube/conf/model:ro
+    ports:
+      - "${CUBE_V2_PORT:-4001}:4000"
+      - "${CUBE_V2_SQL_PORT:-15432}:15432"
+    depends_on:
+      postgres: {condition: service_healthy}
+    restart: unless-stopped
+    networks: [nl2sql-net]
+    mem_limit: 1500m

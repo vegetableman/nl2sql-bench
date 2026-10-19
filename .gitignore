@@ -15,3 +15,4 @@ wrenai_mdl/config.yaml
 wrenai_mdl/.variant
 !results/run-gptoss120b-wrenmdl-noreason-r3/
 !results/stage-latency/
+!results/run-gptoss120b-cubev2-r3/

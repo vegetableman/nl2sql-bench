@@ -12,6 +12,7 @@
 | WrenAI 2nd stack (`wrenai_mdl`) | same 0.29.2 compose/images/digests as above (compose project `wrenai-mdl`, ports 3001/5556) | semantic layer: `wrenai_mdl/mdl/semantic_layer.yaml`; deployed MDL hash in `wrenai_mdl/mdl/deployed_mdl.json`; variant `noreason` (system `wrenai_mdl_noreason`) = same + `allow_sql_generation_reasoning: false` |
 | DB-GPT | 0.8.2 (latest release) | eosphorosai/dbgpt-openai@sha256:bd7d35ce7994f0f977007c28c839fffcdc80cfa810fa12ead9aecfd4e9b3d11f + `psycopg2-binary==2.9.10` layer (`dbgpt/Dockerfile`, image `nl2sql-bench/dbgpt:v0.8.2-pg`) |
 | Cube Core | v1.8.8 (latest release) | cubejs/cube@sha256:fb9933de67b83c2ff9b1b61017d4f3cbafc8d248906b3e4923f57524b8c634d6 |
+| Cube Core (`cube_v2`) | v1.8.8 (same image; latest on Docker Hub 2026-10-19 — not upgraded) | same digest; SQL API on (`CUBEJS_PG_SQL_PORT=15432`, `CUBESQL_SQL_PUSH_DOWN=true`, `CUBEJS_TESSERACT_SQL_PLANNER=true`); model `cube_v2/model` |
 | Postgres | 16.4 | postgres@sha256:e62fbf9d3e2b49816a32c400ed2dba83e3b361e6833e624024309c35d334b412 |
 | Chinook dataset | v1.4.5 (`Chinook_PostgreSql.sql`) | sha256 e3fde5c1a5b51a2a91429a702c9ca6e69ba56e6c7f5e112724d70c3d03db695e |
 | llm-meter (local) | 1.0 (+ timing-only `GET /meter/events`, added before the `wrenai_mdl_noreason` run) | python:3.12-slim + starlette 0.41.3, uvicorn 0.32.1, httpx 0.28.1 |

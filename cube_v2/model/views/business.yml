@@ -1,0 +1,236 @@
+# nl2sql-bench cube_v2 — views = the business entities exposed to consumers (BI tools, the SQL API, the LLM adapter).
+# Each view fixes an explicit join path; Cube resolves fan/chasm traps per query.
+views:
+- name: sales
+  description: 'Line-level sales: one row per invoice line (a track purchase) with its invoice, customer, support rep and the purchased track''s album, artist, genre and media type. Use for revenue by catalogue
+    attributes (track, album, artist, genre, media type) and for units sold.'
+  cubes:
+  - join_path: invoice_line
+    includes:
+    - revenue
+    - quantity_sold
+    - {name: count, alias: line_count}
+    - revenue_share_of_total_pct
+    - {name: unit_price, alias: line_unit_price}
+    - {name: quantity, alias: line_quantity}
+  - join_path: invoice_line.invoice
+    includes: [invoice_id, invoice_date, billing_country, billing_city, billing_state]
+  - join_path: invoice_line.invoice.customer
+    includes:
+    - customer_id
+    - {name: first_name, alias: customer_first_name}
+    - {name: last_name, alias: customer_last_name}
+    - {name: company, alias: customer_company}
+    - {name: city, alias: customer_city}
+    - {name: state, alias: customer_state}
+    - {name: country, alias: customer_country}
+  - join_path: invoice_line.invoice.customer.support_rep
+    includes:
+    - {name: employee_id, alias: support_rep_id}
+    - {name: first_name, alias: support_rep_first_name}
+    - {name: last_name, alias: support_rep_last_name}
+    - {name: title, alias: support_rep_title}
+  - join_path: invoice_line.track
+    includes:
+    - track_id
+    - {name: name, alias: track_name}
+    - {name: composer, alias: track_composer}
+    - {name: duration_minutes, alias: track_duration_minutes}
+    - {name: unit_price, alias: track_unit_price}
+  - join_path: invoice_line.track.album
+    includes:
+    - album_id
+    - {name: title, alias: album_title}
+  - join_path: invoice_line.track.album.artist
+    includes:
+    - artist_id
+    - {name: name, alias: artist_name}
+  - join_path: invoice_line.track.genre
+    includes:
+    - genre_id
+    - {name: name, alias: genre_name}
+  - join_path: invoice_line.track.media_type
+    includes:
+    - media_type_id
+    - {name: name, alias: media_type_name}
+- name: invoices
+  description: 'Invoice-level sales: one row per invoice with the purchasing customer and their support rep. Use for sales totals (invoice.total) by date, billing location, customer or support rep, invoice
+    counts, running totals, year-to-date and prior-period comparisons.'
+  cubes:
+  - join_path: invoice
+    includes:
+    - invoice_id
+    - customer_id
+    - invoice_date
+    - billing_city
+    - billing_state
+    - billing_country
+    - {name: total, alias: invoice_total}
+    - {name: count, alias: invoice_count}
+    - total_sales
+    - avg_invoice_total
+    - purchasing_customers
+    - first_invoice_date
+    - last_invoice_date
+    - total_sales_running_total
+    - total_sales_year_to_date
+    - total_sales_trailing_3_months
+    - total_sales_prior_month
+    - total_sales_prior_year
+  - join_path: invoice.customer
+    includes:
+    - {name: first_name, alias: customer_first_name}
+    - {name: last_name, alias: customer_last_name}
+    - {name: company, alias: customer_company}
+    - {name: city, alias: customer_city}
+    - {name: state, alias: customer_state}
+    - {name: country, alias: customer_country}
+  - join_path: invoice.customer.support_rep
+    includes:
+    - {name: employee_id, alias: support_rep_id}
+    - {name: first_name, alias: support_rep_first_name}
+    - {name: last_name, alias: support_rep_last_name}
+    - {name: title, alias: support_rep_title}
+- name: customers
+  description: One row per customer with lifetime purchase facts (lifetime_spend, invoice_count, first/last purchase date, computed by Cube subquery dimensions) and the assigned support rep.
+  cubes:
+  - join_path: customer
+    includes:
+    - customer_id
+    - first_name
+    - last_name
+    - company
+    - city
+    - state
+    - country
+    - email
+    - lifetime_spend
+    - invoice_count
+    - first_purchase_date
+    - last_purchase_date
+    - {name: count, alias: customer_count}
+    - avg_lifetime_spend
+    - is_business
+  - join_path: customer.support_rep
+    includes:
+    - {name: employee_id, alias: support_rep_id}
+    - {name: first_name, alias: support_rep_first_name}
+    - {name: last_name, alias: support_rep_last_name}
+    - {name: title, alias: support_rep_title}
+- name: tracks
+  description: 'Catalogue: one row per track with album, artist, genre, media type, duration, list price and lifetime units sold (units_sold, 0/NULL when never sold).'
+  cubes:
+  - join_path: track
+    includes:
+    - track_id
+    - name
+    - composer
+    - milliseconds
+    - duration_minutes
+    - bytes
+    - unit_price
+    - units_sold
+    - {name: count, alias: track_count}
+    - total_milliseconds
+    - avg_duration_minutes
+    - max_unit_price
+    - min_unit_price
+    - avg_unit_price
+    - distinct_genres
+    - distinct_albums
+    - is_video
+  - join_path: track.album
+    includes:
+    - album_id
+    - {name: title, alias: album_title}
+  - join_path: track.album.artist
+    includes:
+    - artist_id
+    - {name: name, alias: artist_name}
+  - join_path: track.genre
+    includes:
+    - genre_id
+    - {name: name, alias: genre_name}
+  - join_path: track.media_type
+    includes:
+    - media_type_id
+    - {name: name, alias: media_type_name}
+- name: albums
+  description: One row per album with its artist. Use for album counts per artist.
+  cubes:
+  - join_path: album
+    includes:
+    - album_id
+    - title
+    - {name: count, alias: album_count}
+  - join_path: album.artist
+    includes:
+    - artist_id
+    - {name: name, alias: artist_name}
+- name: artists
+  description: One row per artist.
+  cubes:
+  - join_path: artist
+    includes:
+    - artist_id
+    - name
+    - {name: count, alias: artist_count}
+- name: genres
+  description: One row per genre.
+  cubes:
+  - join_path: genre
+    includes:
+    - genre_id
+    - name
+    - {name: count, alias: genre_count}
+- name: media_types
+  description: One row per media type.
+  cubes:
+  - join_path: media_type
+    includes:
+    - media_type_id
+    - name
+    - {name: count, alias: media_type_count}
+- name: playlists
+  description: Playlist membership — one row per (playlist, track) pair, with playlist and track attributes.
+  cubes:
+  - join_path: playlist_track
+    includes:
+    - {name: count, alias: entry_count}
+    - distinct_tracks
+  - join_path: playlist_track.playlist
+    includes:
+    - playlist_id
+    - {name: name, alias: playlist_name}
+    - {name: count, alias: playlist_count}
+  - join_path: playlist_track.track
+    includes:
+    - track_id
+    - {name: name, alias: track_name}
+  - join_path: playlist_track.track.genre
+    includes:
+    - {name: name, alias: genre_name}
+- name: employees
+  description: 'One row per employee with the manager they report to (LEFT JOIN: the top manager has NULL manager_* fields; filter manager_employee_id IS NOT NULL to keep only employees that have a manager).'
+  cubes:
+  - join_path: employee
+    includes:
+    - employee_id
+    - first_name
+    - last_name
+    - title
+    - reports_to
+    - city
+    - state
+    - country
+    - email
+    - hire_date
+    - birth_date
+    - {name: count, alias: employee_count}
+    - has_manager
+  - join_path: employee.manager
+    includes:
+    - {name: employee_id, alias: manager_id}
+    - {name: first_name, alias: manager_first_name}
+    - {name: last_name, alias: manager_last_name}
+    - {name: title, alias: manager_title}

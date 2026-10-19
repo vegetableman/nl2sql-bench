@@ -1,0 +1,32 @@
+# Hand-written Cube SQL API queries (over the cube_v2 views) for the 29 benchmark questions.
+# Used ONLY (a) by `make verify` to check which questions the cube_v2 model + SQL API can express, and
+# (b) as the cube_v2 "generator" in --mock mode. NEVER shown to the LLM.
+e01: SELECT MEASURE(track_count) FROM tracks
+e02: SELECT name FROM genres GROUP BY 1
+e03: SELECT MEASURE(customer_count) FROM customers WHERE country = 'Brazil'
+e04: SELECT name FROM (SELECT track_id, name FROM tracks WHERE milliseconds > 1200000) x
+e05: SELECT MEASURE(max_unit_price) FROM tracks
+e06: SELECT first_name, last_name FROM (SELECT employee_id, first_name, last_name FROM employees WHERE title = 'Sales Support Agent') x
+e07: SELECT MEASURE(invoice_count) FROM invoices WHERE invoice_date >= '2023-01-01' AND invoice_date < '2024-01-01'
+e08: SELECT first_name, last_name, company FROM (SELECT customer_id, first_name, last_name, company FROM customers WHERE is_business IS TRUE) x
+m01: SELECT genre_name, MEASURE(track_count) FROM tracks GROUP BY 1
+m02: SELECT artist_name, MEASURE(album_count) AS n FROM albums GROUP BY 1 ORDER BY n DESC LIMIT 5
+m03: SELECT billing_country, MEASURE(total_sales) AS s FROM invoices GROUP BY 1 ORDER BY s DESC
+m04: SELECT first_name, last_name FROM (SELECT customer_id, first_name, last_name FROM customers WHERE support_rep_first_name = 'Jane' AND support_rep_last_name = 'Peacock') x
+m05: SELECT media_type_name, MEASURE(avg_duration_minutes) FROM tracks GROUP BY 1
+m06: SELECT album_title, n FROM (SELECT album_id, album_title, MEASURE(track_count) AS n FROM tracks GROUP BY 1, 2) x WHERE n > 20
+m07: SELECT genre_name FROM (SELECT genre_name, MEASURE(track_count) AS n FROM tracks GROUP BY 1) x ORDER BY n DESC LIMIT 1
+m08: SELECT MEASURE(entry_count) FROM playlists WHERE playlist_name = '90’s Music'
+m09: SELECT EXTRACT(YEAR FROM y)::int AS year, s FROM (SELECT DATE_TRUNC('year', invoice_date) AS y, MEASURE(total_sales) AS s FROM invoices GROUP BY 1) x ORDER BY 1
+h01: SELECT genre_name, MEASURE(revenue) AS r FROM sales GROUP BY 1 ORDER BY r DESC LIMIT 3
+h02: SELECT fn, ln, t FROM (SELECT support_rep_id, support_rep_first_name AS fn, support_rep_last_name AS ln, MEASURE(total_sales) AS t FROM invoices GROUP BY 1, 2, 3) x ORDER BY t DESC
+h03: SELECT first_name, last_name, s FROM (SELECT customer_id, customer_first_name AS first_name, customer_last_name AS last_name, MEASURE(total_sales) AS s FROM invoices GROUP BY 1, 2, 3) x WHERE s > (SELECT AVG(s2) FROM (SELECT customer_id, MEASURE(total_sales) AS s2 FROM invoices GROUP BY 1) y)
+h04: SELECT country, first_name, last_name, s FROM (SELECT country, first_name, last_name, s, RANK() OVER (PARTITION BY country ORDER BY s DESC) AS rk FROM (SELECT customer_country AS country, customer_id, customer_first_name AS first_name, customer_last_name AS last_name, MEASURE(total_sales) AS s FROM invoices GROUP BY 1, 2, 3, 4) a) b WHERE rk = 1
+h05: SELECT EXTRACT(MONTH FROM m)::int AS month, r, LAG(r) OVER (ORDER BY m) AS prev FROM (SELECT DATE_TRUNC('month', invoice_date) AS m, MEASURE(total_sales) AS r FROM invoices WHERE invoice_date >= '2024-01-01' AND invoice_date < '2025-01-01' GROUP BY 1) x ORDER BY 1
+h06: SELECT artist_name, g FROM (SELECT artist_id, artist_name, MEASURE(distinct_genres) AS g FROM tracks GROUP BY 1, 2) x WHERE g > 3
+h07: SELECT MEASURE(track_count) FROM tracks WHERE units_sold IS NULL OR units_sold = 0
+h08: SELECT first_name, last_name, manager_first_name, manager_last_name FROM (SELECT employee_id, first_name, last_name, manager_first_name, manager_last_name FROM employees WHERE manager_id IS NOT NULL) x
+h09: SELECT COUNT(*) FROM (SELECT customer_id FROM invoices WHERE invoice_date >= '2025-01-01' AND invoice_date < '2026-01-01' GROUP BY 1 EXCEPT SELECT customer_id FROM invoices WHERE invoice_date >= '2024-01-01' AND invoice_date < '2025-01-01' GROUP BY 1) x
+h10: SELECT m, ytd FROM (SELECT DATE_TRUNC('month', invoice_date) AS m, MEASURE(total_sales) AS r, SUM(MEASURE(total_sales)) OVER (ORDER BY DATE_TRUNC('month', invoice_date)) AS ytd FROM invoices WHERE invoice_date >= '2023-01-01' AND invoice_date < '2024-01-01' GROUP BY 1) x ORDER BY 1
+h11: SELECT media_type_name, ROUND(CAST(MEASURE(revenue_share_of_total_pct) AS NUMERIC), 2) FROM sales GROUP BY 1
+h12: SELECT artist_name, r FROM (SELECT artist_id, artist_name, MEASURE(revenue) AS r FROM sales GROUP BY 1, 2) x ORDER BY r DESC LIMIT 5

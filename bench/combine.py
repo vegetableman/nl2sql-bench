@@ -10,11 +10,12 @@ R = ROOT / "results"
 ACC_RUNS = {  # system -> run dir used for accuracy/latency
     "wrenai": "run-gptoss120b-r3", "wrenai_mdl": "run-gptoss120b-wrenmdl-r3",
     "wrenai_mdl_noreason": "run-gptoss120b-wrenmdl-noreason-r3",
-    "dbgpt": "run-gptoss120b-r3", "cube": "run-gptoss120b-r3"}
+    "dbgpt": "run-gptoss120b-r3", "cube": "run-gptoss120b-r3", "cube_v2": "run-gptoss120b-cubev2-r3"}
 TOK_RUNS = {**ACC_RUNS, "wrenai": "run-gptoss120b-wren-tokens"}  # OOTB Wren tokens were lost in r3 (meter-key bug)
 LABEL = {"wrenai": "WrenAI 0.29.2 (out of the box)", "wrenai_mdl": "WrenAI 0.29.2 + semantic layer",
          "wrenai_mdl_noreason": "WrenAI 0.29.2 + semantic layer, no reasoning",
-         "dbgpt": "DB-GPT 0.8.2", "cube": "Cube Core 1.8.8 + LLM adapter (harness-built)"}
+         "dbgpt": "DB-GPT 0.8.2", "cube": "Cube Core 1.8.8 + LLM adapter (baseline)",
+         "cube_v2": "Cube Core 1.8.8 + rich model + LLM adapter v2 (harness-built)"}
 SYSTEMS = list(ACC_RUNS)
 EMO = {"correct": "✅", "correct_extra_cols": "🟡", "wrong_result": "❌", "exec_error": "💥", "tool_error": "⚠️", "unsupported": "⛔", "timeout": "⏱️"}
 T = lambda v: v == "True"
@@ -35,7 +36,7 @@ qs = yaml.safe_load(open(ROOT / "bench" / "questions.yaml"))
 qs = qs["questions"] if isinstance(qs, dict) else qs
 runs = lambda s: sorted({r["run"] for r in rows[s]}, key=int)
 
-L = ["# nl2sql-bench — combined report (5 systems)", "",
+L = ["# nl2sql-bench — combined report (6 systems)", "",
      f"- Generated {dt.datetime.now(ZoneInfo('Asia/Kolkata')).strftime('%Y-%m-%d %H:%M')} IST by `bench/combine.py` from: "
      + ", ".join(f"`{s}` ← `results/{ACC_RUNS[s]}`" for s in SYSTEMS),
      f"- Chinook on Postgres 16.4, {len(qs)} questions x 3 runs per system; LLM `{ENV['LLM_MODEL']}` via `{ENV['LLM_UPSTREAM_BASE']}`, "
@@ -45,6 +46,11 @@ L = ["# nl2sql-bench — combined report (5 systems)", "",
      "- `wrenai_mdl_noreason` = the same 2nd stack, same project / deployed MDL (hash checked) / instructions, with the single wren-ai-service setting "
      "`allow_sql_generation_reasoning: false` (`make wren-mdl-noreason`; `make wren-mdl-restore` switches back). Intent classification stays on. "
      "Per-stage timings: `results/stage-latency/stage_latency.md`.",
+     "- `cube` (baseline) = Cube Core 1.8.8, model `cube/model`, LLM writes one REST `/v1/load` JSON query. `cube_v2` = same Cube release, "
+     "richer model `cube_v2/model` (views, subquery dimensions, segments, rolling-window and multi-stage measures), LLM writes one "
+     "Cube SQL API query (Postgres wire protocol, push-down on) over the views; both are harness-built adapters with 1 repair retry. "
+     "Hand-written reference queries (`make verify`, never shown to the LLM) reproduce gold for 23/29 questions with the baseline "
+     "REST model and 29/29 with cube_v2's SQL API.",
      "- OOTB WrenAI tokens come from the separate 1-run re-measure `results/run-gptoss120b-wren-tokens` (r3 lost them to a meter-key bug); all other token numbers come from the accuracy runs.",
      "- The OOTB/DB-GPT/Cube runs, the `wrenai_mdl` run and the `wrenai_mdl_noreason` run were executed sequentially at different times the same day — Ollama Cloud latency may differ between sessions. WrenAI latencies cluster at ~1 s steps (6.06, 7.06 s …) because wren-ui polls the ai-service about once per second, so Wren p50 differences of ~1 s are within that granularity.", "",
      "## Overall", "",
@@ -105,10 +111,11 @@ def pairwise(A, B, title):
 
 
 pairwise("wrenai", "wrenai_mdl", "WrenAI: out of the box (wrenai) vs + semantic layer (wrenai_mdl)")
+pairwise("cube", "cube_v2", "Cube: baseline (cube) vs rich model + adapter v2 (cube_v2)")
 pairwise("wrenai_mdl", "wrenai_mdl_noreason", "WrenAI + semantic layer: with reasoning (wrenai_mdl) vs no reasoning (wrenai_mdl_noreason)")
 
 # failure details for the semantic-layer variants
-for S in ("wrenai_mdl", "wrenai_mdl_noreason"):
+for S in ("wrenai_mdl", "wrenai_mdl_noreason", "cube_v2"):
     L += [f"## {LABEL[S]}: every non-exact attempt", "", "| run | id | status | reason / error |", "|---|---|---|---|"]
     for r in rows[S]:
         if not T(r["exact"]):
@@ -131,14 +138,14 @@ print("\n".join(L))
 import matplotlib; matplotlib.use("Agg"); import matplotlib.pyplot as plt
 short = {"wrenai": "WrenAI 0.29.2\n(out of the box)", "wrenai_mdl": "WrenAI 0.29.2\n+ semantic layer",
          "wrenai_mdl_noreason": "WrenAI 0.29.2\n+ sem. layer,\nno reasoning", "dbgpt": "DB-GPT 0.8.2",
-         "cube": "Cube Core 1.8.8\n+ LLM adapter (harness)"}
-fig, ax = plt.subplots(1, 3, figsize=(21, 6)); x = range(len(SYSTEMS)); w = 0.38
+         "cube": "Cube Core 1.8.8\n+ LLM adapter\n(baseline)", "cube_v2": "Cube Core 1.8.8\n+ rich model\n+ adapter v2"}
+fig, ax = plt.subplots(1, 3, figsize=(24, 6.5)); x = range(len(SYSTEMS)); w = 0.38
 ex = [100 * sum(T(r["exact"]) for r in rows[s]) / len(rows[s]) for s in SYSTEMS]
 rx = [100 * sum(T(r["relaxed"]) for r in rows[s]) / len(rows[s]) for s in SYSTEMS]
 b1 = ax[0].bar([i - w/2 for i in x], ex, w, label="EX strict"); b2 = ax[0].bar([i + w/2 for i in x], rx, w, label="EX relaxed")
 ax[0].bar_label(b1, fmt="%.0f%%"); ax[0].bar_label(b2, fmt="%.0f%%")
 ax[0].set_xticks(list(x), [short[s] for s in SYSTEMS], fontsize=8); ax[0].set_ylim(0, 108); ax[0].set_title("Execution accuracy (29 q x 3 runs)"); ax[0].legend(loc="lower left")
-w4 = 0.16
+w4 = 0.135
 for k, s in enumerate(SYSTEMS):
     v = [100 * sum(T(r["exact"]) for r in rows[s] if r["difficulty"] == d) / sum(r["difficulty"] == d for r in rows[s]) for d in ("easy", "medium", "hard")]
     bb = ax[1].bar([i + (k - (len(SYSTEMS) - 1) / 2) * w4 for i in range(3)], v, w4, label=short[s].replace("\n", " ")); ax[1].bar_label(bb, fmt="%.0f", fontsize=6)
