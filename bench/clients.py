@@ -571,6 +571,15 @@ class MnemiqJevClient(MnemiqClient):
         self.url = f"http://localhost:{env.get('MNEMIQ_JEV_PORT', '8093')}/v1/ask"
 
 
+class MnemiqJevV2Client(MnemiqClient):
+    """As `mnemiq_jev`, with the truncation-aware Jev request chosen offline (MNEMIQ_JEV_PROMPT=b: SQL-logic instruction,
+    row counts + truncation flag in state, 50-row result sample). :8094, llm-meter /mnemiqj2/, log mnemiq/serve-jev2.log."""
+    name = "mnemiq_jev_v2"
+
+    def __init__(self, env):
+        self.url = f"http://localhost:{env.get('MNEMIQ_JEV2_PORT', '8094')}/v1/ask"
+
+
 class MnemiqFailOpenClient(MnemiqClient):
     """Variant of `mnemiq`: same pinned engine, store (copied), policy and endpoints; ONE setting differs,
     MNEMIQ_VERIFY_FAIL_CLOSED=0 (documented: an unreadable/unreachable judge returns the answer unchecked).

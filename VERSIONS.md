@@ -22,4 +22,4 @@
 | Embedding model | nomic-embed-text:latest (768-d) | registry.ollama.ai manifest; model blob sha256:970aa74c0a90ef7482477cf803618e776e173c007bf957f635f1015bfcfef0e6 |
 | Chat LLM | gpt-oss:120b on Ollama Cloud (`https://ollama.com/v1`, OpenAI-compatible, Bearer `OLLAMA_API_KEY`) | hosted; version not pinnable by us |
 | Docker | 26.1.5 (Debian docker.io), Compose 2.26.1 | |
-| TypeSafe Jev (`mnemiq_jev` judge) | `jev-1.14.0` (versioned ID; = `jev-preview` on 2026-10-20, `jev-latest` -> 1.13) | hosted API `POST https://api.typesafe.ai/v1/systemone`, one `noul` question per judge call, via `mnemiq/patches/jev-judge.patch` (worktree `mnemiq/engine-jev`, same mnemiq commit); key `TYPESAFE_API_KEY` in .env |
+| TypeSafe Jev (`mnemiq_jev` judge) | `jev-1.14.0` (versioned ID; = `jev-preview` on 2026-10-20, `jev-latest` -> 1.13) | hosted API `POST https://api.typesafe.ai/v1/systemone`, one `noul` question per judge call, via `mnemiq/patches/jev-judge.patch` (request variant `MNEMIQ_JEV_PROMPT`: `v1` for mnemiq_jev, `b` = default for mnemiq_jev_v2) (worktree `mnemiq/engine-jev`, same mnemiq commit); key `TYPESAFE_API_KEY` in .env |

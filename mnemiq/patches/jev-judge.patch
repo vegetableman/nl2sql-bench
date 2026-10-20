@@ -25,10 +25,10 @@ index bd32e2d..44eee31 100644
      verifiers = {
          name: _build_verifier(levels[name], threshold=settings.verify_threshold,
 diff --git a/src/mnemiq/verify/judge.py b/src/mnemiq/verify/judge.py
-index 0811e21..bfd9eb0 100644
+index 0811e21..716b070 100644
 --- a/src/mnemiq/verify/judge.py
 +++ b/src/mnemiq/verify/judge.py
-@@ -107,6 +107,89 @@ class SemanticJudge:
+@@ -107,6 +107,134 @@ class SemanticJudge:
          return self.read(question, schema, sql, preview).score
  
  
@@ -44,6 +44,17 @@ index 0811e21..bfd9eb0 100644
 +
 +    _URL = "https://api.typesafe.ai/v1/systemone"
 +    _QID = "answers_question"
++    # MNEMIQ_JEV_PROMPT selects the request shape (offline comparison: results/judge-comparison/):
++    #   v1 -- original: state {question, schema, sql, result}, "does `result` completely answer" (5-row preview)
++    #   a  -- + result_total_rows / result_rows_shown / result_preview_truncated (+ note), SQL-logic instruction, 5 rows
++    #   b  -- as a, 50-row sample (DEFAULT);  c -- as a, full result up to 250 rows (50 if it would exceed ~20k tokens)
++    _PREVIEW_ROWS = {"v1": 5, "a": 5, "b": 50, "c": 250}
++    _INSTRUCTIONS_SQL = ("`sql` was run against the database described by `schema` and returned `result`, which shows "
++                         "`result_rows_shown` of `result_total_rows` rows. Judge the SQL logic, not the completeness of the "
++                         "shown rows: when `result_preview_truncated` is true the other rows exist but are not shown. Does "
++                         "`sql` correctly answer `question`, given `schema`? Check the right tables and joins, every filter "
++                         "the question implies, the right aggregation and grain, and the ordering and limit the question "
++                         "asks for. A plausible-looking number can still be wrong.")
 +    _INSTRUCTIONS = ("`sql` was run and returned `result`. Does `result` correctly and completely answer "
 +                     "`question`, given `schema`? Check the right tables and joins, every filter the question "
 +                     "implies, and the right aggregation and grain. A plausible-looking number can still be wrong.")
@@ -53,6 +64,10 @@ index 0811e21..bfd9eb0 100644
 +        self._key = os.environ.get("TYPESAFE_API_KEY", "")
 +        self._model = model or os.environ.get("MNEMIQ_JEV_MODEL", "jev-1.14.0")
 +        self._timeout = timeout_s
++        self.prompt = os.environ.get("MNEMIQ_JEV_PROMPT", "b")  # default chosen offline (judge_variants.md); v1 = original
++        if self.prompt not in self._PREVIEW_ROWS:
++            raise ValueError(f"MNEMIQ_JEV_PROMPT={self.prompt!r}; valid: {sorted(self._PREVIEW_ROWS)}")
++        self.preview_rows = self._PREVIEW_ROWS[self.prompt]  # read by the Verifier when it renders the result
 +        self.calls = 0
 +        self.errors = 0
 +        self.unparsed = 0
@@ -61,10 +76,40 @@ index 0811e21..bfd9eb0 100644
 +    def fallbacks(self) -> int:
 +        return self.errors + self.unparsed
 +
++    @staticmethod
++    def _counts(preview: str):
++        """(rows shown, total rows, truncated) from render_result's own footer line."""
++        import re
++        last = preview.strip().splitlines()[-3:] if preview else []
++        for line in reversed(last):
++            m = re.match(r"\.\.\. showing (\d+) of (\d+) rows \(truncated\)", line)
++            if m:
++                return int(m[1]), int(m[2]), True
++            m = re.match(r"\((\d+) rows\)$", line)
++            if m:
++                return int(m[1]), int(m[1]), False
++            m = re.match(r"\.\.\. showing (\d+) rows; the query stopped", line)
++            if m:
++                return int(m[1]), None, True
++        return None, None, None
++
 +    def request_body(self, question: str, schema: str, sql: str, preview: str) -> dict:
-+        return {"model": self._model,
-+                "state": {"question": question, "schema": schema, "sql": sql, "result": preview},
-+                "questions": {self._QID: {"type": "noul", "instructions": self._INSTRUCTIONS}}}
++        if self.prompt == "v1":
++            return {"model": self._model,
++                    "state": {"question": question, "schema": schema, "sql": sql, "result": preview},
++                    "questions": {self._QID: {"type": "noul", "instructions": self._INSTRUCTIONS}}}
++        if self.prompt == "c" and len(preview) > 80_000:  # ~20k tokens: keep well inside the 32k/question limit
++            lines = preview.splitlines()
++            shown, total, _ = self._counts(preview)
++            preview = "\n".join(lines[:51] + [f"... showing 50 of {total} rows (truncated)"])
++        shown, total, truncated = self._counts(preview)
++        state = {"question": question, "schema": schema, "sql": sql, "result": preview,
++                 "result_rows_shown": shown, "result_total_rows": total, "result_preview_truncated": truncated}
++        if truncated:
++            state["note"] = ("preview_truncated: true -- judge the correctness of the SQL logic, "
++                             "not the completeness of the preview")
++        return {"model": self._model, "state": state,
++                "questions": {self._QID: {"type": "noul", "instructions": self._INSTRUCTIONS_SQL}}}
 +
 +    def read(self, question: str, schema: str, sql: str, preview: str) -> "JudgeRead":
 +        import json, logging, time, urllib.error, urllib.request
@@ -106,8 +151,8 @@ index 0811e21..bfd9eb0 100644
 +                        question[:70], json.dumps(sql))
 +            return JudgeRead(1.0, fell_open=True, reason="unparsed")
 +        usage = payload.get("usage") or {}
-+        log.warning("BENCH-JEV status=%s latency_ms=%.0f model=%s input_tokens=%s output_tokens=%s noul=%s q=%r sql=%s",
-+                    status, ms, payload.get("model"), usage.get("input_tokens"), usage.get("output_tokens"), p,
++        log.warning("BENCH-JEV status=%s latency_ms=%.0f model=%s prompt=%s input_tokens=%s output_tokens=%s noul=%s q=%r sql=%s",
++                    status, ms, payload.get("model"), self.prompt, usage.get("input_tokens"), usage.get("output_tokens"), p,
 +                    question[:70], json.dumps(sql))
 +        return JudgeRead(p, fell_open=False)
 +
@@ -118,3 +163,18 @@ index 0811e21..bfd9eb0 100644
  class FakeJudge:
      """Fixed score, zero tokens -- for tests and offline replay of a scripted operating point."""
  
+diff --git a/src/mnemiq/verify/verifier.py b/src/mnemiq/verify/verifier.py
+index 62fc611..20cfb6d 100644
+--- a/src/mnemiq/verify/verifier.py
++++ b/src/mnemiq/verify/verifier.py
+@@ -122,8 +122,9 @@ class Verifier:
+             # entitlements filter it names tables the role is not granted.
+             sql = approved.model_sql()
+             if reader is not None:
++                # nl2sql-bench patch: a judge may ask for a larger sample (JevJudge.preview_rows); default unchanged.
+                 got = reader(packet.question, _judge_schema(packet), sql,
+-                             render_result(table, max_rows=5))
++                             render_result(table, max_rows=getattr(self.judge, "preview_rows", 5)))
+                 c, fell_open, why = got.score, got.fell_open, got.reason
+             else:
+                 c, fell_open, why = self.judge.score(

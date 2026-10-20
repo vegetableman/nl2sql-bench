@@ -6,6 +6,8 @@ Items: 264 (132 mnemiq_verified judge calls with logged gpt-oss confidence, 132 
 
 Jev calls: 264, input tokens (reported by the API's `usage.input_tokens`): 672,721 total, 2,548 avg; cost at $0.042/M input tokens: $0.0283. Latency p50 157 ms, p95 209 ms. Model reported: ['jev-1.14.0'].
 
+Prompt variants of the Jev request (truncation-aware, larger samples) on these same items: **judge_variants.md**. The tables below are the original request (v1); mnemiq_jev_v2 ships variant b.
+
 ## At threshold 0.5
 
 | judge | items | wrong caught | wrong passed | correct blocked | correct passed | AUROC (score vs correct) |

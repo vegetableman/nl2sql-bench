@@ -125,6 +125,8 @@ def score():
          f"Jev calls: {len(ok)}, input tokens (reported by the API's `usage.input_tokens`): {sum(toks):,} total, {sum(toks)/max(1,len(toks)):,.0f} avg; "
          f"cost at $0.042/M input tokens: ${sum(toks)*0.042/1e6:.4f}. Latency p50 {lat[len(lat)//2]:.0f} ms, p95 {lat[int(0.95*(len(lat)-1))]:.0f} ms. "
          f"Model reported: {sorted({r['jev_model'] for r in ok})}.", "",
+         "Prompt variants of the Jev request (truncation-aware, larger samples) on these same items: **judge_variants.md**. "
+         "The tables below are the original request (v1); mnemiq_jev_v2 ships variant b.", "",
          "## At threshold 0.5", "",
          "| judge | items | wrong caught | wrong passed | correct blocked | correct passed | AUROC (score vs correct) |", "|---|---|---|---|---|---|---|"]
     ver = [r for r in ok if r["source"] == "mnemiq_verified"]
@@ -159,5 +161,76 @@ def score():
     (OUT / "judge_comparison.md").write_text(txt); print(txt)
 
 
+
+
+def variants():
+    """Prompt-variant comparison on the same 264 items (labels from judge_comparison.csv; scores from rebuilt_<v>.jsonl)."""
+    lab = list(csv.DictReader(open(OUT / "judge_comparison.csv")))
+    its = [json.loads(l) for l in open(OUT / "items.jsonl")]
+    for it, r in zip(its, lab):
+        assert (it["source"], it["set"], it["id"], str(it["run"])) == (r["source"], r["set"], r["id"], r["run"])
+        r["key"] = it["key"]
+    files = {"v1 (original run)": "rebuilt.jsonl", "v1 (repeat)": "rebuilt_v1.jsonl", "a": "rebuilt_a.jsonl", "b": "rebuilt_b.jsonl", "c": "rebuilt_c.jsonl"}
+    sc = {}
+    for name, f in files.items():
+        d = {json.loads(l)["key"]: json.loads(l) for l in open(OUT / f)}
+        sc[name] = d
+    desc = {"v1 (original run)": "original prompt, 5-row preview (the run committed earlier)", "v1 (repeat)": "same prompt, re-scored now (noise control)",
+            "a": "SQL-logic instruction + row counts / truncation flag + note, 5-row preview",
+            "b": "as a, 50-row sample", "c": "as a, full result (<=250 rows; all items fit)"}
+    ver = [r for r in lab if r["source"] == "mnemiq_verified"]
+    corr = lambda r: r["correct"] == "True"
+    L = ["# Jev prompt variants (offline, same 264 items, same labels)", "",
+         "Labels and judge inputs as in judge_comparison.md (mnemiq's own schema/preview rebuild; ho14 tie and ho12 collation rules). "
+         "Each variant is JevJudge with `MNEMIQ_JEV_PROMPT=<v>` (mnemiq/patches/jev-judge.patch); pass = noul >= 0.5. "
+         f"**Only {sum(not corr(r) for r in ver)} of the 132 same-call items (ho13 r1, r3) are wrong, so 'wrong caught' is a 0-2 count and "
+         "must not drive the choice on its own; the decision metric is correct answers blocked.**", "",
+         "| variant | what changes | same 132 calls: wrong caught / passed | correct blocked | correct passed | all 264: wrong caught / passed | correct blocked | ho13 r1 | ho13 r3 | avg input tok | Jev cost (264 calls) |",
+         "|---|---|---|---|---|---|---|---|---|---|---|",
+         f"| gpt-oss:120b judge (logged) | baseline | " + (lambda c: f"{c['wrong caught']} / {c['wrong passed']} | {c['correct blocked']} | {c['correct passed']}")(confusion([(float(r['gptoss_conf']), corr(r)) for r in ver]))
+         + " | – | – | 0.10 | 0.15 | – | – |"]
+    best = {}
+    for name, d in sc.items():
+        p_ver = [(float(d[r["key"]]["jev_score"]), corr(r)) for r in ver]
+        p_all = [(float(d[r["key"]]["jev_score"]), corr(r)) for r in lab]
+        cv, ca = confusion(p_ver), confusion(p_all)
+        toks = [int(d[r["key"]]["jev_input_tokens"]) for r in lab if d[r["key"]].get("jev_input_tokens") not in (None, "None")]
+        h = {rn: d[next(r["key"] for r in ver if r["id"] == "ho13" and r["run"] == rn)]["jev_score"] for rn in ("1", "3")}
+        fell = sum(bool(d[r["key"]].get("jev_fell_open")) for r in lab)
+        L.append(f"| {name} | {desc[name]} | {cv['wrong caught']} / {cv['wrong passed']} | {cv['correct blocked']} | {cv['correct passed']} | "
+                 f"{ca['wrong caught']} / {ca['wrong passed']} | {ca['correct blocked']} | {h['1']:.2f} | {h['3']:.2f} | {sum(toks)/len(toks):,.0f} | ${sum(toks)*0.042/1e6:.4f}" + (f" ({fell} fell open)" if fell else "") + " |")
+        # threshold that minimises correct-blocked while catching every wrong item on all 264 (if any does)
+        cand = []
+        for th in [x / 100 for x in range(5, 96)]:
+            c = confusion(p_all, th)
+            cand.append((c["wrong passed"], c["correct blocked"], -th, th, c))
+        best[name] = min(cand)
+    L += ["", "## Best threshold per variant (all 264 items)", "",
+          "Chosen as: fewest wrong passed, then fewest correct blocked, then the highest threshold. With 2 wrong items this is "
+          "descriptive, not a tuned operating point.", "",
+          "| variant | threshold | wrong caught / passed | correct blocked | at the shipped 0.5: correct blocked |", "|---|---|---|---|---|"]
+    for name, (wp, cb, _, th, c) in best.items():
+        c5 = confusion([(float(sc[name][r["key"]]["jev_score"]), corr(r)) for r in lab])
+        L.append(f"| {name} | {th:.2f} | {c['wrong caught']} / {c['wrong passed']} | {c['correct blocked']} | {c5['correct blocked']} |")
+    a, b = sc["v1 (original run)"], sc["v1 (repeat)"]
+    dif = [abs(float(a[r["key"]]["jev_score"]) - float(b[r["key"]]["jev_score"])) for r in lab]
+    flips = sum((float(a[r["key"]]["jev_score"]) >= TH) != (float(b[r["key"]]["jev_score"]) >= TH) for r in lab)
+    L += ["", f"**Jev noise (v1 original vs v1 repeat, identical requests):** mean |delta noul| {sum(dif)/len(dif):.3f}, max {max(dif):.2f}, "
+          f"pass/block flips at 0.5: {flips} of {len(lab)}.", ""]
+    # truncated-preview breakdown per variant (correct answers only)
+    reb0 = {json.loads(l)["key"]: json.loads(l) for l in open(OUT / "rebuilt.jsonl")}
+    tr = {r["key"]: "(truncated)" in (reb0[r["key"]].get("preview") or "") for r in lab}
+    L += ["| variant | correct answers blocked: 5-row preview was truncated (n=" + str(sum(corr(r) and tr[r['key']] for r in lab)) + ") | not truncated (n=" + str(sum(corr(r) and not tr[r['key']] for r in lab)) + ") |", "|---|---|---|"]
+    for name, d in sc.items():
+        bt = sum(corr(r) and tr[r["key"]] and float(d[r["key"]]["jev_score"]) < TH for r in lab)
+        bn = sum(corr(r) and not tr[r["key"]] and float(d[r["key"]]["jev_score"]) < TH for r in lab)
+        L.append(f"| {name} | {bt} | {bn} |")
+    L += ["", "## Correct answers still blocked at 0.5, per variant (same 132 calls)", "", "| variant | blocked correct items (id rN, noul) |", "|---|---|"]
+    for name, d in sc.items():
+        bl = [f"{r['id']} r{r['run']} ({float(d[r['key']]['jev_score']):.2f})" for r in ver if corr(r) and float(d[r["key"]]["jev_score"]) < TH]
+        L.append(f"| {name} | {', '.join(bl) or 'none'} |")
+    txt = "\n".join(L) + "\n"; (OUT / "judge_variants.md").write_text(txt); print(txt)
+
+
 if __name__ == "__main__":
-    {"items": items, "score": score}[sys.argv[1]]()
+    {"items": items, "score": score, "variants": variants}[sys.argv[1]]()

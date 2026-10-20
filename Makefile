@@ -7,7 +7,7 @@ REPEATS ?= 1
 SYSTEMS ?= wrenai,dbgpt,cube
 QUESTIONS ?= bench/questions.yaml
 
-.PHONY: wren-mdl wren-mdl-noreason wren-mdl-restore wren-mdl-up report up down clean setup bench mock verify probe status logs venv render docker netfix wait bench-router bench-holdout mnemiq-install mnemiq-up bench-mnemiq mnemiq-failopen-up bench-mnemiq-failopen mnemiq-verified-up bench-mnemiq-verified mnemiq-jev-up bench-mnemiq-jev
+.PHONY: wren-mdl wren-mdl-noreason wren-mdl-restore wren-mdl-up report up down clean setup bench mock verify probe status logs venv render docker netfix wait bench-router bench-holdout mnemiq-install mnemiq-up bench-mnemiq mnemiq-failopen-up bench-mnemiq-failopen mnemiq-verified-up bench-mnemiq-verified mnemiq-jev-up bench-mnemiq-jev mnemiq-jev2-up bench-mnemiq-jev2
 
 up: docker netfix venv render          ## start everything and connect all tools to Postgres
 	docker compose up -d --build
@@ -149,3 +149,13 @@ mnemiq-jev-up: mnemiq-up               ## variant: patched worktree (patches/jev
 bench-mnemiq-jev: mnemiq-jev-up        ## variant x3 on the 29 and the 15 holdout (same run dirs, system mnemiq_jev)
 	$(PY) bench/harness.py --repeats $(REPEATS) --systems mnemiq_jev --out run-gptoss120b-mnemiq-r3 --resume
 	$(PY) bench/harness.py --repeats $(REPEATS) --systems mnemiq_jev --questions bench/questions_holdout.yaml --out run-gptoss120b-holdout-r3 --resume
+
+mnemiq-jev2-up:                        ## variant: as mnemiq-jev but truncation-aware Jev request (MNEMIQ_JEV_PROMPT=b), :8094, /mnemiqj2/
+	@test -d mnemiq/engine-jev/.venv || mnemiq/run.sh install-jev
+	@test -f mnemiq/state/chinook-jev2.duckdb || cp mnemiq/state/chinook.duckdb mnemiq/state/chinook-jev2.duckdb
+	@curl -sf -o /dev/null http://localhost:8094/healthz || (MNEMIQ_VARIANT=jev2 setsid nohup mnemiq/run.sh serve > mnemiq/serve-jev2.log 2>&1 &)
+	@printf "waiting for mnemiq (jev2) "; for i in $$(seq 1 60); do curl -sf -o /dev/null http://localhost:8094/healthz && break; printf .; sleep 2; done; echo " ok"
+
+bench-mnemiq-jev2: mnemiq-jev2-up      ## variant x3 on the 29 and the 15 holdout (same run dirs, system mnemiq_jev_v2)
+	$(PY) bench/harness.py --repeats $(REPEATS) --systems mnemiq_jev_v2 --out run-gptoss120b-mnemiq-r3 --resume
+	$(PY) bench/harness.py --repeats $(REPEATS) --systems mnemiq_jev_v2 --questions bench/questions_holdout.yaml --out run-gptoss120b-holdout-r3 --resume

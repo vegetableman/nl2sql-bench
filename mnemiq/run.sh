@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # mnemiq (agenticfabriq/mnemiq @ MNEMIQ_COMMIT) as benchmarked system `mnemiq`.
-# Usage: mnemiq/run.sh {install|install-verified|install-jev|enrich|build|serve|ask "q"}  (MNEMIQ_VARIANT=default|failopen|verified|jev)
+# Usage: mnemiq/run.sh {install|install-verified|install-jev|enrich|build|serve|ask "q"}  (MNEMIQ_VARIANT=default|failopen|verified|jev|jev2)
 # Out-of-the-box engine settings; only connection/identity/endpoint variables are set here.
 # Secrets are read from ../.env and exported, never echoed.
 set -euo pipefail
@@ -40,7 +40,12 @@ elif [ "$VARIANT" = verified ]; then PREFIX=mnemiqv; PORT=8092; STORE=chinook-ve
 # TypeSafe Jev (patches/jev-judge.patch, MNEMIQ_VERIFY_BACKEND=jev); judge calls go direct to TypeSafe with
 # TYPESAFE_API_KEY from .env (never echoed). SQL generation stays on gpt-oss via the meter. Port 8093, /mnemiqj/.
 elif [ "$VARIANT" = jev ]; then PREFIX=mnemiqj; PORT=8093; STORE=chinook-jev.duckdb; ENGINE="$JEV_ENGINE"
-  export MNEMIQ_VERIFY_BACKEND=jev MNEMIQ_JEV_MODEL="${MNEMIQ_JEV_MODEL:-jev-1.14.0}" TYPESAFE_API_KEY
+  # the first mnemiq_jev run used the original request shape; pinned so it stays reproducible
+  export MNEMIQ_VERIFY_BACKEND=jev MNEMIQ_JEV_MODEL="${MNEMIQ_JEV_MODEL:-jev-1.14.0}" MNEMIQ_JEV_PROMPT="${MNEMIQ_JEV_PROMPT:-v1}" TYPESAFE_API_KEY
+# MNEMIQ_VARIANT=jev2: as jev, with the truncation-aware request (MNEMIQ_JEV_PROMPT=b, the patch default): SQL-logic
+# instruction, row counts + truncation flag in state, 50-row result sample. Port 8094, /mnemiqj2/.
+elif [ "$VARIANT" = jev2 ]; then PREFIX=mnemiqj2; PORT=8094; STORE=chinook-jev2.duckdb; ENGINE="$JEV_ENGINE"
+  export MNEMIQ_VERIFY_BACKEND=jev MNEMIQ_JEV_MODEL="${MNEMIQ_JEV_MODEL:-jev-1.14.0}" MNEMIQ_JEV_PROMPT="${MNEMIQ_JEV_PROMPT:-b}" TYPESAFE_API_KEY
 else PREFIX=mnemiq; PORT=8090; STORE=chinook.duckdb; fi
 METER="http://localhost:${METER_PORT:-8089}/$PREFIX/v1"
 mkdir -p "$HERE/state"

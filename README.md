@@ -10,7 +10,7 @@ Same natural-language questions, same Postgres database, same LLM, measured the 
 | **DB-GPT 0.8.2** (official `dbgpt-openai` image + psycopg2) | NL → SQL (chat_data mode) | `POST http://localhost:5670/api/v2/chat/completions` `{chat_mode:"chat_data", chat_param:"chinook", stream:false}`; SQL is parsed out of the `<chart-view content=…>` block in the reply |
 | **Cube Core 1.8.8 + LLM adapter (baseline)** — system `cube` | Cube Core has **no OSS NL interface** (the AI API / D3 is Cube Cloud-only; OSS v1.8.8 api-gateway only has `/v1/load, /sql, /meta, /cubesql, /dry-run, …`). The harness gives the same LLM the `/v1/meta` model + join list and asks for a Cube REST query JSON (1 self-correction retry on Cube errors) | `POST http://localhost:4000/cubejs-api/v1/load` |
 | **Cube Core 1.8.8 + rich model + LLM adapter v2 (harness-built)** — system `cube_v2` (service `cube_v2`, REST :4001, SQL API :15432) | same LLM gets the *views* of `cube_v2/model` (with descriptions) from `/v1/meta` and writes ONE Cube SQL API query (Postgres dialect, `MEASURE()`, push-down/post-processing); 1 repair retry on Cube errors | Cube SQL API (Postgres wire protocol) at `localhost:15432` — executed by Cube, never directly on Postgres |
-| **mnemiq @ a453b05** — systems `mnemiq` (defaults), `mnemiq_failopen`, `mnemiq_verified` and `mnemiq_jev` (one-change variants) | NL → SQL; its own enrichment (`mnemiq enrich`: profiling + one LLM description pass, 11 tables) and retrieval index (`mnemiq build`, nomic-embed-text); default mode `thinking` (1 candidate, corrector, deterministic sanity + LLM judge) | `POST http://localhost:8090/v1/ask` `{question}` (`mnemiq serve --http`; variants on :8091 / :8092 / :8093); a deferral is scored `declined` |
+| **mnemiq @ a453b05** — systems `mnemiq` (defaults), `mnemiq_failopen`, `mnemiq_verified`, `mnemiq_jev` and `mnemiq_jev_v2` (one-change variants) | NL → SQL; its own enrichment (`mnemiq enrich`: profiling + one LLM description pass, 11 tables) and retrieval index (`mnemiq build`, nomic-embed-text); default mode `thinking` (1 candidate, corrector, deterministic sanity + LLM judge) | `POST http://localhost:8090/v1/ask` `{question}` (`mnemiq serve --http`; variants on :8091–:8094); a deferral is scored `declined` |
 | **Router** — system `router` | try cube_v2 first (prompt copy that may reply `CANNOT_EXPRESS`); fall back to WrenAI + semantic layer, no reasoning on unsupported / Cube error / empty result. No gold used for routing. | cube_v2 SQL API + `POST http://localhost:3001/api/v1/generate_sql`; tokens under `/router/` (+ `/wrenmdlnr/` on fallback) |
 
 Fairness controls
@@ -40,7 +40,9 @@ make mnemiq-install && make bench-mnemiq REPEATS=3   # mnemiq (pinned commit) on
 make bench-mnemiq-failopen REPEATS=3                 # mnemiq judge fail-open variant (see below)
 make bench-mnemiq-verified REPEATS=3                 # mnemiq judge 1200-token variant, fail-closed (patched worktree)
 .venv/bin/python bench/mnemiq_verifier_analysis.py   # verifier outcomes + re-scored SQL of rejected answers
-make bench-mnemiq-jev REPEATS=3                      # mnemiq with TypeSafe Jev as judge (needs TYPESAFE_API_KEY in .env)
+make bench-mnemiq-jev REPEATS=3                      # mnemiq with TypeSafe Jev as judge, original request (MNEMIQ_JEV_PROMPT=v1)
+make bench-mnemiq-jev2 REPEATS=3                     # same, truncation-aware request (MNEMIQ_JEV_PROMPT=b, the patch default)
+# offline Jev prompt variants: MNEMIQ_JEV_PROMPT=<v1|a|b|c> MNEMIQ_VARIANT=jev mnemiq/run.sh py mnemiq/judge_rebuild.py items.jsonl rebuilt_<v>.jsonl; bench/judge_comparison.py variants
 .venv/bin/python bench/mnemiq_jev_analysis.py         # Jev calls/tokens/cost + every decline checked against gold
 # offline same-SQL judge comparison (no reruns): bench/judge_comparison.py items -> mnemiq/judge_rebuild.py -> judge_comparison.py score
 make bench-holdout REPEATS=3     # 15 held-out q × router,cube_v2,wrenai_mdl_noreason → results/run-gptoss120b-holdout-r3/
@@ -431,6 +433,71 @@ of 84 such correct answers vs 5 of 178 with a complete preview (gpt-oss: 2/42 vs
 instruction's "completely answer" being read against a cut preview. It is an observation; the instruction was used as
 specified and not tuned. Offline comparison cost: 264 Jev calls, 672,721 input tokens, ~$0.028.
 
+### `mnemiq_jev_v2`: truncation-aware Jev request
+
+The original Jev request (v1) blocked 15 correct answers on the same 132 calls where gpt-oss blocked 3, mostly correct
+list answers whose 5-row preview said `(truncated)`. I tried three request variants **offline, on the same 264 items**
+(no system rerun; `results/judge-comparison/judge_variants.md`). Each is `JevJudge` with `MNEMIQ_JEV_PROMPT=<v>`:
+
+* **a**: `state` gains `result_rows_shown`, `result_total_rows`, `result_preview_truncated` and, when truncated, a note
+  *"preview_truncated: true -- judge the correctness of the SQL logic, not the completeness of the preview"*. The noul
+  instruction is reworded to ask whether **`sql` correctly answers `question`** (tables, joins, filters, aggregation,
+  grain, ordering and limit), "not the completeness of the shown rows". 5-row preview.
+* **b**: as a, with a 50-row result sample.
+* **c**: as a, with the full result (≤ 250 rows; every item fits, the largest is 212 rows).
+
+| Jev request | same 132 calls: wrong caught / passed | correct blocked | all 264: correct blocked | ho13 r1 / r3 noul | avg input tok |
+|---|---|---|---|---|---|
+| gpt-oss judge (logged) | 2 / 0 | **3** | – | 0.10 / 0.15 | – |
+| v1 original | 1 / 1 | 15 | 29 | 0.07 / 0.53 | 2,548 |
+| v1 repeat (noise control) | 1 / 1 | 16 | 30 | 0.06 / 0.59 | 2,548 |
+| a | 1 / 1 | 5 | 9 | 0.18 / 0.68 | 2,648 |
+| **b (chosen)** | 1 / 1 | 5 | 9 | 0.10 / 0.57 | 2,687 |
+| c | 1 / 1 | 5 | 9 | 0.16 / 0.77 | 2,714 |
+
+* **Effect:** the truncation-aware request cuts correct answers blocked by about two thirds (15 → 5 on the same calls,
+  29 → 9 on all 264). On truncated previews it falls from 24 to 5 of 84 correct answers.
+* **Still worse than gpt-oss:** **Jev still blocks more correct answers than the gpt-oss judge (5 vs 3)** and still
+  passes the ho13 r3 float-division bug at 0.5.
+* **Remaining blocks:** ho10 ×3 (day-of-week counts) and ho14 ×2 (the tie-affected question).
+* **Noise:** identical v1 requests flipped 5 of 264 pass/block decisions, so a, b and c are tied within Jev's own noise.
+* **Why b:** it gives the lowest score to the wrong ho13 r3 (0.57) and separates best. Its best threshold (0.62)
+  catches both wrong items while blocking 10 correct of 264, against 18 for a and 57 for c.
+* **Threshold:** the shipped threshold stays **0.5**. 0.62 is fitted to 2 wrong items, and the threshold is mnemiq's
+  shared Verifier setting, so it was not adopted.
+
+`b` is now the patch default. `v1` stays reachable with `MNEMIQ_JEV_PROMPT=v1`, and `make bench-mnemiq-jev` pins it so
+the first run stays reproducible. The patch also gains a one-line Verifier change: it renders
+`max_rows=getattr(judge, "preview_rows", 5)`, so the gpt-oss judge still gets 5 rows.
+
+**Rerun (only this system).** `mnemiq_jev_v2` uses :8094, `/mnemiqj2/`, `MNEMIQ_JEV_PROMPT=b`, and is otherwise identical
+to `mnemiq_jev`. The old `mnemiq_jev` run stays on disk.
+
+| set | system | EX exact (= relaxed) | p50 / p95 s | declined (SQL right / wrong) | timeouts | Jev calls / input tok / est. cost |
+|---|---|---|---|---|---|---|
+| 29 | mnemiq_verified (gpt-oss judge) | 86/87 (99%) | 4.97 / 7.43 | 1 (1 / 0) | 0 | – |
+| 29 | mnemiq_jev (v1) | 78/87 (90%) | 3.41 / 5.15 | 9 (9 / 0) | 0 | 87 / 221,670 / $0.0093 |
+| 29 | **mnemiq_jev_v2 (b)** | **85/87 (98%)** | 8.04 / 22.11* | **0** | 2* | 87 / 234,385 / $0.0098 |
+| holdout | mnemiq_verified | 39/45 (87%) | 5.13 / 9.79 | 4 (2 / 2) | 0 | – |
+| holdout | mnemiq_jev (v1) | 39/45 (87%) | 3.14 / 4.88 | 5 (5 / 0) | 0 | 45 / 114,523 / $0.0048 |
+| holdout | **mnemiq_jev_v2 (b)** | 39/45 (87%) | 4.24 / 9.16* | 6 (**5 / 1**) | 0 | 45 / 119,872 / $0.0050 |
+
+\* **Latency is not comparable across these runs.** Over llm-meter's per-request timing, gpt-oss chat calls had
+p50/p95/max 1.61/2.95/4.4 s during mnemiq_verified and 1.41/2.74/3.9 s during mnemiq_jev, but **2.37/11.21/193.5 s**
+during mnemiq_jev_v2 (11:35–11:58 IST). Jev's own calls stayed at p50 ~155 ms. The 29-set's two misses are those
+gpt-oss stalls: h04 r2 and h11 r3 timed out at 180 s. Neither was a decline.
+
+* **No declines on the 29 set:** e02/e08/m01/m06, all blocked by v1, now pass.
+* **Holdout declines:** 6. Five had correct SQL: ho10 ×3 (exact) and ho14 ×2 (tie-valid / exact).
+* **First real catch:** ho12 r3, noul 0.40. Its `LEFT JOIN … WHERE il.track_id IS NULL` returns artists with *any*
+  unsold track (241 rows, 131 extra) instead of artists with *no* sales (gold 110). That is a genuine mistake, and
+  mnemiq_verified and mnemiq_failopen happened not to generate it in that attempt.
+* **Wrong answers passed:** none (0 `wrong_result`).
+* **Bottom line:** v2 matches or beats mnemiq_verified on accuracy (85/87 + 39/45 vs 86/87 + 39/45) at about half the
+  gpt-oss prompt tokens. But on the same-SQL comparison, which is the fair one, **Jev still blocks more correct answers
+  than gpt-oss (5 vs 3 of 130)**.
+* **Per-attempt analysis:** `results/run-gptoss120b-mnemiq-r3/jev_v2_analysis.md`; Jev log lines in `jev2_calls.log`.
+
 ## Held-out evaluation (`questions_holdout.yaml`)
 
 The original 29 questions were the tuning set for `cube_v2` and the WrenAI semantic layer, so the first router run
@@ -457,6 +524,7 @@ Results (`results/run-gptoss120b-holdout-r3/`, chart `results/holdout_summary.pn
 | mnemiq fail-open variant | 44/45 (98%) | 44/45 (98%) | 4.10 | 7.41 | 5,237 | 3.1 |
 | mnemiq judge 1200 tok (fail-closed) | 39/45 (87%) | 39/45 (87%) | 5.13 | 9.79 | 5,250 | 3.0 |
 | mnemiq, TypeSafe Jev judge (fail-closed) | 39/45 (87%) | 39/45 (87%) | 3.14 | 4.88 | 2,823 (gpt-oss only) | 1.9 (+1 Jev) |
+| mnemiq, Jev judge v2 (truncation-aware) | 39/45 (87%) | 39/45 (87%) | 4.24* | 9.16* | 2,929 (gpt-oss only) | 1.9 (+1 Jev) |
 
 Router fallback **17/45 (38%)** — triggers `cube_unsupported`×16, `cube_error`×1. Cube-answered path EX 22/28 (79%);
 fallback path EX 17/17 (100%). Silent-wrong (Cube answered, no fallback): `ho12`×3, `ho14`×2, `ho04`×1. No attempt

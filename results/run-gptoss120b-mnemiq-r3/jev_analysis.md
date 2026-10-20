@@ -1,4 +1,4 @@
-# mnemiq_jev: TypeSafe Jev as mnemiq's judge (fail-closed, threshold 0.5)
+# mnemiq_jev: TypeSafe Jev as mnemiq's judge (fail-closed, threshold 0.5, original request)
 
 Jev log lines: 132; matched to attempts: 132; unmatched: 0; HTTP statuses: {'200': 132}; attempts with more than one Jev call: 0; attempts with none: 0.
 
