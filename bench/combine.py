@@ -12,14 +12,14 @@ ACC_RUNS = {  # system -> run dir used for accuracy/latency
     "wrenai_mdl_noreason": "run-gptoss120b-wrenmdl-noreason-r3",
     "dbgpt": "run-gptoss120b-r3", "cube": "run-gptoss120b-r3", "cube_v2": "run-gptoss120b-cubev2-r3",
     "router": "run-gptoss120b-router-r3",
-    "mnemiq": "run-gptoss120b-mnemiq-r3", "mnemiq_failopen": "run-gptoss120b-mnemiq-r3"}
+    "mnemiq": "run-gptoss120b-mnemiq-r3", "mnemiq_failopen": "run-gptoss120b-mnemiq-r3", "mnemiq_verified": "run-gptoss120b-mnemiq-r3"}
 TOK_RUNS = {**ACC_RUNS, "wrenai": "run-gptoss120b-wren-tokens"}  # OOTB Wren tokens were lost in r3 (meter-key bug)
 LABEL = {"wrenai": "WrenAI 0.29.2 (out of the box)", "wrenai_mdl": "WrenAI 0.29.2 + semantic layer",
          "wrenai_mdl_noreason": "WrenAI 0.29.2 + semantic layer, no reasoning",
          "dbgpt": "DB-GPT 0.8.2", "cube": "Cube Core 1.8.8 + LLM adapter (baseline)",
          "cube_v2": "Cube Core 1.8.8 + rich model + LLM adapter v2 (harness-built)",
          "router": "Router (cube_v2 → WrenAI semantic, no reasoning)",
-         "mnemiq": "mnemiq a453b05 (defaults)", "mnemiq_failopen": "mnemiq a453b05, judge fail-open variant"}
+         "mnemiq": "mnemiq a453b05 (defaults)", "mnemiq_failopen": "mnemiq a453b05, judge fail-open variant", "mnemiq_verified": "mnemiq a453b05, judge 1200-token variant (fail-closed)"}
 SYSTEMS = list(ACC_RUNS)
 EMO = {"correct": "✅", "correct_extra_cols": "🟡", "wrong_result": "❌", "exec_error": "💥", "tool_error": "⚠️", "unsupported": "⛔", "timeout": "⏱️", "declined": "🚫"}
 T = lambda v: v == "True"
@@ -141,7 +141,7 @@ if "router" in rows:
           ""]
 
 # failure details for the semantic-layer variants
-for S in ("wrenai_mdl", "wrenai_mdl_noreason", "cube_v2", "router", "mnemiq", "mnemiq_failopen"):
+for S in ("wrenai_mdl", "wrenai_mdl_noreason", "cube_v2", "router", "mnemiq", "mnemiq_failopen", "mnemiq_verified"):
     L += [f"## {LABEL[S]}: every non-exact attempt", "", "| run | id | status | reason / error |", "|---|---|---|---|"]
     for r in rows[S]:
         if not T(r["exact"]):
@@ -159,6 +159,9 @@ for q in qs:
 L += ["", "Legend: ✅ exact, 🟡 extra columns, ❌ wrong result, 💥 SQL exec error, ⚠️ tool/API error, ⏱️ timeout (failure), ⛔ declared unsupported, 🚫 declined (mnemiq deferral, counts as not correct)."]
 import holdout_report
 L += ["", holdout_report.section()]
+_va = ROOT / "results/run-gptoss120b-mnemiq-r3/verifier_analysis.md"  # written by bench/mnemiq_verifier_analysis.py
+if _va.exists():
+    L += ["", _va.read_text().replace("# mnemiq_verified: verifier outcomes", "## mnemiq_verified: verifier outcomes (29 + holdout)", 1).replace("\n## ", "\n### ")]
 (R / "combined_summary.md").write_text("\n".join(L) + "\n")
 print("\n".join(L))
 
@@ -167,7 +170,7 @@ import matplotlib; matplotlib.use("Agg"); import matplotlib.pyplot as plt
 short = {"wrenai": "WrenAI 0.29.2\n(out of the box)", "wrenai_mdl": "WrenAI 0.29.2\n+ semantic layer",
          "wrenai_mdl_noreason": "WrenAI 0.29.2\n+ sem. layer,\nno reasoning", "dbgpt": "DB-GPT 0.8.2",
          "cube": "Cube Core 1.8.8\n+ LLM adapter\n(baseline)", "cube_v2": "Cube Core 1.8.8\n+ rich model\n+ adapter v2",
-         "router": "Router\n(cube_v2 -> Wren\nnoreason)", "mnemiq": "mnemiq\n(defaults)", "mnemiq_failopen": "mnemiq\n(fail-open\nvariant)"}
+         "router": "Router\n(cube_v2 -> Wren\nnoreason)", "mnemiq": "mnemiq\n(defaults)", "mnemiq_failopen": "mnemiq\n(fail-open\nvariant)", "mnemiq_verified": "mnemiq\n(judge 1200 tok,\nfail-closed)"}
 fig, ax = plt.subplots(1, 3, figsize=(34, 6.5)); x = range(len(SYSTEMS)); w = 0.38
 ex = [100 * sum(T(r["exact"]) for r in rows[s]) / len(rows[s]) for s in SYSTEMS]
 rx = [100 * sum(T(r["relaxed"]) for r in rows[s]) / len(rows[s]) for s in SYSTEMS]

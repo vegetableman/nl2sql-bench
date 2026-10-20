@@ -1,0 +1,46 @@
+diff --git a/src/mnemiq/runtime.py b/src/mnemiq/runtime.py
+index bd32e2d..438c513 100644
+--- a/src/mnemiq/runtime.py
++++ b/src/mnemiq/runtime.py
+@@ -1,6 +1,7 @@
+ from __future__ import annotations
+ 
+ import logging
++import os
+ 
+ import time
+ from dataclasses import dataclass, field
+@@ -796,7 +797,8 @@ def _build_mode_verifiers(settings: Settings, *, client):
+                 "llm_model": settings.verify_model or settings.llm_model}))
+         else:
+             judge_client = client  # self-judge: reuse the generation client
+-        judge = SemanticJudge(judge_client)
++        # nl2sql-bench patch: judge output budget for non-gpt-5 reasoning models (default unchanged).
++        judge = SemanticJudge(judge_client, max_tokens=int(os.environ.get("MNEMIQ_VERIFY_MAX_TOKENS", "200")))
+         judge_calls = 1
+     verifiers = {
+         name: _build_verifier(levels[name], threshold=settings.verify_threshold,
+diff --git a/src/mnemiq/verify/judge.py b/src/mnemiq/verify/judge.py
+index 0811e21..9db6fed 100644
+--- a/src/mnemiq/verify/judge.py
++++ b/src/mnemiq/verify/judge.py
+@@ -1,5 +1,8 @@
+ from __future__ import annotations
+ 
++import json
++import logging
++
+ import re
+ from dataclasses import dataclass
+ 
+@@ -94,6 +97,10 @@ class SemanticJudge:
+             raw = self._client.complete(_SYSTEM, _prompt(question, schema, sql, preview),
+                                         max_tokens=self._max_tokens, temperature=0)
+             m = _CONF.search(raw or "")
++            # nl2sql-bench patch: observational log only, no behaviour change.
++            logging.getLogger("mnemiq.bench").warning(
++                "BENCH-JUDGE max_tokens=%s reply_chars=%s conf=%s q=%r sql=%s", self._max_tokens,
++                len(raw or ""), m.group(1) if m else None, question[:70], json.dumps(sql))
+             if not m:
+                 self.unparsed += 1
+                 return JudgeRead(1.0, fell_open=True, reason="unparsed")

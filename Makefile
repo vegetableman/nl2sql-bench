@@ -7,7 +7,7 @@ REPEATS ?= 1
 SYSTEMS ?= wrenai,dbgpt,cube
 QUESTIONS ?= bench/questions.yaml
 
-.PHONY: wren-mdl wren-mdl-noreason wren-mdl-restore wren-mdl-up report up down clean setup bench mock verify probe status logs venv render docker netfix wait bench-router bench-holdout mnemiq-install mnemiq-up bench-mnemiq mnemiq-failopen-up bench-mnemiq-failopen
+.PHONY: wren-mdl wren-mdl-noreason wren-mdl-restore wren-mdl-up report up down clean setup bench mock verify probe status logs venv render docker netfix wait bench-router bench-holdout mnemiq-install mnemiq-up bench-mnemiq mnemiq-failopen-up bench-mnemiq-failopen mnemiq-verified-up bench-mnemiq-verified
 
 up: docker netfix venv render          ## start everything and connect all tools to Postgres
 	docker compose up -d --build
@@ -67,6 +67,16 @@ mnemiq-failopen-up: mnemiq-up          ## variant: same store (copied), MNEMIQ_V
 bench-mnemiq-failopen: mnemiq-failopen-up  ## variant x3 on the 29 and the 15 holdout (same run dirs, system mnemiq_failopen)
 	$(PY) bench/harness.py --repeats $(REPEATS) --systems mnemiq_failopen --out run-gptoss120b-mnemiq-r3 --resume
 	$(PY) bench/harness.py --repeats $(REPEATS) --systems mnemiq_failopen --questions bench/questions_holdout.yaml --out run-gptoss120b-holdout-r3 --resume
+
+mnemiq-verified-up: mnemiq-up          ## variant: patched worktree (patches/verifier-tokens.patch), judge max_tokens 1200, fail-closed ON, :8092, /mnemiqv/
+	@test -d mnemiq/engine-verified/.venv || mnemiq/run.sh install-verified
+	@test -f mnemiq/state/chinook-verified.duckdb || cp mnemiq/state/chinook.duckdb mnemiq/state/chinook-verified.duckdb
+	@curl -sf -o /dev/null http://localhost:8092/healthz || (MNEMIQ_VARIANT=verified setsid nohup mnemiq/run.sh serve > mnemiq/serve-verified.log 2>&1 &)
+	@printf "waiting for mnemiq (verified) "; for i in $$(seq 1 60); do curl -sf -o /dev/null http://localhost:8092/healthz && break; printf .; sleep 2; done; echo " ok"
+
+bench-mnemiq-verified: mnemiq-verified-up  ## variant x3 on the 29 and the 15 holdout (same run dirs, system mnemiq_verified)
+	$(PY) bench/harness.py --repeats $(REPEATS) --systems mnemiq_verified --out run-gptoss120b-mnemiq-r3 --resume
+	$(PY) bench/harness.py --repeats $(REPEATS) --systems mnemiq_verified --questions bench/questions_holdout.yaml --out run-gptoss120b-holdout-r3 --resume
 
 report:                                ## combined report (all systems) -> results/combined_summary.md + results/summary.png
 	$(PY) bench/combine.py

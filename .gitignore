@@ -20,6 +20,7 @@ wrenai_mdl/.variant
 !results/run-gptoss120b-holdout-r3/
 !results/holdout_summary.png
 mnemiq/engine/
+mnemiq/engine-verified/
 mnemiq/state/
 mnemiq/*.log
 !results/run-gptoss120b-mnemiq-r3/

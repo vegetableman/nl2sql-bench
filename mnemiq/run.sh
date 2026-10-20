@@ -1,23 +1,34 @@
 #!/usr/bin/env bash
 # mnemiq (agenticfabriq/mnemiq @ MNEMIQ_COMMIT) as benchmarked system `mnemiq`.
-# Usage: mnemiq/run.sh {install|enrich|build|serve|ask "q"}
+# Usage: mnemiq/run.sh {install|install-verified|enrich|build|serve|ask "q"}  (MNEMIQ_VARIANT=default|failopen|verified)
 # Out-of-the-box engine settings; only connection/identity/endpoint variables are set here.
 # Secrets are read from ../.env and exported, never echoed.
 set -euo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"; ROOT="$(dirname "$HERE")"
 MNEMIQ_COMMIT=a453b05129f365c56a66f303b7e1911311d246fd
 ENGINE="$HERE/engine"
+VERIFIED_ENGINE="$HERE/engine-verified"   # separate worktree, same commit + patches/verifier-tokens.patch
 if [ "${1:-}" = install ]; then
   [ -d "$ENGINE/.git" ] || git clone -q https://github.com/agenticfabriq/mnemiq.git "$ENGINE"
   git -C "$ENGINE" fetch -q origin && git -C "$ENGINE" checkout -q "$MNEMIQ_COMMIT"
   (cd "$ENGINE" && uv sync -q --extra server)
   echo "mnemiq installed at $(git -C "$ENGINE" rev-parse HEAD)"; exit 0
 fi
+if [ "${1:-}" = install-verified ]; then   # the ONLY code change of any variant; the main engine stays unpatched
+  [ -d "$VERIFIED_ENGINE" ] || git -C "$ENGINE" worktree add -q --detach "$VERIFIED_ENGINE" "$MNEMIQ_COMMIT"
+  git -C "$VERIFIED_ENGINE" checkout -q -- . && git -C "$VERIFIED_ENGINE" apply "$HERE/patches/verifier-tokens.patch"
+  (cd "$VERIFIED_ENGINE" && uv sync -q --extra server)
+  echo "mnemiq-verified installed at $(git -C "$VERIFIED_ENGINE" rev-parse HEAD) + verifier-tokens.patch"; exit 0
+fi
 set -a; . "$ROOT/.env"; set +a
 # MNEMIQ_VARIANT=failopen: identical except MNEMIQ_VERIFY_FAIL_CLOSED=0 (documented knob: an unreachable/unreadable
 # judge returns the answer unchecked instead of withholding it). Own store copy, port 8091, meter prefix /mnemiqfo/.
 VARIANT="${MNEMIQ_VARIANT:-default}"
 if [ "$VARIANT" = failopen ]; then PREFIX=mnemiqfo; PORT=8091; STORE=chinook-failopen.duckdb; export MNEMIQ_VERIFY_FAIL_CLOSED=0
+# MNEMIQ_VARIANT=verified: identical to the defaults (fail-closed ON) except the judge call's output budget,
+# MNEMIQ_VERIFY_MAX_TOKENS (added by patches/verifier-tokens.patch; unpatched value 200). Port 8092, /mnemiqv/.
+elif [ "$VARIANT" = verified ]; then PREFIX=mnemiqv; PORT=8092; STORE=chinook-verified.duckdb; ENGINE="$VERIFIED_ENGINE"
+  export MNEMIQ_VERIFY_MAX_TOKENS="${MNEMIQ_VERIFY_MAX_TOKENS:-1200}"
 else PREFIX=mnemiq; PORT=8090; STORE=chinook.duckdb; fi
 METER="http://localhost:${METER_PORT:-8089}/$PREFIX/v1"
 mkdir -p "$HERE/state"

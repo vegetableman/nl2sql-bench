@@ -7,10 +7,10 @@ import argparse, concurrent.futures as cf, csv, datetime as dt, json, statistics
 import httpx, psycopg, yaml
 from zoneinfo import ZoneInfo
 from common import ROOT, load_env, compare
-from clients import WrenClient, WrenMDLClient, WrenMDLNoReasonClient, DBGPTClient, CubeClient, CubeV2Client, RouterClient, MnemiqClient, MnemiqFailOpenClient, MockSQLClient
+from clients import WrenClient, WrenMDLClient, WrenMDLNoReasonClient, DBGPTClient, CubeClient, CubeV2Client, RouterClient, MnemiqClient, MnemiqFailOpenClient, MnemiqVerifiedClient, MockSQLClient
 
-METER_KEY = {"cube_v2": "cube2", "wrenai": "wren", "wrenai_mdl": "wrenmdl", "wrenai_mdl_noreason": "wrenmdlnr", "router": "router", "mnemiq": "mnemiq", "mnemiq_failopen": "mnemiqfo"}  # llm-meter path prefix per system; router also sums wrenmdlnr on fallback
-LABELS = {"wrenai": "WrenAI 0.29.2 (out of the box)", "wrenai_mdl": "WrenAI 0.29.2 + semantic layer", "wrenai_mdl_noreason": "WrenAI 0.29.2 + semantic layer, no reasoning", "dbgpt": "DB-GPT 0.8.2", "cube": "Cube Core 1.8.8 + LLM adapter (baseline)", "cube_v2": "Cube Core 1.8.8 + rich model + LLM adapter v2 (harness-built)", "router": "Router (cube_v2 → WrenAI semantic, no reasoning)", "mnemiq": "mnemiq (agenticfabriq, a453b05, defaults)", "mnemiq_failopen": "mnemiq, judge fail-open variant"}
+METER_KEY = {"cube_v2": "cube2", "wrenai": "wren", "wrenai_mdl": "wrenmdl", "wrenai_mdl_noreason": "wrenmdlnr", "router": "router", "mnemiq": "mnemiq", "mnemiq_failopen": "mnemiqfo", "mnemiq_verified": "mnemiqv"}  # llm-meter path prefix per system; router also sums wrenmdlnr on fallback
+LABELS = {"wrenai": "WrenAI 0.29.2 (out of the box)", "wrenai_mdl": "WrenAI 0.29.2 + semantic layer", "wrenai_mdl_noreason": "WrenAI 0.29.2 + semantic layer, no reasoning", "dbgpt": "DB-GPT 0.8.2", "cube": "Cube Core 1.8.8 + LLM adapter (baseline)", "cube_v2": "Cube Core 1.8.8 + rich model + LLM adapter v2 (harness-built)", "router": "Router (cube_v2 → WrenAI semantic, no reasoning)", "mnemiq": "mnemiq (agenticfabriq, a453b05, defaults)", "mnemiq_failopen": "mnemiq, judge fail-open variant", "mnemiq_verified": "mnemiq, judge token-budget variant (fail-closed)"}
 
 
 def run_sql(conn, sql, limit_rows=100000):
@@ -93,7 +93,7 @@ def main():
         elif a.mock:
             clients[s] = MockSQLClient(s, qs)
         else:
-            clients[s] = {"wrenai": WrenClient, "wrenai_mdl": WrenMDLClient, "wrenai_mdl_noreason": WrenMDLNoReasonClient, "dbgpt": DBGPTClient, "mnemiq": MnemiqClient, "mnemiq_failopen": MnemiqFailOpenClient}[s](env)
+            clients[s] = {"wrenai": WrenClient, "wrenai_mdl": WrenMDLClient, "wrenai_mdl_noreason": WrenMDLNoReasonClient, "dbgpt": DBGPTClient, "mnemiq": MnemiqClient, "mnemiq_failopen": MnemiqFailOpenClient, "mnemiq_verified": MnemiqVerifiedClient}[s](env)
 
     run_id = a.out or (dt.datetime.now().strftime("%Y%m%d-%H%M%S") + ("-mock" if a.mock else ""))
     out = ROOT / "results" / run_id

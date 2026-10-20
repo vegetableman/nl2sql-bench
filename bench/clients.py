@@ -552,6 +552,15 @@ class MnemiqClient:
         return {"sql": sql, "raw": raw}
 
 
+class MnemiqVerifiedClient(MnemiqClient):
+    """Variant of `mnemiq`: defaults (fail-closed ON) + patches/verifier-tokens.patch, judge max_tokens 1200 via
+    MNEMIQ_VERIFY_MAX_TOKENS (unpatched: 200, too small for gpt-oss reasoning). :8092, llm-meter /mnemiqv/."""
+    name = "mnemiq_verified"
+
+    def __init__(self, env):
+        self.url = f"http://localhost:{env.get('MNEMIQ_VERIFIED_PORT', '8092')}/v1/ask"
+
+
 class MnemiqFailOpenClient(MnemiqClient):
     """Variant of `mnemiq`: same pinned engine, store (copied), policy and endpoints; ONE setting differs,
     MNEMIQ_VERIFY_FAIL_CLOSED=0 (documented: an unreadable/unreachable judge returns the answer unchecked).
