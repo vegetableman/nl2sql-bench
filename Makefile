@@ -7,7 +7,7 @@ REPEATS ?= 1
 SYSTEMS ?= wrenai,dbgpt,cube
 QUESTIONS ?= bench/questions.yaml
 
-.PHONY: wren-mdl wren-mdl-noreason wren-mdl-restore wren-mdl-up report up down clean setup bench mock verify probe status logs venv render docker netfix wait bench-router bench-holdout
+.PHONY: wren-mdl wren-mdl-noreason wren-mdl-restore wren-mdl-up report up down clean setup bench mock verify probe status logs venv render docker netfix wait bench-router bench-holdout mnemiq-install mnemiq-up bench-mnemiq mnemiq-failopen-up bench-mnemiq-failopen
 
 up: docker netfix venv render          ## start everything and connect all tools to Postgres
 	docker compose up -d --build
@@ -44,6 +44,29 @@ _wren-mdl-reload:
 	$(WRENMDL) up -d --force-recreate wren-ai-service
 	@printf "waiting for wren-ai-service "; for i in $$(seq 1 90); do curl -sf -o /dev/null http://localhost:5556/health && break; printf .; sleep 2; done; echo " ok"
 	cd bench && ../$(PY) wren_mdl.py --redeploy
+
+mnemiq-install:                        ## clone agenticfabriq/mnemiq at the pinned commit (mnemiq/run.sh) + uv sync --extra server
+	mnemiq/run.sh install
+	@test -n "$$(ls $$HOME/.duckdb/extensions/v*/linux_amd64/postgres_scanner.duckdb_extension 2>/dev/null)" || \
+	  (cd mnemiq/engine && .venv/bin/mnemiq extensions fetch --platform linux_amd64 --out /tmp/duckdb-ext && mkdir -p $$HOME/.duckdb/extensions && cp -r /tmp/duckdb-ext/* $$HOME/.duckdb/extensions/)
+
+mnemiq-up:                             ## enrich + build Chinook (once), then serve the HTTP API on :8090 (background)
+	@test -f mnemiq/state/chinook.duckdb || { mnemiq/run.sh enrich && mnemiq/run.sh build; }
+	@curl -sf -o /dev/null http://localhost:8090/healthz || (setsid nohup mnemiq/run.sh serve > mnemiq/serve.log 2>&1 &)
+	@printf "waiting for mnemiq "; for i in $$(seq 1 60); do curl -sf -o /dev/null http://localhost:8090/healthz && break; printf .; sleep 2; done; echo " ok"
+
+bench-mnemiq: mnemiq-up                ## mnemiq x3 on the 29 (results/run-gptoss120b-mnemiq-r3) and the 15 holdout (added to run-gptoss120b-holdout-r3)
+	$(PY) bench/harness.py --repeats $(REPEATS) --systems mnemiq --out run-gptoss120b-mnemiq-r3 --resume
+	$(PY) bench/harness.py --repeats $(REPEATS) --systems mnemiq --questions bench/questions_holdout.yaml --out run-gptoss120b-holdout-r3 --resume
+
+mnemiq-failopen-up: mnemiq-up          ## variant: same store (copied), MNEMIQ_VERIFY_FAIL_CLOSED=0, :8091, meter /mnemiqfo/
+	@test -f mnemiq/state/chinook-failopen.duckdb || cp mnemiq/state/chinook.duckdb mnemiq/state/chinook-failopen.duckdb
+	@curl -sf -o /dev/null http://localhost:8091/healthz || (MNEMIQ_VARIANT=failopen setsid nohup mnemiq/run.sh serve > mnemiq/serve-failopen.log 2>&1 &)
+	@printf "waiting for mnemiq (failopen) "; for i in $$(seq 1 60); do curl -sf -o /dev/null http://localhost:8091/healthz && break; printf .; sleep 2; done; echo " ok"
+
+bench-mnemiq-failopen: mnemiq-failopen-up  ## variant x3 on the 29 and the 15 holdout (same run dirs, system mnemiq_failopen)
+	$(PY) bench/harness.py --repeats $(REPEATS) --systems mnemiq_failopen --out run-gptoss120b-mnemiq-r3 --resume
+	$(PY) bench/harness.py --repeats $(REPEATS) --systems mnemiq_failopen --questions bench/questions_holdout.yaml --out run-gptoss120b-holdout-r3 --resume
 
 report:                                ## combined report (all systems) -> results/combined_summary.md + results/summary.png
 	$(PY) bench/combine.py

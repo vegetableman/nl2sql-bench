@@ -1,6 +1,6 @@
-# nl2sql-bench — combined report (7 systems)
+# nl2sql-bench — combined report (9 systems)
 
-- Generated 2026-10-19 20:50 IST by `bench/combine.py` from: `wrenai` ← `results/run-gptoss120b-r3`, `wrenai_mdl` ← `results/run-gptoss120b-wrenmdl-r3`, `wrenai_mdl_noreason` ← `results/run-gptoss120b-wrenmdl-noreason-r3`, `dbgpt` ← `results/run-gptoss120b-r3`, `cube` ← `results/run-gptoss120b-r3`, `cube_v2` ← `results/run-gptoss120b-cubev2-r3`, `router` ← `results/run-gptoss120b-router-r3`
+- Generated 2026-10-20 09:04 IST by `bench/combine.py` from: `wrenai` ← `results/run-gptoss120b-r3`, `wrenai_mdl` ← `results/run-gptoss120b-wrenmdl-r3`, `wrenai_mdl_noreason` ← `results/run-gptoss120b-wrenmdl-noreason-r3`, `dbgpt` ← `results/run-gptoss120b-r3`, `cube` ← `results/run-gptoss120b-r3`, `cube_v2` ← `results/run-gptoss120b-cubev2-r3`, `router` ← `results/run-gptoss120b-router-r3`, `mnemiq` ← `results/run-gptoss120b-mnemiq-r3`, `mnemiq_failopen` ← `results/run-gptoss120b-mnemiq-r3`
 - Chinook on Postgres 16.4, 29 questions x 3 runs per system; LLM `gpt-oss:120b` via `https://ollama.com/v1`, embeddings `nomic-embed-text` (local ollama); same scorer, 180 s per-call cap, tokens via llm-meter.
 - `wrenai` (OOTB) and `wrenai_mdl` are two separate WrenAI 0.29.2 stacks with identical images/config; the only difference is the semantic layer in `wrenai_mdl/mdl/semantic_layer.yaml` (descriptions, relationship descriptions, 9 calculated fields, 9 generic instructions; no SQL pairs, no views).
 - `wrenai_mdl_noreason` = the same 2nd stack, same project / deployed MDL (hash checked) / instructions, with the single wren-ai-service setting `allow_sql_generation_reasoning: false` (`make wren-mdl-noreason`; `make wren-mdl-restore` switches back). Intent classification stays on. Per-stage timings: `results/stage-latency/stage_latency.md`.
@@ -11,15 +11,17 @@
 
 ## Overall
 
-| System | EX exact | EX relaxed | wrong | exec err | tool err | timeout | unsupported | p50 s | p95 s | mean s | avg prompt tok | avg completion tok | avg LLM calls | token source |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| WrenAI 0.29.2 (out of the box) | 79/87 (91%) | 81/87 (93%) | 4 | 2 | 0 | 0 | 0 | 7.06 | 9.09 | 6.97 | 14,572 | 1,058 | 3.0 | run-gptoss120b-wren-tokens (29 rows) |
-| WrenAI 0.29.2 + semantic layer | 81/87 (93%) | 84/87 (97%) | 2 | 1 | 0 | 0 | 0 | 6.08 | 9.08 | 6.87 | 24,888 | 962 | 3.0 | run-gptoss120b-wrenmdl-r3 (87 rows) |
-| WrenAI 0.29.2 + semantic layer, no reasoning | 86/87 (99%) | 87/87 (100%) | 0 | 0 | 0 | 0 | 0 | 4.05 | 6.07 | 4.29 | 20,941 | 604 | 2.0 | run-gptoss120b-wrenmdl-noreason-r3 (87 rows) |
-| DB-GPT 0.8.2 | 81/87 (93%) | 81/87 (93%) | 3 | 3 | 0 | 0 | 0 | 1.95 | 3.65 | 2.18 | 1,684 | 338 | 1.0 | run-gptoss120b-r3 (87 rows) |
-| Cube Core 1.8.8 + LLM adapter (baseline) | 58/87 (67%) | 65/87 (75%) | 7 | 0 | 0 | 0 | 15 | 1.64 | 3.34 | 1.92 | 1,336 | 276 | 1.0 | run-gptoss120b-r3 (87 rows) |
-| Cube Core 1.8.8 + rich model + LLM adapter v2 (harness-built) | 85/87 (98%) | 85/87 (98%) | 2 | 0 | 0 | 0 | 0 | 1.58 | 3.36 | 1.90 | 3,137 | 265 | 1.1 | run-gptoss120b-cubev2-r3 (87 rows) |
-| Router (cube_v2 → WrenAI semantic, no reasoning) | 86/87 (99%) | 86/87 (99%) | 1 | 0 | 0 | 0 | 0 | 2.09 | 4.49 | 2.25 | 3,106 | 263 | 1.0 | run-gptoss120b-router-r3 (87 rows) |
+| System | EX exact | EX relaxed | wrong | exec err | tool err | timeout | unsupported | declined | p50 s | p95 s | mean s | avg prompt tok | avg completion tok | avg LLM calls | token source |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| WrenAI 0.29.2 (out of the box) | 79/87 (91%) | 81/87 (93%) | 4 | 2 | 0 | 0 | 0 | 0 | 7.06 | 9.09 | 6.97 | 14,572 | 1,058 | 3.0 | run-gptoss120b-wren-tokens (29 rows) |
+| WrenAI 0.29.2 + semantic layer | 81/87 (93%) | 84/87 (97%) | 2 | 1 | 0 | 0 | 0 | 0 | 6.08 | 9.08 | 6.87 | 24,888 | 962 | 3.0 | run-gptoss120b-wrenmdl-r3 (87 rows) |
+| WrenAI 0.29.2 + semantic layer, no reasoning | 86/87 (99%) | 87/87 (100%) | 0 | 0 | 0 | 0 | 0 | 0 | 4.05 | 6.07 | 4.29 | 20,941 | 604 | 2.0 | run-gptoss120b-wrenmdl-noreason-r3 (87 rows) |
+| DB-GPT 0.8.2 | 81/87 (93%) | 81/87 (93%) | 3 | 3 | 0 | 0 | 0 | 0 | 1.95 | 3.65 | 2.18 | 1,684 | 338 | 1.0 | run-gptoss120b-r3 (87 rows) |
+| Cube Core 1.8.8 + LLM adapter (baseline) | 58/87 (67%) | 65/87 (75%) | 7 | 0 | 0 | 0 | 15 | 0 | 1.64 | 3.34 | 1.92 | 1,336 | 276 | 1.0 | run-gptoss120b-r3 (87 rows) |
+| Cube Core 1.8.8 + rich model + LLM adapter v2 (harness-built) | 85/87 (98%) | 85/87 (98%) | 2 | 0 | 0 | 0 | 0 | 0 | 1.58 | 3.36 | 1.90 | 3,137 | 265 | 1.1 | run-gptoss120b-cubev2-r3 (87 rows) |
+| Router (cube_v2 → WrenAI semantic, no reasoning) | 86/87 (99%) | 86/87 (99%) | 1 | 0 | 0 | 0 | 0 | 0 | 2.09 | 4.49 | 2.25 | 3,106 | 263 | 1.0 | run-gptoss120b-router-r3 (87 rows) |
+| mnemiq a453b05 (defaults) | 20/87 (23%) | 20/87 (23%) | 0 | 0 | 65 | 0 | 0 | 2 | 3.26 | 5.27 | 3.66 | 4,863 | 495 | 2.3 | run-gptoss120b-mnemiq-r3 (87 rows) |
+| mnemiq a453b05, judge fail-open variant | 87/87 (100%) | 87/87 (100%) | 0 | 0 | 0 | 0 | 0 | 0 | 4.37 | 6.48 | 4.60 | 5,184 | 640 | 3.0 | run-gptoss120b-mnemiq-r3 (87 rows) |
 
 ## EX exact by difficulty
 
@@ -32,6 +34,8 @@
 | Cube Core 1.8.8 + LLM adapter (baseline) | 19/24 (79%) | 23/27 (85%) | 16/36 (44%) |
 | Cube Core 1.8.8 + rich model + LLM adapter v2 (harness-built) | 24/24 (100%) | 27/27 (100%) | 34/36 (94%) |
 | Router (cube_v2 → WrenAI semantic, no reasoning) | 24/24 (100%) | 27/27 (100%) | 35/36 (97%) |
+| mnemiq a453b05 (defaults) | 14/24 (58%) | 6/27 (22%) | 0/36 (0%) |
+| mnemiq a453b05, judge fail-open variant | 24/24 (100%) | 27/27 (100%) | 36/36 (100%) |
 
 ## Run-to-run variance
 
@@ -44,6 +48,8 @@
 | Cube Core 1.8.8 + LLM adapter (baseline) | 20 / 19 / 19 | 19.3 ± 0.6 | 4 (e04, m09, h08, h10) | 1.77 / 1.65 / 1.55 |
 | Cube Core 1.8.8 + rich model + LLM adapter v2 (harness-built) | 28 / 29 / 28 | 28.3 ± 0.6 | 1 (h10) | 2.06 / 1.55 / 1.46 |
 | Router (cube_v2 → WrenAI semantic, no reasoning) | 29 / 28 / 29 | 28.7 ± 0.6 | 1 (h10) | 2.08 / 2.09 / 2.18 |
+| mnemiq a453b05 (defaults) | 7 / 7 / 6 | 6.7 ± 0.6 | 6 (e06, e07, e08, m03, m04, m05) | 3.43 / 3.13 / 3.29 |
+| mnemiq a453b05, judge fail-open variant | 29 / 29 / 29 | 29.0 ± 0.0 | 0 (-) | 4.59 / 4.37 / 4.19 |
 
 ## WrenAI: out of the box (wrenai) vs + semantic layer (wrenai_mdl) (per question, EX exact over 3 runs)
 
@@ -234,6 +240,83 @@
 |---|---|---|---|
 | 2 | h10 | wrong_result | no predicted column matches gold column 0 |
 
+## mnemiq a453b05 (defaults): every non-exact attempt
+
+| run | id | status | reason / error |
+|---|---|---|---|
+| 1 | e04 | tool_error | mnemiq failed: verifier_unavailable: I could not check this answer: the verifier answered with a reply I could not read. I am not giving you a result I cannot s |
+| 1 | e05 | tool_error | mnemiq failed: verifier_unavailable: I could not check this answer: the verifier answered with a reply I could not read. I am not giving you a result I cannot s |
+| 1 | e08 | tool_error | mnemiq failed: verifier_unavailable: I could not check this answer: the verifier answered with a reply I could not read. I am not giving you a result I cannot s |
+| 1 | m01 | tool_error | mnemiq failed: verifier_unavailable: I could not check this answer: the verifier answered with a reply I could not read. I am not giving you a result I cannot s |
+| 1 | m02 | tool_error | mnemiq failed: verifier_unavailable: I could not check this answer: the verifier answered with a reply I could not read. I am not giving you a result I cannot s |
+| 1 | m05 | tool_error | mnemiq failed: verifier_unavailable: I could not check this answer: the verifier answered with a reply I could not read. I am not giving you a result I cannot s |
+| 1 | m06 | tool_error | mnemiq failed: verifier_unavailable: I could not check this answer: the verifier answered with a reply I could not read. I am not giving you a result I cannot s |
+| 1 | m07 | tool_error | mnemiq failed: verifier_unavailable: I could not check this answer: the verifier answered with a reply I could not read. I am not giving you a result I cannot s |
+| 1 | m08 | tool_error | mnemiq failed: verifier_unavailable: I could not check this answer: the verifier answered with a reply I could not read. I am not giving you a result I cannot s |
+| 1 | m09 | tool_error | mnemiq failed: verifier_unavailable: I could not check this answer: the verifier answered with a reply I could not read. I am not giving you a result I cannot s |
+| 1 | h01 | tool_error | mnemiq failed: verifier_unavailable: I could not check this answer: the verifier answered with a reply I could not read. I am not giving you a result I cannot s |
+| 1 | h02 | tool_error | mnemiq failed: verifier_unavailable: I could not check this answer: the verifier answered with a reply I could not read. I am not giving you a result I cannot s |
+| 1 | h03 | tool_error | mnemiq failed: verifier_unavailable: I could not check this answer: the verifier answered with a reply I could not read. I am not giving you a result I cannot s |
+| 1 | h04 | tool_error | mnemiq failed: verifier_unavailable: I could not check this answer: the verifier answered with a reply I could not read. I am not giving you a result I cannot s |
+| 1 | h05 | tool_error | mnemiq failed: verifier_unavailable: I could not check this answer: the verifier answered with a reply I could not read. I am not giving you a result I cannot s |
+| 1 | h06 | tool_error | mnemiq failed: verifier_unavailable: I could not check this answer: the verifier answered with a reply I could not read. I am not giving you a result I cannot s |
+| 1 | h07 | tool_error | mnemiq failed: verifier_unavailable: I could not check this answer: the verifier answered with a reply I could not read. I am not giving you a result I cannot s |
+| 1 | h08 | tool_error | mnemiq failed: verifier_unavailable: I could not check this answer: the verifier answered with a reply I could not read. I am not giving you a result I cannot s |
+| 1 | h09 | tool_error | mnemiq failed: verifier_unavailable: I could not check this answer: the verifier answered with a reply I could not read. I am not giving you a result I cannot s |
+| 1 | h10 | tool_error | mnemiq failed: verifier_unavailable: I could not check this answer: the verifier answered with a reply I could not read. I am not giving you a result I cannot s |
+| 1 | h11 | tool_error | mnemiq failed: verifier_unavailable: I could not check this answer: the verifier answered with a reply I could not read. I am not giving you a result I cannot s |
+| 1 | h12 | tool_error | mnemiq failed: verifier_unavailable: I could not check this answer: the verifier answered with a reply I could not read. I am not giving you a result I cannot s |
+| 2 | e04 | tool_error | mnemiq failed: verifier_unavailable: I could not check this answer: the verifier answered with a reply I could not read. I am not giving you a result I cannot s |
+| 2 | e05 | tool_error | mnemiq failed: verifier_unavailable: I could not check this answer: the verifier answered with a reply I could not read. I am not giving you a result I cannot s |
+| 2 | m01 | tool_error | mnemiq failed: verifier_unavailable: I could not check this answer: the verifier answered with a reply I could not read. I am not giving you a result I cannot s |
+| 2 | m02 | tool_error | mnemiq failed: verifier_unavailable: I could not check this answer: the verifier answered with a reply I could not read. I am not giving you a result I cannot s |
+| 2 | m03 | tool_error | mnemiq failed: verifier_unavailable: I could not check this answer: the verifier answered with a reply I could not read. I am not giving you a result I cannot s |
+| 2 | m04 | tool_error | mnemiq failed: verifier_unavailable: I could not check this answer: the verifier answered with a reply I could not read. I am not giving you a result I cannot s |
+| 2 | m06 | tool_error | mnemiq failed: verifier_unavailable: I could not check this answer: the verifier answered with a reply I could not read. I am not giving you a result I cannot s |
+| 2 | m07 | tool_error | mnemiq failed: verifier_unavailable: I could not check this answer: the verifier answered with a reply I could not read. I am not giving you a result I cannot s |
+| 2 | m08 | tool_error | mnemiq failed: verifier_unavailable: I could not check this answer: the verifier answered with a reply I could not read. I am not giving you a result I cannot s |
+| 2 | m09 | tool_error | mnemiq failed: verifier_unavailable: I could not check this answer: the verifier answered with a reply I could not read. I am not giving you a result I cannot s |
+| 2 | h01 | tool_error | mnemiq failed: verifier_unavailable: I could not check this answer: the verifier answered with a reply I could not read. I am not giving you a result I cannot s |
+| 2 | h02 | tool_error | mnemiq failed: verifier_unavailable: I could not check this answer: the verifier answered with a reply I could not read. I am not giving you a result I cannot s |
+| 2 | h03 | tool_error | mnemiq failed: verifier_unavailable: I could not check this answer: the verifier answered with a reply I could not read. I am not giving you a result I cannot s |
+| 2 | h04 | tool_error | mnemiq failed: verifier_unavailable: I could not check this answer: the verifier answered with a reply I could not read. I am not giving you a result I cannot s |
+| 2 | h05 | tool_error | mnemiq failed: verifier_unavailable: I could not check this answer: the verifier answered with a reply I could not read. I am not giving you a result I cannot s |
+| 2 | h06 | tool_error | mnemiq failed: verifier_unavailable: I could not check this answer: the verifier answered with a reply I could not read. I am not giving you a result I cannot s |
+| 2 | h07 | tool_error | mnemiq failed: verifier_unavailable: I could not check this answer: the verifier answered with a reply I could not read. I am not giving you a result I cannot s |
+| 2 | h08 | tool_error | mnemiq failed: verifier_unavailable: I could not check this answer: the verifier answered with a reply I could not read. I am not giving you a result I cannot s |
+| 2 | h09 | tool_error | mnemiq failed: verifier_unavailable: I could not check this answer: the verifier answered with a reply I could not read. I am not giving you a result I cannot s |
+| 2 | h10 | tool_error | mnemiq failed: verifier_unavailable: I could not check this answer: the verifier answered with a reply I could not read. I am not giving you a result I cannot s |
+| 2 | h11 | tool_error | mnemiq failed: verifier_unavailable: I could not check this answer: the verifier answered with a reply I could not read. I am not giving you a result I cannot s |
+| 2 | h12 | tool_error | mnemiq failed: verifier_unavailable: I could not check this answer: the verifier answered with a reply I could not read. I am not giving you a result I cannot s |
+| 3 | e04 | tool_error | mnemiq failed: verifier_unavailable: I could not check this answer: the verifier answered with a reply I could not read. I am not giving you a result I cannot s |
+| 3 | e05 | tool_error | mnemiq failed: verifier_unavailable: I could not check this answer: the verifier answered with a reply I could not read. I am not giving you a result I cannot s |
+| 3 | e06 | declined | declined: verification: The result may not correctly answer the question. |
+| 3 | e07 | declined | declined: verification: The result may not correctly answer the question. |
+| 3 | e08 | tool_error | mnemiq failed: verifier_unavailable: I could not check this answer: the verifier answered with a reply I could not read. I am not giving you a result I cannot s |
+| 3 | m01 | tool_error | mnemiq failed: verifier_unavailable: I could not check this answer: the verifier answered with a reply I could not read. I am not giving you a result I cannot s |
+| 3 | m02 | tool_error | mnemiq failed: verifier_unavailable: I could not check this answer: the verifier answered with a reply I could not read. I am not giving you a result I cannot s |
+| 3 | m06 | tool_error | mnemiq failed: verifier_unavailable: I could not check this answer: the verifier answered with a reply I could not read. I am not giving you a result I cannot s |
+| 3 | m07 | tool_error | mnemiq failed: verifier_unavailable: I could not check this answer: the verifier answered with a reply I could not read. I am not giving you a result I cannot s |
+| 3 | m08 | tool_error | mnemiq failed: verifier_unavailable: I could not check this answer: the verifier answered with a reply I could not read. I am not giving you a result I cannot s |
+| 3 | m09 | tool_error | mnemiq failed: verifier_unavailable: I could not check this answer: the verifier answered with a reply I could not read. I am not giving you a result I cannot s |
+| 3 | h01 | tool_error | mnemiq failed: verifier_unavailable: I could not check this answer: the verifier answered with a reply I could not read. I am not giving you a result I cannot s |
+| 3 | h02 | tool_error | mnemiq failed: verifier_unavailable: I could not check this answer: the verifier answered with a reply I could not read. I am not giving you a result I cannot s |
+| 3 | h03 | tool_error | mnemiq failed: verifier_unavailable: I could not check this answer: the verifier answered with a reply I could not read. I am not giving you a result I cannot s |
+| 3 | h04 | tool_error | mnemiq failed: verifier_unavailable: I could not check this answer: the verifier answered with a reply I could not read. I am not giving you a result I cannot s |
+| 3 | h05 | tool_error | mnemiq failed: verifier_unavailable: I could not check this answer: the verifier answered with a reply I could not read. I am not giving you a result I cannot s |
+| 3 | h06 | tool_error | mnemiq failed: verifier_unavailable: I could not check this answer: the verifier answered with a reply I could not read. I am not giving you a result I cannot s |
+| 3 | h07 | tool_error | mnemiq failed: verifier_unavailable: I could not check this answer: the verifier answered with a reply I could not read. I am not giving you a result I cannot s |
+| 3 | h08 | tool_error | mnemiq failed: verifier_unavailable: I could not check this answer: the verifier answered with a reply I could not read. I am not giving you a result I cannot s |
+| 3 | h09 | tool_error | mnemiq failed: verifier_unavailable: I could not check this answer: the verifier answered with a reply I could not read. I am not giving you a result I cannot s |
+| 3 | h10 | tool_error | mnemiq failed: verifier_unavailable: I could not check this answer: the verifier answered with a reply I could not read. I am not giving you a result I cannot s |
+| 3 | h11 | tool_error | mnemiq failed: verifier_unavailable: I could not check this answer: the verifier answered with a reply I could not read. I am not giving you a result I cannot s |
+| 3 | h12 | tool_error | mnemiq failed: verifier_unavailable: I could not check this answer: the verifier answered with a reply I could not read. I am not giving you a result I cannot s |
+
+## mnemiq a453b05, judge fail-open variant: every non-exact attempt
+
+| run | id | status | reason / error |
+|---|---|---|---|
+
 ## WrenAI per-stage latency (wrenai_mdl vs wrenai_mdl_noreason)
 
 Generated by `bench/stage_latency.py`; per-attempt data in `results/stage-latency/stages.csv`. Medians over the 87 attempts per system (seconds).
@@ -271,51 +354,53 @@ Polling: the time between the ask actually finishing and wren-ui's next poll is 
 
 ## Per question, all systems (status per run)
 
-| id | diff | WrenAI 0.29.2 (out of the box) | WrenAI 0.29.2 + semantic layer | WrenAI 0.29.2 + semantic layer, no reasoning | DB-GPT 0.8.2 | Cube Core 1.8.8 + LLM adapter (baseline) | Cube Core 1.8.8 + rich model + LLM adapter v2 (harness-built) | Router (cube_v2 → WrenAI semantic, no reasoning) |
-|---|---|---|---|---|---|---|---|---|
-| e01 | easy | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| e02 | easy | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| e03 | easy | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| e04 | easy | ✅ ✅ ✅ | 🟡 ✅ ✅ | 🟡 ✅ ✅ | ❌ ❌ ❌ | ✅ ❌ ❌ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| e05 | easy | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| e06 | easy | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| e07 | easy | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | 🟡 🟡 🟡 | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| e08 | easy | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| m01 | medium | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| m02 | medium | ❌ ❌ ❌ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| m03 | medium | ✅ 💥 ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| m04 | medium | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| m05 | medium | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| m06 | medium | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| m07 | medium | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | 🟡 🟡 🟡 | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| m08 | medium | ✅ ✅ ✅ | 🟡 ✅ 🟡 | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| m09 | medium | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ❌ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| h01 | hard | ✅ 🟡 ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| h02 | hard | ✅ ✅ ✅ | ❌ ❌ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| h03 | hard | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⛔ ⛔ ⛔ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| h04 | hard | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⛔ ⛔ ⛔ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| h05 | hard | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⛔ ⛔ ⛔ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| h06 | hard | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| h07 | hard | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ❌ ❌ ❌ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| h08 | hard | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ❌ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| h09 | hard | ✅ ✅ ✅ | 💥 ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⛔ ⛔ ⛔ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| h10 | hard | ❌ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ 🟡 ✅ | ❌ ✅ ❌ | ✅ ❌ ✅ |
-| h11 | hard | ✅ 💥 ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | 💥 💥 💥 | ⛔ ⛔ ⛔ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| h12 | hard | ✅ 🟡 ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
+| id | diff | WrenAI 0.29.2 (out of the box) | WrenAI 0.29.2 + semantic layer | WrenAI 0.29.2 + semantic layer, no reasoning | DB-GPT 0.8.2 | Cube Core 1.8.8 + LLM adapter (baseline) | Cube Core 1.8.8 + rich model + LLM adapter v2 (harness-built) | Router (cube_v2 → WrenAI semantic, no reasoning) | mnemiq a453b05 (defaults) | mnemiq a453b05, judge fail-open variant |
+|---|---|---|---|---|---|---|---|---|---|---|
+| e01 | easy | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
+| e02 | easy | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
+| e03 | easy | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
+| e04 | easy | ✅ ✅ ✅ | 🟡 ✅ ✅ | 🟡 ✅ ✅ | ❌ ❌ ❌ | ✅ ❌ ❌ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ |
+| e05 | easy | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ |
+| e06 | easy | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ 🚫 | ✅ ✅ ✅ |
+| e07 | easy | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | 🟡 🟡 🟡 | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ 🚫 | ✅ ✅ ✅ |
+| e08 | easy | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ✅ ⚠️ | ✅ ✅ ✅ |
+| m01 | medium | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ |
+| m02 | medium | ❌ ❌ ❌ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ |
+| m03 | medium | ✅ 💥 ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ⚠️ ✅ | ✅ ✅ ✅ |
+| m04 | medium | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ⚠️ ✅ | ✅ ✅ ✅ |
+| m05 | medium | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ✅ ✅ | ✅ ✅ ✅ |
+| m06 | medium | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ |
+| m07 | medium | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | 🟡 🟡 🟡 | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ |
+| m08 | medium | ✅ ✅ ✅ | 🟡 ✅ 🟡 | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ |
+| m09 | medium | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ❌ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ |
+| h01 | hard | ✅ 🟡 ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ |
+| h02 | hard | ✅ ✅ ✅ | ❌ ❌ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ |
+| h03 | hard | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⛔ ⛔ ⛔ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ |
+| h04 | hard | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⛔ ⛔ ⛔ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ |
+| h05 | hard | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⛔ ⛔ ⛔ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ |
+| h06 | hard | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ |
+| h07 | hard | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ❌ ❌ ❌ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ |
+| h08 | hard | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ❌ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ |
+| h09 | hard | ✅ ✅ ✅ | 💥 ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⛔ ⛔ ⛔ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ |
+| h10 | hard | ❌ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ 🟡 ✅ | ❌ ✅ ❌ | ✅ ❌ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ |
+| h11 | hard | ✅ 💥 ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | 💥 💥 💥 | ⛔ ⛔ ⛔ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ |
+| h12 | hard | ✅ 🟡 ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ |
 
-Legend: ✅ exact, 🟡 extra columns, ❌ wrong result, 💥 SQL exec error, ⚠️ tool/API error, ⏱️ timeout (failure), ⛔ declared unsupported.
+Legend: ✅ exact, 🟡 extra columns, ❌ wrong result, 💥 SQL exec error, ⚠️ tool/API error, ⏱️ timeout (failure), ⛔ declared unsupported, 🚫 declined (mnemiq deferral, counts as not correct).
 
 ## Held-out set (15 new questions)
 
-Source: `bench/questions_holdout.yaml`. Models/prompts/MDL **unchanged**. 15 q × 3 runs each for `router`, `cube_v2`, `wrenai_mdl_noreason`, `dbgpt`.
+Source: `bench/questions_holdout.yaml`. Models/prompts/MDL **unchanged** (not tuned to these questions). 15 q × 3 runs each for `router`, `cube_v2`, `wrenai_mdl_noreason`, `dbgpt`, `mnemiq`, `mnemiq_failopen`.
 Results: `results/run-gptoss120b-holdout-r3/`. Chart: `results/holdout_summary.png`.
 
-| System | EX exact | EX relaxed | p50 s | p95 s | avg prompt tok | avg LLM calls |
-|---|---|---|---|---|---|---|
-| Router (cube_v2 → Wren noreason) | 39/45 (87%) | 39/45 (87%) | 3.54 | 7.77 | 11,327 | 1.9 |
-| cube_v2 | 25/45 (56%) | 25/45 (56%) | 1.92 | 5.26 | 3,436 | 1.2 |
-| WrenAI + semantic, no reasoning | 42/45 (93%) | 42/45 (93%) | 4.06 | 6.89 | 20,811 | 2.0 |
-| DB-GPT 0.8.2 | 39/45 (87%) | 39/45 (87%) | 2.61 | 4.32 | 1,693 | 1.0 |
+| System | EX exact | EX relaxed | wrong | exec err | tool err | timeout | unsupported | declined | p50 s | p95 s | avg prompt tok | avg LLM calls |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| Router (cube_v2 → Wren noreason) | 39/45 (87%) | 39/45 (87%) | 6 | 0 | 0 | 0 | 0 | 0 | 3.54 | 7.77 | 11,327 | 1.9 |
+| cube_v2 | 25/45 (56%) | 25/45 (56%) | 7 | 1 | 0 | 1 | 11 | 0 | 1.92 | 5.26 | 3,436 | 1.2 |
+| WrenAI + semantic, no reasoning | 42/45 (93%) | 42/45 (93%) | 3 | 0 | 0 | 0 | 0 | 0 | 4.06 | 6.89 | 20,811 | 2.0 |
+| DB-GPT 0.8.2 | 39/45 (87%) | 39/45 (87%) | 6 | 0 | 0 | 0 | 0 | 0 | 2.61 | 4.32 | 1,693 | 1.0 |
+| mnemiq a453b05 (defaults) | 5/45 (11%) | 5/45 (11%) | 0 | 0 | 40 | 0 | 0 | 0 | 3.33 | 5.40 | 4,830 | 2.2 |
+| mnemiq a453b05, judge fail-open variant | 44/45 (98%) | 44/45 (98%) | 1 | 0 | 0 | 0 | 0 | 0 | 4.10 | 7.41 | 5,237 | 3.1 |
 
 ### Router fallback / silent-wrong (holdout)
 
@@ -326,27 +411,87 @@ Results: `results/run-gptoss120b-holdout-r3/`. Chart: `results/holdout_summary.p
 - Silent-wrong (Cube answered, no fallback, not EX): 6 — ho12@r1, ho12@r2, ho14@r2, ho04@r3, ho12@r3, ho14@r3
 - Fell back but Wren still wrong: 0 — none
 
-### DB-GPT misses (holdout)
+### DB-GPT 0.8.2: non-exact attempts (holdout)
 
-- Non-exact: 6/45 — all `wrong_result` (no tool/exec errors or timeouts)
-- IDs: ho12, ho14 (each 0/3). ho12: returned 50 artists vs gold 110; ho14: week-number column mismatch.
+| run | id | status | reason / error |
+|---|---|---|---|
+| 1 | ho12 | wrong_result | row count 50 != gold 110 |
+| 1 | ho14 | wrong_result | no predicted column matches gold column 0 |
+| 2 | ho12 | wrong_result | row count 50 != gold 110 |
+| 2 | ho14 | wrong_result | no predicted column matches gold column 0 |
+| 3 | ho12 | wrong_result | row count 50 != gold 110 |
+| 3 | ho14 | wrong_result | no predicted column matches gold column 0 |
+
+### mnemiq a453b05 (defaults): non-exact attempts (holdout)
+
+| run | id | status | reason / error |
+|---|---|---|---|
+| 1 | ho03 | tool_error | mnemiq failed: verifier_unavailable: I could not check this answer: the verifier answered with a reply I could not read. I am not giving you a result  |
+| 1 | ho04 | tool_error | mnemiq failed: verifier_unavailable: I could not check this answer: the verifier answered with a reply I could not read. I am not giving you a result  |
+| 1 | ho05 | tool_error | mnemiq failed: verifier_unavailable: I could not check this answer: the verifier answered with a reply I could not read. I am not giving you a result  |
+| 1 | ho06 | tool_error | mnemiq failed: verifier_unavailable: I could not check this answer: the verifier answered with a reply I could not read. I am not giving you a result  |
+| 1 | ho07 | tool_error | mnemiq failed: verifier_unavailable: I could not check this answer: the verifier answered with a reply I could not read. I am not giving you a result  |
+| 1 | ho09 | tool_error | mnemiq failed: verifier_unavailable: I could not check this answer: the verifier answered with a reply I could not read. I am not giving you a result  |
+| 1 | ho10 | tool_error | mnemiq failed: verifier_unavailable: I could not check this answer: the verifier answered with a reply I could not read. I am not giving you a result  |
+| 1 | ho11 | tool_error | mnemiq failed: verifier_unavailable: I could not check this answer: the verifier answered with a reply I could not read. I am not giving you a result  |
+| 1 | ho12 | tool_error | mnemiq failed: verifier_unavailable: I could not check this answer: the verifier answered with a reply I could not read. I am not giving you a result  |
+| 1 | ho13 | tool_error | mnemiq failed: verifier_unavailable: I could not check this answer: the verifier answered with a reply I could not read. I am not giving you a result  |
+| 1 | ho14 | tool_error | mnemiq failed: verifier_unavailable: I could not check this answer: the verifier answered with a reply I could not read. I am not giving you a result  |
+| 1 | ho15 | tool_error | mnemiq failed: verifier_unavailable: I could not check this answer: the verifier answered with a reply I could not read. I am not giving you a result  |
+| 2 | ho01 | tool_error | mnemiq failed: verifier_unavailable: I could not check this answer: the verifier answered with a reply I could not read. I am not giving you a result  |
+| 2 | ho02 | tool_error | mnemiq failed: verifier_unavailable: I could not check this answer: the verifier answered with a reply I could not read. I am not giving you a result  |
+| 2 | ho03 | tool_error | mnemiq failed: verifier_unavailable: I could not check this answer: the verifier answered with a reply I could not read. I am not giving you a result  |
+| 2 | ho04 | tool_error | mnemiq failed: verifier_unavailable: I could not check this answer: the verifier answered with a reply I could not read. I am not giving you a result  |
+| 2 | ho05 | tool_error | mnemiq failed: verifier_unavailable: I could not check this answer: the verifier answered with a reply I could not read. I am not giving you a result  |
+| 2 | ho06 | tool_error | mnemiq failed: verifier_unavailable: I could not check this answer: the verifier answered with a reply I could not read. I am not giving you a result  |
+| 2 | ho07 | tool_error | mnemiq failed: verifier_unavailable: I could not check this answer: the verifier answered with a reply I could not read. I am not giving you a result  |
+| 2 | ho09 | tool_error | mnemiq failed: verifier_unavailable: I could not check this answer: the verifier answered with a reply I could not read. I am not giving you a result  |
+| 2 | ho10 | tool_error | mnemiq failed: verifier_unavailable: I could not check this answer: the verifier answered with a reply I could not read. I am not giving you a result  |
+| 2 | ho11 | tool_error | mnemiq failed: verifier_unavailable: I could not check this answer: the verifier answered with a reply I could not read. I am not giving you a result  |
+| 2 | ho12 | tool_error | mnemiq failed: verifier_unavailable: I could not check this answer: the verifier answered with a reply I could not read. I am not giving you a result  |
+| 2 | ho13 | tool_error | mnemiq failed: verifier_unavailable: I could not check this answer: the verifier answered with a reply I could not read. I am not giving you a result  |
+| 2 | ho14 | tool_error | mnemiq failed: verifier_unavailable: I could not check this answer: the verifier answered with a reply I could not read. I am not giving you a result  |
+| 2 | ho15 | tool_error | mnemiq failed: verifier_unavailable: I could not check this answer: the verifier answered with a reply I could not read. I am not giving you a result  |
+| 3 | ho01 | tool_error | mnemiq failed: verifier_unavailable: I could not check this answer: the verifier answered with a reply I could not read. I am not giving you a result  |
+| 3 | ho02 | tool_error | mnemiq failed: verifier_unavailable: I could not check this answer: the verifier answered with a reply I could not read. I am not giving you a result  |
+| 3 | ho03 | tool_error | mnemiq failed: verifier_unavailable: I could not check this answer: the verifier answered with a reply I could not read. I am not giving you a result  |
+| 3 | ho04 | tool_error | mnemiq failed: verifier_unavailable: I could not check this answer: the verifier answered with a reply I could not read. I am not giving you a result  |
+| 3 | ho05 | tool_error | mnemiq failed: verifier_unavailable: I could not check this answer: the verifier answered with a reply I could not read. I am not giving you a result  |
+| 3 | ho06 | tool_error | mnemiq failed: verifier_unavailable: I could not check this answer: the verifier answered with a reply I could not read. I am not giving you a result  |
+| 3 | ho07 | tool_error | mnemiq failed: verifier_unavailable: I could not check this answer: the verifier answered with a reply I could not read. I am not giving you a result  |
+| 3 | ho08 | tool_error | mnemiq failed: verifier_unavailable: I could not check this answer: the verifier answered with a reply I could not read. I am not giving you a result  |
+| 3 | ho09 | tool_error | mnemiq failed: verifier_unavailable: I could not check this answer: the verifier answered with a reply I could not read. I am not giving you a result  |
+| 3 | ho10 | tool_error | mnemiq failed: verifier_unavailable: I could not check this answer: the verifier answered with a reply I could not read. I am not giving you a result  |
+| 3 | ho11 | tool_error | mnemiq failed: verifier_unavailable: I could not check this answer: the verifier answered with a reply I could not read. I am not giving you a result  |
+| 3 | ho12 | tool_error | mnemiq failed: verifier_unavailable: I could not check this answer: the verifier answered with a reply I could not read. I am not giving you a result  |
+| 3 | ho13 | tool_error | mnemiq failed: verifier_unavailable: I could not check this answer: the verifier answered with a reply I could not read. I am not giving you a result  |
+| 3 | ho14 | tool_error | mnemiq failed: verifier_unavailable: I could not check this answer: the verifier answered with a reply I could not read. I am not giving you a result  |
+
+### mnemiq a453b05, judge fail-open variant: non-exact attempts (holdout)
+
+| run | id | status | reason / error |
+|---|---|---|---|
+| 1 | ho14 | wrong_result | no predicted column matches gold column 0 |
 
 ### Per-question statuses (holdout)
 
-| id | diff | question | router | cube_v2 | wren noreason | dbgpt |
-|---|---|---|---|---|---|---|
-| ho01 | easy | How many distinct media types are there? | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| ho02 | easy | How many customers have a fax number recorded? | ✅ ✅ ✅ | ⛔ ⛔ ⛔ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| ho03 | easy | How many tracks are larger than 15 megabytes (bytes > 15 * 1024 * | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| ho04 | easy | How many invoices have a billing address that contains the word S | ✅ ✅ ❌ | ❌ ❌ ❌ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| ho05 | medium | What is the average track file size in bytes for each media type? | ✅ ✅ ✅ | ✅ ⛔ ⛔ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| ho06 | medium | How many playlists contain tracks from at least 10 different genr | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| ho07 | medium | List employees born in the 1970s. Return first name, last name an | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| ho08 | medium | How many customers have a phone number that starts with '+55'? | ✅ ✅ ✅ | ⛔ ⛔ ⛔ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| ho09 | medium | What percentage of total sales revenue (unit price times quantity | ✅ ✅ ✅ | ✅ ❌ ❌ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| ho10 | hard | For each day of the week in 2024, how many invoices were issued?  | ✅ ✅ ✅ | ✅ ✅ ⏱️ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| ho11 | hard | For each support representative, which customer has the highest t | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| ho12 | hard | Which artists have never had any track appear on an invoice line  | ❌ ❌ ❌ | ❌ 💥 ❌ | ✅ ✅ ✅ | ❌ ❌ ❌ |
-| ho13 | hard | For each quarter of 2024, show the total invoice revenue and the  | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| ho14 | hard | Which ISO week numbers of 2023 had the highest invoice revenue? R | ✅ ❌ ❌ | ✅ ✅ ✅ | ❌ ❌ ❌ | ❌ ❌ ❌ |
-| ho15 | hard | How many distinct billing postal codes appear on invoices billed  | ✅ ✅ ✅ | ⛔ ⛔ ⛔ | ✅ ✅ ✅ | ✅ ✅ ✅ |
+| id | diff | question | Router (cube_v2 → Wren noreason) | cube_v2 | WrenAI + semantic, no reasoning | DB-GPT 0.8.2 | mnemiq a453b05 (defaults) | mnemiq a453b05, judge fail-open variant |
+|---|---|---|---|---|---|---|---|---|
+| ho01 | easy | How many distinct media types are there? | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ⚠️ ⚠️ | ✅ ✅ ✅ |
+| ho02 | easy | How many customers have a fax number recorded? | ✅ ✅ ✅ | ⛔ ⛔ ⛔ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ⚠️ ⚠️ | ✅ ✅ ✅ |
+| ho03 | easy | How many tracks are larger than 15 megabytes (bytes > 15 * 1 | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ |
+| ho04 | easy | How many invoices have a billing address that contains the w | ✅ ✅ ❌ | ❌ ❌ ❌ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ |
+| ho05 | medium | What is the average track file size in bytes for each media  | ✅ ✅ ✅ | ✅ ⛔ ⛔ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ |
+| ho06 | medium | How many playlists contain tracks from at least 10 different | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ |
+| ho07 | medium | List employees born in the 1970s. Return first name, last na | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ |
+| ho08 | medium | How many customers have a phone number that starts with '+55 | ✅ ✅ ✅ | ⛔ ⛔ ⛔ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ⚠️ | ✅ ✅ ✅ |
+| ho09 | medium | What percentage of total sales revenue (unit price times qua | ✅ ✅ ✅ | ✅ ❌ ❌ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ |
+| ho10 | hard | For each day of the week in 2024, how many invoices were iss | ✅ ✅ ✅ | ✅ ✅ ⏱️ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ |
+| ho11 | hard | For each support representative, which customer has the high | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ |
+| ho12 | hard | Which artists have never had any track appear on an invoice  | ❌ ❌ ❌ | ❌ 💥 ❌ | ✅ ✅ ✅ | ❌ ❌ ❌ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ |
+| ho13 | hard | For each quarter of 2024, show the total invoice revenue and | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ |
+| ho14 | hard | Which ISO week numbers of 2023 had the highest invoice reven | ✅ ❌ ❌ | ✅ ✅ ✅ | ❌ ❌ ❌ | ❌ ❌ ❌ | ⚠️ ⚠️ ⚠️ | ❌ ✅ ✅ |
+| ho15 | hard | How many distinct billing postal codes appear on invoices bi | ✅ ✅ ✅ | ⛔ ⛔ ⛔ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ✅ | ✅ ✅ ✅ |
+
+Legend: ✅ exact, 🟡 extra columns, ❌ wrong, 💥 exec error, ⚠️ tool/API error, ⏱️ timeout, ⛔ unsupported (Cube), 🚫 declined (mnemiq deferral).
+

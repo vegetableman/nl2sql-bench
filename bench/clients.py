@@ -512,3 +512,51 @@ class RouterClient:
             "attempts": cube_res.get("attempts"),
         }
         return out
+
+
+# ------------------------------------------------------------------ mnemiq
+class MnemiqClient:
+    """mnemiq (agenticfabriq/mnemiq, Apache-2.0) – HTTP API of `mnemiq serve --http` (mnemiq/run.sh serve,
+    :8090), out-of-the-box engine settings (default mode `thinking`). POST /v1/ask {question}.
+    A deferral (deferred=true, e.g. reason_code `unanswerable`) is recorded as `declined`; failed=true as a
+    tool error. Rows: mnemiq's own result preview when it is complete (<=100 rows, not truncated/capped);
+    otherwise the returned SQL (Postgres dialect, as asked) is re-executed by the harness read-only."""
+    name = "mnemiq"
+
+    def __init__(self, env):
+        self.url = f"http://localhost:{env.get('MNEMIQ_PORT', '8090')}/v1/ask"
+
+    def generate(self, question):
+        r = httpx.post(self.url, json={"question": question}, timeout=TIMEOUT)
+        try:
+            j = r.json()
+        except Exception:
+            return {"error": f"HTTP {r.status_code}: {r.text[:300]}"}
+        raw = {k: j.get(k) for k in ("answer", "deferred", "failed", "reason_code", "mode", "attempts", "corrected",
+                                     "verified", "judge_engaged", "candidates_executed", "timing")}
+        p = j.get("preview") or {}
+        raw["preview_meta"] = {k: p.get(k) for k in ("row_count", "truncated", "capped")} if p else None
+        if r.status_code != 200:
+            return {"error": f"HTTP {r.status_code}: {str(j)[:400]}", "raw": raw}
+        if j.get("deferred"):
+            return {"error": f"declined: {j.get('reason_code')}: {(j.get('answer') or '')[:300]}", "sql": j.get("sql") or "", "raw": raw}
+        if j.get("failed"):
+            return {"error": f"mnemiq failed: {j.get('reason_code')}: {(j.get('answer') or '')[:300]}", "sql": j.get("sql") or "", "raw": raw}
+        sql = j.get("sql")
+        if p and p.get("rows") is not None and not p.get("truncated") and not p.get("capped"):
+            raw["rows_from"] = "mnemiq_preview"
+            return {"sql": sql or "", "rows": [list(x) for x in p["rows"]], "raw": raw}
+        if not sql:
+            return {"error": "mnemiq: answer without SQL or rows", "raw": raw}
+        raw["rows_from"] = "harness_reexec"
+        return {"sql": sql, "raw": raw}
+
+
+class MnemiqFailOpenClient(MnemiqClient):
+    """Variant of `mnemiq`: same pinned engine, store (copied), policy and endpoints; ONE setting differs,
+    MNEMIQ_VERIFY_FAIL_CLOSED=0 (documented: an unreadable/unreachable judge returns the answer unchecked).
+    Served on :8091 with llm-meter prefix /mnemiqfo/."""
+    name = "mnemiq_failopen"
+
+    def __init__(self, env):
+        self.url = f"http://localhost:{env.get('MNEMIQ_FAILOPEN_PORT', '8091')}/v1/ask"

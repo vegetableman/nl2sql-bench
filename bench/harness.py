@@ -7,10 +7,10 @@ import argparse, concurrent.futures as cf, csv, datetime as dt, json, statistics
 import httpx, psycopg, yaml
 from zoneinfo import ZoneInfo
 from common import ROOT, load_env, compare
-from clients import WrenClient, WrenMDLClient, WrenMDLNoReasonClient, DBGPTClient, CubeClient, CubeV2Client, RouterClient, MockSQLClient
+from clients import WrenClient, WrenMDLClient, WrenMDLNoReasonClient, DBGPTClient, CubeClient, CubeV2Client, RouterClient, MnemiqClient, MnemiqFailOpenClient, MockSQLClient
 
-METER_KEY = {"cube_v2": "cube2", "wrenai": "wren", "wrenai_mdl": "wrenmdl", "wrenai_mdl_noreason": "wrenmdlnr", "router": "router"}  # llm-meter path prefix per system; router also sums wrenmdlnr on fallback
-LABELS = {"wrenai": "WrenAI 0.29.2 (out of the box)", "wrenai_mdl": "WrenAI 0.29.2 + semantic layer", "wrenai_mdl_noreason": "WrenAI 0.29.2 + semantic layer, no reasoning", "dbgpt": "DB-GPT 0.8.2", "cube": "Cube Core 1.8.8 + LLM adapter (baseline)", "cube_v2": "Cube Core 1.8.8 + rich model + LLM adapter v2 (harness-built)", "router": "Router (cube_v2 → WrenAI semantic, no reasoning)"}
+METER_KEY = {"cube_v2": "cube2", "wrenai": "wren", "wrenai_mdl": "wrenmdl", "wrenai_mdl_noreason": "wrenmdlnr", "router": "router", "mnemiq": "mnemiq", "mnemiq_failopen": "mnemiqfo"}  # llm-meter path prefix per system; router also sums wrenmdlnr on fallback
+LABELS = {"wrenai": "WrenAI 0.29.2 (out of the box)", "wrenai_mdl": "WrenAI 0.29.2 + semantic layer", "wrenai_mdl_noreason": "WrenAI 0.29.2 + semantic layer, no reasoning", "dbgpt": "DB-GPT 0.8.2", "cube": "Cube Core 1.8.8 + LLM adapter (baseline)", "cube_v2": "Cube Core 1.8.8 + rich model + LLM adapter v2 (harness-built)", "router": "Router (cube_v2 → WrenAI semantic, no reasoning)", "mnemiq": "mnemiq (agenticfabriq, a453b05, defaults)", "mnemiq_failopen": "mnemiq, judge fail-open variant"}
 
 
 def run_sql(conn, sql, limit_rows=100000):
@@ -93,7 +93,7 @@ def main():
         elif a.mock:
             clients[s] = MockSQLClient(s, qs)
         else:
-            clients[s] = {"wrenai": WrenClient, "wrenai_mdl": WrenMDLClient, "wrenai_mdl_noreason": WrenMDLNoReasonClient, "dbgpt": DBGPTClient}[s](env)
+            clients[s] = {"wrenai": WrenClient, "wrenai_mdl": WrenMDLClient, "wrenai_mdl_noreason": WrenMDLNoReasonClient, "dbgpt": DBGPTClient, "mnemiq": MnemiqClient, "mnemiq_failopen": MnemiqFailOpenClient}[s](env)
 
     run_id = a.out or (dt.datetime.now().strftime("%Y%m%d-%H%M%S") + ("-mock" if a.mock else ""))
     out = ROOT / "results" / run_id
@@ -167,7 +167,7 @@ def main():
                 if res.get("timeout") or rec["error"].startswith("client exception: ") and "timed out" in rec["error"].lower():
                     rec["status"] = "timeout"
                 elif rec["error"]:
-                    rec["status"] = ("unsupported" if rec["error"].startswith("unsupported")
+                    rec["status"] = ("unsupported" if rec["error"].startswith("unsupported") else "declined" if rec["error"].startswith("declined:")
                                      else "exec_error" if s == "cube_v2" and rec["error"].startswith("cube: ") else "tool_error")
                 elif "rows" in res:
                     pred = res["rows"]
@@ -211,8 +211,8 @@ def summary(rows, systems, qs, a, env):
          "  EX(relaxed) also accepts extra columns. Latency = wall time of the tool's API call (question -> SQL / result).",
          "  Tokens = measured by llm-meter proxy (chat prompt+completion; embeddings separate).",
          f"- Per-call wall-clock cap {a.timeout:.0f}s: a call exceeding it is recorded as `timeout` and counts as a failure.", ""]
-    L += ["| System | EX exact | EX relaxed | wrong result | tool errors | exec errors | timeouts | unsupported | p50 latency s | p95 latency s | avg prompt tok | avg completion tok |",
-          "|---|---|---|---|---|---|---|---|---|---|---|---|"]
+    L += ["| System | EX exact | EX relaxed | wrong result | tool errors | exec errors | timeouts | unsupported | declined | p50 latency s | p95 latency s | avg prompt tok | avg completion tok |",
+          "|---|---|---|---|---|---|---|---|---|---|---|---|---|"]
     for s in systems:
         R = [r for r in rows if r["system"] == s]
         n = len(R)
@@ -221,7 +221,7 @@ def summary(rows, systems, qs, a, env):
         ct = [r["completion_tokens"] for r in R if r["completion_tokens"] is not None]
         f = lambda k: sum(1 for r in R if r["status"] == k)
         L.append(f"| {LABELS.get(s, s)} | {sum(r['exact'] for r in R)}/{n} ({100*sum(r['exact'] for r in R)/n:.0f}%) | "
-                 f"{sum(r['relaxed'] for r in R)}/{n} ({100*sum(r['relaxed'] for r in R)/n:.0f}%) | {f('wrong_result')} | {f('tool_error')} | {f('exec_error')} | {f('timeout')} | {f('unsupported')} | "
+                 f"{sum(r['relaxed'] for r in R)}/{n} ({100*sum(r['relaxed'] for r in R)/n:.0f}%) | {f('wrong_result')} | {f('tool_error')} | {f('exec_error')} | {f('timeout')} | {f('unsupported')} | {f('declined')} | "
                  f"{pct(lat,50):.2f} | {pct(lat,95):.2f} | {statistics.mean(pt) if pt else 0:.0f} | {statistics.mean(ct) if ct else 0:.0f} |")
     L += ["", "## EX (exact) by difficulty", "", "| System | easy | medium | hard |", "|---|---|---|---|"]
     for s in systems:
@@ -257,9 +257,9 @@ def summary(rows, systems, qs, a, env):
         for s in systems:
             R = [r for r in rows if r["system"] == s and r["id"] == q["id"]]
             cells.append(" ".join({"correct": "✅", "correct_extra_cols": "🟡", "wrong_result": "❌", "exec_error": "💥",
-                                   "tool_error": "⚠️", "unsupported": "⛔", "timeout": "⏱️"}.get(r["status"], "?") for r in R))
+                                   "tool_error": "⚠️", "unsupported": "⛔", "timeout": "⏱️", "declined": "🚫"}.get(r["status"], "?") for r in R))
         L.append(f"| {q['id']} | {q['difficulty']} | " + " | ".join(cells) + " |")
-    L += ["", "Legend: ✅ exact match, 🟡 match with extra columns, ❌ wrong result, 💥 SQL failed to execute, ⚠️ tool/API error, ⏱️ timeout (no answer within the per-call cap; counted as failure), ⛔ declared unsupported."]
+    L += ["", "Legend: ✅ exact match, 🟡 match with extra columns, ❌ wrong result, 💥 SQL failed to execute, ⚠️ tool/API error, ⏱️ timeout (no answer within the per-call cap; counted as failure), ⛔ declared unsupported, 🚫 declined (mnemiq deferral; counts as not correct)."]
     return "\n".join(L) + "\n"
 
 

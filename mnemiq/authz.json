@@ -1,0 +1,9 @@
+{
+  "roles": {
+    "bench": {
+      "read": ["album", "artist", "customer", "employee", "genre", "invoice", "invoice_line",
+               "media_type", "playlist", "playlist_track", "track"],
+      "pii_clearance": ["pii", "phi"]
+    }
+  }
+}

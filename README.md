@@ -10,6 +10,7 @@ Same natural-language questions, same Postgres database, same LLM, measured the 
 | **DB-GPT 0.8.2** (official `dbgpt-openai` image + psycopg2) | NL → SQL (chat_data mode) | `POST http://localhost:5670/api/v2/chat/completions` `{chat_mode:"chat_data", chat_param:"chinook", stream:false}`; SQL is parsed out of the `<chart-view content=…>` block in the reply |
 | **Cube Core 1.8.8 + LLM adapter (baseline)** — system `cube` | Cube Core has **no OSS NL interface** (the AI API / D3 is Cube Cloud-only; OSS v1.8.8 api-gateway only has `/v1/load, /sql, /meta, /cubesql, /dry-run, …`). The harness gives the same LLM the `/v1/meta` model + join list and asks for a Cube REST query JSON (1 self-correction retry on Cube errors) | `POST http://localhost:4000/cubejs-api/v1/load` |
 | **Cube Core 1.8.8 + rich model + LLM adapter v2 (harness-built)** — system `cube_v2` (service `cube_v2`, REST :4001, SQL API :15432) | same LLM gets the *views* of `cube_v2/model` (with descriptions) from `/v1/meta` and writes ONE Cube SQL API query (Postgres dialect, `MEASURE()`, push-down/post-processing); 1 repair retry on Cube errors | Cube SQL API (Postgres wire protocol) at `localhost:15432` — executed by Cube, never directly on Postgres |
+| **mnemiq @ a453b05** — systems `mnemiq` (defaults) and `mnemiq_failopen` (one-setting variant) | NL → SQL; its own enrichment (`mnemiq enrich`: profiling + one LLM description pass, 11 tables) and retrieval index (`mnemiq build`, nomic-embed-text); default mode `thinking` (1 candidate, corrector, deterministic sanity + LLM judge) | `POST http://localhost:8090/v1/ask` `{question}` (`mnemiq serve --http`; variant on :8091); a deferral is scored `declined` |
 | **Router** — system `router` | try cube_v2 first (prompt copy that may reply `CANNOT_EXPRESS`); fall back to WrenAI + semantic layer, no reasoning on unsupported / Cube error / empty result. No gold used for routing. | cube_v2 SQL API + `POST http://localhost:3001/api/v1/generate_sql`; tokens under `/router/` (+ `/wrenmdlnr/` on fallback) |
 
 Fairness controls
@@ -35,6 +36,8 @@ make bench SYSTEMS=wrenai_mdl REPEATS=3
 make wren-mdl-noreason           # switch 2nd stack to the no-reasoning variant, then:
 make bench SYSTEMS=wrenai_mdl_noreason REPEATS=3
 make bench-router REPEATS=3      # router (needs noreason variant; make target switches it)
+make mnemiq-install && make bench-mnemiq REPEATS=3   # mnemiq (pinned commit) on the 29 + the 15 holdout
+make bench-mnemiq-failopen REPEATS=3                 # mnemiq judge fail-open variant (see below)
 make bench-holdout REPEATS=3     # 15 held-out q × router,cube_v2,wrenai_mdl_noreason → results/run-gptoss120b-holdout-r3/
 make wren-mdl-restore            # switch back (wrenai_mdl); config.yaml is re-rendered byte-identically
 .venv/bin/python bench/stage_latency.py   # per-stage latency from wren-ai-service logs (see below)
@@ -74,6 +77,8 @@ bench/questions.yaml        29 questions (8 easy / 9 medium / 12 hard) with gold
 bench/questions_holdout.yaml 15 held-out questions (models/prompts/MDL left unchanged)
 bench/cube_reference_queries.yaml  hand-written Cube REST queries proving the baseline model covers 23/29 questions
 cube_v2/model/              cube_v2 model (cubes/ + views/)    bench/cube_v2_reference_sql.yaml + verify_cube_v2.py  SQL API references (29/29)
+mnemiq/run.sh, mnemiq/authz.json  mnemiq launcher (pinned commit, env from .env) + access policy; engine/state are git-ignored
+bench/holdout_report.py     holdout section + results/holdout_summary.png (called by combine.py)
 bench/harness.py            runner, scoring, report     bench/clients.py  per-system API clients (incl. router)
 bench/setup_connections.py  connects tools to the DB    bench/verify_gold.py, bench/probe.py
 bench/wren_mdl.py           builds/deploys the Wren semantic layer   bench/combine.py  combined 5-system report + summary.png
@@ -255,6 +260,59 @@ seeing the question set. The router inherits that leakage; it does not invent a 
 declines or fails loudly — silent wrongs (valid-looking wrong rows) still pass through.
 
 
+## mnemiq (`mnemiq`, `mnemiq_failopen`)
+
+[agenticfabriq/mnemiq](https://github.com/agenticfabriq/mnemiq) (Apache-2.0) has no releases or tags. It is pinned to
+commit `a453b05` (main, 2026-10-19; see `VERSIONS.md`) and runs as a host Python service (`uv sync --extra server`,
+`mnemiq serve --http`). It has no docker image for the engine; its compose file only starts a demo Postgres.
+
+**Configuration** (`mnemiq/run.sh`, all values from `.env`, never echoed): the source is the same Postgres Chinook as
+the read-only `bench` user. Chat goes to `gpt-oss:120b` and embeddings to the local `nomic-embed-text`, both through
+llm-meter `/mnemiq/` (so tokens and calls are counted). `MNEMIQ_LLM_CONTEXT_WINDOW=128000` is the same window WrenAI is
+told about; Ollama Cloud doesn't report it, and mnemiq uses it only for its window/trim checks. Everything else is the
+engine default: mode `thinking`, `retrieval_k` 24, verifier threshold 0.5, judge on, fail-closed. Enrichment is the
+default tier (no facts or examples, no glossary or dictionary). Deep mode's 5-candidate vote was not used, because it
+isn't the default.
+
+Two setup facts, neither tuned to the questions:
+* **Access policy.** mnemiq requires one and ships no default. `mnemiq/authz.json` grants the 11 tables *and*
+  `pii_clearance: [pii, phi]`, mirroring what the Postgres `bench` role can read. With a plain table list, mnemiq's
+  enrichment tags person-name and contact columns as `pii` and hides them. A smoke test then declined m02 with
+  "the artist table lacks a name column".
+* **DuckDB extensions.** DuckDB's `INSTALL` downloads over plain `http://`, which this box blocks, so they were
+  pre-seeded with mnemiq's own `mnemiq extensions fetch` (HTTPS, signature-checked on load). mnemiq executes through
+  DuckDB's Postgres scanner. The harness scores mnemiq's own returned rows. When the preview is cut at 100 rows (e04,
+  ho12), it re-executes the returned SQL read-only on Postgres instead.
+
+**Model compatibility problem (the main finding).** mnemiq's LLM judge asks for `max_tokens=200` and only reserves extra
+budget for reasoning models whose name matches `gpt-5`. gpt-oss:120b is also a reasoning model. On most real judge
+prompts it spends all 200 tokens reasoning and returns empty content (`finish_reason=length`; reproduced with mnemiq's
+own `SemanticJudge`). The fail-closed verifier then withholds the answer as `verifier_unavailable`. So the
+out-of-the-box result measures this incompatibility more than SQL quality. A labelled variant changes one documented
+setting:
+
+* `mnemiq` — defaults. `verifier_unavailable` is scored `tool_error`.
+* `mnemiq_failopen` — identical (same pinned engine, copied store, same policy), plus `MNEMIQ_VERIFY_FAIL_CLOSED=0`:
+  an unreadable judge returns the answer unchecked. Port 8091, meter `/mnemiqfo/`. Only 22/87 (main) and 5/45
+  (holdout) of its answers were actually judged; the rest shipped with `verified: unavailable`.
+
+| set | system | EX exact | EX relaxed | p50 s | p95 s | avg prompt tok | avg LLM calls | declined | tool err (verifier_unavailable) |
+|---|---|---|---|---|---|---|---|---|---|
+| 29 | mnemiq (defaults) | 20/87 (23%) | 20/87 (23%) | 3.26 | 5.27 | 4,863 | 2.3 | 2 | 65 |
+| 29 | mnemiq fail-open variant | 87/87 (100%) | 87/87 (100%) | 4.37 | 6.48 | 5,184 | 3.0 | 0 | 0 |
+| 15 holdout | mnemiq (defaults) | 5/45 (11%) | 5/45 (11%) | 3.33 | 5.40 | 4,830 | 2.2 | 0 | 40 |
+| 15 holdout | mnemiq fail-open variant | 44/45 (98%) | 44/45 (98%) | 4.10 | 7.41 | 5,237 | 3.1 | 0 | 0 |
+
+* The 2 declines (defaults, e06 and e07 run 3) were judge confidence below 0.5 on answerable questions, so neither was
+  a correct decline. Every question in both sets is answerable from Chinook.
+* The fail-open variant's one miss is ho14 run 1. It filtered by ISO year (`%G`) where the gold uses calendar 2023,
+  which is arguably a valid reading of an ambiguous holdout question.
+* LLM calls include enrichment-free per-question work: generation, the judge (when it runs) and the answer-wording call.
+  The one-off `enrich` (11 chat calls) and `build` are not counted per question.
+* Caveat: mnemiq was added after the question set and both other semantic layers existed. Its own pipeline was not
+  tuned to these questions, but its prompts and enrichment were built and tested by its authors on other benchmarks.
+  Its access policy and the fail-open switch are our choices and are stated above.
+
 ## Held-out evaluation (`questions_holdout.yaml`)
 
 The original 29 questions were the tuning set for `cube_v2` and the WrenAI semantic layer, so the first router run
@@ -277,6 +335,8 @@ Results (`results/run-gptoss120b-holdout-r3/`, chart `results/holdout_summary.pn
 | cube_v2 | 25/45 (56%) | 25/45 (56%) | 1.92 | 5.26 | 3,436 | 1.2 |
 | WrenAI + semantic, no reasoning | 42/45 (93%) | 42/45 (93%) | 4.06 | 6.89 | 20,811 | 2.0 |
 | DB-GPT 0.8.2 | 39/45 (87%) | 39/45 (87%) | 2.61 | 4.32 | 1,693 | 1.0 |
+| mnemiq (defaults) | 5/45 (11%) | 5/45 (11%) | 3.33 | 5.40 | 4,830 | 2.2 |
+| mnemiq fail-open variant | 44/45 (98%) | 44/45 (98%) | 4.10 | 7.41 | 5,237 | 3.1 |
 
 Router fallback **17/45 (38%)** — triggers `cube_unsupported`×16, `cube_error`×1. Cube-answered path EX 22/28 (79%);
 fallback path EX 17/17 (100%). Silent-wrong (Cube answered, no fallback): `ho12`×3, `ho14`×2, `ho04`×1. No attempt

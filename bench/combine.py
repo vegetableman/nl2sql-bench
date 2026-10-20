@@ -11,15 +11,17 @@ ACC_RUNS = {  # system -> run dir used for accuracy/latency
     "wrenai": "run-gptoss120b-r3", "wrenai_mdl": "run-gptoss120b-wrenmdl-r3",
     "wrenai_mdl_noreason": "run-gptoss120b-wrenmdl-noreason-r3",
     "dbgpt": "run-gptoss120b-r3", "cube": "run-gptoss120b-r3", "cube_v2": "run-gptoss120b-cubev2-r3",
-    "router": "run-gptoss120b-router-r3"}
+    "router": "run-gptoss120b-router-r3",
+    "mnemiq": "run-gptoss120b-mnemiq-r3", "mnemiq_failopen": "run-gptoss120b-mnemiq-r3"}
 TOK_RUNS = {**ACC_RUNS, "wrenai": "run-gptoss120b-wren-tokens"}  # OOTB Wren tokens were lost in r3 (meter-key bug)
 LABEL = {"wrenai": "WrenAI 0.29.2 (out of the box)", "wrenai_mdl": "WrenAI 0.29.2 + semantic layer",
          "wrenai_mdl_noreason": "WrenAI 0.29.2 + semantic layer, no reasoning",
          "dbgpt": "DB-GPT 0.8.2", "cube": "Cube Core 1.8.8 + LLM adapter (baseline)",
          "cube_v2": "Cube Core 1.8.8 + rich model + LLM adapter v2 (harness-built)",
-         "router": "Router (cube_v2 → WrenAI semantic, no reasoning)"}
+         "router": "Router (cube_v2 → WrenAI semantic, no reasoning)",
+         "mnemiq": "mnemiq a453b05 (defaults)", "mnemiq_failopen": "mnemiq a453b05, judge fail-open variant"}
 SYSTEMS = list(ACC_RUNS)
-EMO = {"correct": "✅", "correct_extra_cols": "🟡", "wrong_result": "❌", "exec_error": "💥", "tool_error": "⚠️", "unsupported": "⛔", "timeout": "⏱️"}
+EMO = {"correct": "✅", "correct_extra_cols": "🟡", "wrong_result": "❌", "exec_error": "💥", "tool_error": "⚠️", "unsupported": "⛔", "timeout": "⏱️", "declined": "🚫"}
 T = lambda v: v == "True"
 
 
@@ -38,7 +40,7 @@ qs = yaml.safe_load(open(ROOT / "bench" / "questions.yaml"))
 qs = qs["questions"] if isinstance(qs, dict) else qs
 runs = lambda s: sorted({r["run"] for r in rows[s]}, key=int)
 
-L = ["# nl2sql-bench — combined report (7 systems)", "",
+L = [f"# nl2sql-bench — combined report ({len(SYSTEMS)} systems)", "",
      f"- Generated {dt.datetime.now(ZoneInfo('Asia/Kolkata')).strftime('%Y-%m-%d %H:%M')} IST by `bench/combine.py` from: "
      + ", ".join(f"`{s}` ← `results/{ACC_RUNS[s]}`" for s in SYSTEMS),
      f"- Chinook on Postgres 16.4, {len(qs)} questions x 3 runs per system; LLM `{ENV['LLM_MODEL']}` via `{ENV['LLM_UPSTREAM_BASE']}`, "
@@ -59,8 +61,8 @@ L = ["# nl2sql-bench — combined report (7 systems)", "",
      "- OOTB WrenAI tokens come from the separate 1-run re-measure `results/run-gptoss120b-wren-tokens` (r3 lost them to a meter-key bug); all other token numbers come from the accuracy runs.",
      "- The OOTB/DB-GPT/Cube runs, the `wrenai_mdl` run and the `wrenai_mdl_noreason` run were executed sequentially at different times the same day — Ollama Cloud latency may differ between sessions. WrenAI latencies cluster at ~1 s steps (6.06, 7.06 s …) because wren-ui polls the ai-service about once per second, so Wren p50 differences of ~1 s are within that granularity.", "",
      "## Overall", "",
-     "| System | EX exact | EX relaxed | wrong | exec err | tool err | timeout | unsupported | p50 s | p95 s | mean s | avg prompt tok | avg completion tok | avg LLM calls | token source |",
-     "|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|"]
+     "| System | EX exact | EX relaxed | wrong | exec err | tool err | timeout | unsupported | declined | p50 s | p95 s | mean s | avg prompt tok | avg completion tok | avg LLM calls | token source |",
+     "|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|"]
 for s in SYSTEMS:
     X = rows[s]; n = len(X); lat = [float(r["latency_s"]) for r in X]
     f = lambda k: sum(r["status"] == k for r in X)
@@ -69,7 +71,7 @@ for s in SYSTEMS:
     K = [int(r["chat_requests"]) for r in tok[s] if r["chat_requests"] not in ("", "None")]
     ex = sum(T(r["exact"]) for r in X); rx = sum(T(r["relaxed"]) for r in X)
     L.append(f"| {LABEL[s]} | {ex}/{n} ({100*ex/n:.0f}%) | {rx}/{n} ({100*rx/n:.0f}%) | {f('wrong_result')} | {f('exec_error')} | {f('tool_error')} | "
-             f"{f('timeout')} | {f('unsupported')} | {pct(lat,50):.2f} | {pct(lat,95):.2f} | {statistics.mean(lat):.2f} | "
+             f"{f('timeout')} | {f('unsupported')} | {f('declined')} | {pct(lat,50):.2f} | {pct(lat,95):.2f} | {statistics.mean(lat):.2f} | "
              f"{statistics.mean(P) if P else float('nan'):,.0f} | {statistics.mean(C) if C else float('nan'):,.0f} | {statistics.mean(K) if K else float('nan'):.1f} | "
              f"{TOK_RUNS[s]} ({len(P)} rows) |")
 
@@ -139,7 +141,7 @@ if "router" in rows:
           ""]
 
 # failure details for the semantic-layer variants
-for S in ("wrenai_mdl", "wrenai_mdl_noreason", "cube_v2", "router"):
+for S in ("wrenai_mdl", "wrenai_mdl_noreason", "cube_v2", "router", "mnemiq", "mnemiq_failopen"):
     L += [f"## {LABEL[S]}: every non-exact attempt", "", "| run | id | status | reason / error |", "|---|---|---|---|"]
     for r in rows[S]:
         if not T(r["exact"]):
@@ -154,7 +156,9 @@ L += ["", "## Per question, all systems (status per run)", "", "| id | diff | " 
 for q in qs:
     L.append(f"| {q['id']} | {q['difficulty']} | " + " | ".join(
         " ".join(EMO.get(r["status"], "?") for r in rows[s] if r["id"] == q["id"]) for s in SYSTEMS) + " |")
-L += ["", "Legend: ✅ exact, 🟡 extra columns, ❌ wrong result, 💥 SQL exec error, ⚠️ tool/API error, ⏱️ timeout (failure), ⛔ declared unsupported."]
+L += ["", "Legend: ✅ exact, 🟡 extra columns, ❌ wrong result, 💥 SQL exec error, ⚠️ tool/API error, ⏱️ timeout (failure), ⛔ declared unsupported, 🚫 declined (mnemiq deferral, counts as not correct)."]
+import holdout_report
+L += ["", holdout_report.section()]
 (R / "combined_summary.md").write_text("\n".join(L) + "\n")
 print("\n".join(L))
 
@@ -163,14 +167,14 @@ import matplotlib; matplotlib.use("Agg"); import matplotlib.pyplot as plt
 short = {"wrenai": "WrenAI 0.29.2\n(out of the box)", "wrenai_mdl": "WrenAI 0.29.2\n+ semantic layer",
          "wrenai_mdl_noreason": "WrenAI 0.29.2\n+ sem. layer,\nno reasoning", "dbgpt": "DB-GPT 0.8.2",
          "cube": "Cube Core 1.8.8\n+ LLM adapter\n(baseline)", "cube_v2": "Cube Core 1.8.8\n+ rich model\n+ adapter v2",
-         "router": "Router\n(cube_v2 -> Wren\nnoreason)"}
-fig, ax = plt.subplots(1, 3, figsize=(28, 6.5)); x = range(len(SYSTEMS)); w = 0.38
+         "router": "Router\n(cube_v2 -> Wren\nnoreason)", "mnemiq": "mnemiq\n(defaults)", "mnemiq_failopen": "mnemiq\n(fail-open\nvariant)"}
+fig, ax = plt.subplots(1, 3, figsize=(34, 6.5)); x = range(len(SYSTEMS)); w = 0.38
 ex = [100 * sum(T(r["exact"]) for r in rows[s]) / len(rows[s]) for s in SYSTEMS]
 rx = [100 * sum(T(r["relaxed"]) for r in rows[s]) / len(rows[s]) for s in SYSTEMS]
 b1 = ax[0].bar([i - w/2 for i in x], ex, w, label="EX strict"); b2 = ax[0].bar([i + w/2 for i in x], rx, w, label="EX relaxed")
 ax[0].bar_label(b1, fmt="%.0f%%"); ax[0].bar_label(b2, fmt="%.0f%%")
 ax[0].set_xticks(list(x), [short[s] for s in SYSTEMS], fontsize=8); ax[0].set_ylim(0, 108); ax[0].set_title("Execution accuracy (29 q x 3 runs)"); ax[0].legend(loc="lower left")
-w4 = 0.11
+w4 = 0.8 / len(SYSTEMS)
 for k, s in enumerate(SYSTEMS):
     v = [100 * sum(T(r["exact"]) for r in rows[s] if r["difficulty"] == d) / sum(r["difficulty"] == d for r in rows[s]) for d in ("easy", "medium", "hard")]
     bb = ax[1].bar([i + (k - (len(SYSTEMS) - 1) / 2) * w4 for i in range(3)], v, w4, label=short[s].replace("\n", " ")); ax[1].bar_label(bb, fmt="%.0f", fontsize=6)
@@ -181,3 +185,4 @@ ax[2].bar_label(c1, fmt="%.1fs"); ax[2].bar_label(c2, fmt="%.1fs")
 ax[2].set_xticks(list(x), [short[s] for s in SYSTEMS], fontsize=8); ax[2].set_title("End-to-end latency per question (s)"); ax[2].legend()
 fig.suptitle(f"nl2sql-bench — Chinook/Postgres, {len(qs)} questions x 3 runs, LLM {ENV['LLM_MODEL']} (Ollama Cloud), embeddings {ENV['EMBEDDING_MODEL']}")
 fig.tight_layout(); fig.savefig(R / "summary.png", dpi=130); print("wrote results/summary.png")
+print("wrote", holdout_report.chart())
