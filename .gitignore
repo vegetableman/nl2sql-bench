@@ -21,6 +21,8 @@ wrenai_mdl/.variant
 !results/holdout_summary.png
 mnemiq/engine/
 mnemiq/engine-verified/
+mnemiq/engine-jev/
 mnemiq/state/
 mnemiq/*.log
 !results/run-gptoss120b-mnemiq-r3/
+!results/judge-comparison/

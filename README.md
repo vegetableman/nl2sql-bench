@@ -10,7 +10,7 @@ Same natural-language questions, same Postgres database, same LLM, measured the 
 | **DB-GPT 0.8.2** (official `dbgpt-openai` image + psycopg2) | NL → SQL (chat_data mode) | `POST http://localhost:5670/api/v2/chat/completions` `{chat_mode:"chat_data", chat_param:"chinook", stream:false}`; SQL is parsed out of the `<chart-view content=…>` block in the reply |
 | **Cube Core 1.8.8 + LLM adapter (baseline)** — system `cube` | Cube Core has **no OSS NL interface** (the AI API / D3 is Cube Cloud-only; OSS v1.8.8 api-gateway only has `/v1/load, /sql, /meta, /cubesql, /dry-run, …`). The harness gives the same LLM the `/v1/meta` model + join list and asks for a Cube REST query JSON (1 self-correction retry on Cube errors) | `POST http://localhost:4000/cubejs-api/v1/load` |
 | **Cube Core 1.8.8 + rich model + LLM adapter v2 (harness-built)** — system `cube_v2` (service `cube_v2`, REST :4001, SQL API :15432) | same LLM gets the *views* of `cube_v2/model` (with descriptions) from `/v1/meta` and writes ONE Cube SQL API query (Postgres dialect, `MEASURE()`, push-down/post-processing); 1 repair retry on Cube errors | Cube SQL API (Postgres wire protocol) at `localhost:15432` — executed by Cube, never directly on Postgres |
-| **mnemiq @ a453b05** — systems `mnemiq` (defaults), `mnemiq_failopen` and `mnemiq_verified` (one-setting variants) | NL → SQL; its own enrichment (`mnemiq enrich`: profiling + one LLM description pass, 11 tables) and retrieval index (`mnemiq build`, nomic-embed-text); default mode `thinking` (1 candidate, corrector, deterministic sanity + LLM judge) | `POST http://localhost:8090/v1/ask` `{question}` (`mnemiq serve --http`; variants on :8091 / :8092); a deferral is scored `declined` |
+| **mnemiq @ a453b05** — systems `mnemiq` (defaults), `mnemiq_failopen`, `mnemiq_verified` and `mnemiq_jev` (one-change variants) | NL → SQL; its own enrichment (`mnemiq enrich`: profiling + one LLM description pass, 11 tables) and retrieval index (`mnemiq build`, nomic-embed-text); default mode `thinking` (1 candidate, corrector, deterministic sanity + LLM judge) | `POST http://localhost:8090/v1/ask` `{question}` (`mnemiq serve --http`; variants on :8091 / :8092 / :8093); a deferral is scored `declined` |
 | **Router** — system `router` | try cube_v2 first (prompt copy that may reply `CANNOT_EXPRESS`); fall back to WrenAI + semantic layer, no reasoning on unsupported / Cube error / empty result. No gold used for routing. | cube_v2 SQL API + `POST http://localhost:3001/api/v1/generate_sql`; tokens under `/router/` (+ `/wrenmdlnr/` on fallback) |
 
 Fairness controls
@@ -40,6 +40,9 @@ make mnemiq-install && make bench-mnemiq REPEATS=3   # mnemiq (pinned commit) on
 make bench-mnemiq-failopen REPEATS=3                 # mnemiq judge fail-open variant (see below)
 make bench-mnemiq-verified REPEATS=3                 # mnemiq judge 1200-token variant, fail-closed (patched worktree)
 .venv/bin/python bench/mnemiq_verifier_analysis.py   # verifier outcomes + re-scored SQL of rejected answers
+make bench-mnemiq-jev REPEATS=3                      # mnemiq with TypeSafe Jev as judge (needs TYPESAFE_API_KEY in .env)
+.venv/bin/python bench/mnemiq_jev_analysis.py         # Jev calls/tokens/cost + every decline checked against gold
+# offline same-SQL judge comparison (no reruns): bench/judge_comparison.py items -> mnemiq/judge_rebuild.py -> judge_comparison.py score
 make bench-holdout REPEATS=3     # 15 held-out q × router,cube_v2,wrenai_mdl_noreason → results/run-gptoss120b-holdout-r3/
 make wren-mdl-restore            # switch back (wrenai_mdl); config.yaml is re-rendered byte-identically
 .venv/bin/python bench/stage_latency.py   # per-stage latency from wren-ai-service logs (see below)
@@ -82,6 +85,8 @@ cube_v2/model/              cube_v2 model (cubes/ + views/)    bench/cube_v2_ref
 mnemiq/run.sh, mnemiq/authz.json  mnemiq launcher (pinned commit, env from .env) + access policy; engine/state are git-ignored
 mnemiq/patches/verifier-tokens.patch  the only engine code change (mnemiq_verified only, applied to a separate worktree)
 bench/mnemiq_verifier_analysis.py  judge-outcome analysis -> results/run-gptoss120b-mnemiq-r3/verifier_analysis.md
+mnemiq/patches/jev-judge.patch  JevJudge (TypeSafe Jev as mnemiq's judge), mnemiq_jev only, separate worktree mnemiq/engine-jev
+bench/mnemiq_jev_analysis.py, bench/judge_comparison.py, mnemiq/judge_rebuild.py  Jev run analysis; same-SQL judge comparison -> results/judge-comparison/
 bench/holdout_report.py     holdout section + results/holdout_summary.png (called by combine.py)
 bench/harness.py            runner, scoring, report     bench/clients.py  per-system API clients (incl. router)
 bench/setup_connections.py  connects tools to the DB    bench/verify_gold.py, bench/probe.py
@@ -264,7 +269,7 @@ seeing the question set. The router inherits that leakage; it does not invent a 
 declines or fails loudly — silent wrongs (valid-looking wrong rows) still pass through.
 
 
-## mnemiq (`mnemiq`, `mnemiq_failopen`, `mnemiq_verified`)
+## mnemiq (`mnemiq`, `mnemiq_failopen`, `mnemiq_verified`, `mnemiq_jev`)
 
 [agenticfabriq/mnemiq](https://github.com/agenticfabriq/mnemiq) (Apache-2.0) has no releases or tags. It is pinned to
 commit `a453b05` (main, 2026-10-19; see `VERSIONS.md`) and runs as a host Python service (`uv sync --extra server`,
@@ -359,6 +364,73 @@ thing:
   tuned to these questions, but its prompts and enrichment were built and tested by its authors on other benchmarks.
   Its access policy and the fail-open switch are our choices and are stated above.
 
+### `mnemiq_jev`: TypeSafe Jev as mnemiq's judge
+
+**Headline: mnemiq out of the box vs mnemiq with Jev as its judge.** Both are fail-closed, mode `thinking`, threshold 0.5,
+same policy/window/store, with SQL generated by gpt-oss:120b. Only the judge differs.
+
+| set | system | EX exact | EX relaxed | p50 / p95 s | avg prompt tok (gpt-oss) | avg gpt-oss calls | Jev calls | Jev input tok (total) | est. Jev cost | declined | tool err |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| 29 | mnemiq (defaults, gpt-oss judge @200 tok) | 20/87 (23%) | 20/87 (23%) | 3.26 / 5.27 | 4,863 | 2.3 | – | – | – | 2 | 65 |
+| 29 | **mnemiq_jev** | **78/87 (90%)** | 78/87 (90%) | 3.41 / 5.15 | 2,848 | 1.9 | 87 | 221,670 | $0.0093 | 9 | 0 |
+| 29 | *mnemiq_verified (gpt-oss judge @1200 tok)* | 86/87 (99%) | 86/87 (99%) | 4.97 / 7.43 | 5,267 | 3.0 | – | – | – | 1 | 0 |
+| 29 | *mnemiq_failopen (no effective check)* | 87/87 (100%) | 87/87 (100%) | 4.37 / 6.48 | 5,184 | 3.0 | – | – | – | 0 | 0 |
+| holdout | mnemiq (defaults) | 5/45 (11%) | 5/45 (11%) | 3.33 / 5.40 | 4,830 | 2.2 | – | – | – | 0 | 40 |
+| holdout | **mnemiq_jev** | **39/45 (87%)** | 39/45 (87%) | 3.14 / 4.88 | 2,823 | 1.9 | 45 | 114,523 | $0.0048 | 5 | 0 |
+| holdout | *mnemiq_verified* | 39/45 (87%) | 39/45 (87%) | 5.13 / 9.79 | 5,250 | 3.0 | – | – | – | 4 | 0 |
+| holdout | *mnemiq_failopen* | 44/45 (98%) | 44/45 (98%) | 4.10 / 7.41 | 5,237 | 3.1 | – | – | – | 0 | 0 |
+
+(mnemiq_verified / mnemiq_failopen are the existing runs, not rerun.) Jev calls go direct to TypeSafe, not through
+llm-meter, so the gpt-oss prompt tokens/calls exclude the judge; Jev's input tokens are the API's own
+`usage.input_tokens`, read from the per-call log (`results/run-gptoss120b-mnemiq-r3/jev_calls.log`). Cost at
+$0.042/M input tokens (output free). Full analysis: `results/run-gptoss120b-mnemiq-r3/jev_analysis.md`.
+
+**Setup.** `mnemiq/patches/jev-judge.patch` (applied by `mnemiq/run.sh install-jev` to a separate worktree
+`mnemiq/engine-jev` at the same commit) adds `JevJudge` to `verify/judge.py`. It has SemanticJudge's interface
+(`read(question, schema, sql, preview) -> JudgeRead`, `score`, the calls/errors/unparsed counters) and `runtime.py` uses it when
+`MNEMIQ_VERIFY_BACKEND=jev`. One request per judge call: `POST https://api.typesafe.ai/v1/systemone`, model
+`jev-1.14.0` (the current `jev-preview`; `jev-latest` still points at 1.13), `state = {question, schema, sql, result}`
+(the same schema and `render_result(max_rows=5)` preview the gpt-oss judge gets), one `noul` question reusing mnemiq's
+own criteria: *"`sql` was run and returned `result`. Does `result` correctly and completely answer `question`, given
+`schema`? Check the right tables and joins, every filter the question implies, and the right aggregation and grain. A
+plausible-looking number can still be wrong."* Score = the noul probability. An API error gives
+`JudgeRead(1.0, fell_open=True, reason="error")` and an unreadable body gives `reason="unparsed"`, so the Verifier's
+fail-closed path and 0.5 threshold are unchanged. The key comes from `TYPESAFE_API_KEY` in `.env` and is never logged.
+A single smoke request matched the documented shape (`answers.<id> = {type: noul, noul}`, `usage.input_tokens`). In
+the run, all 132 calls returned HTTP 200 (no 429s, nothing fell open), at p50 ~170 ms / p95 ~230 ms per call.
+
+**Every Jev decline was a correct answer.** 14 declines (9 on the 29, 5 on the holdout). Each declined SQL was
+re-executed the way mnemiq does and checked against gold, and all 14 were right: e02×3, e08×3, m01×2, m06×1, ho10×3,
+and ho14×2 (valid under the gold tie). Jev caught no real mistakes in this run, but no genuinely wrong SQL reached it
+either (ho13 generated correctly in all three runs). The one `wrong_result` it passed, ho14 r2, is valid under the
+tie. Jev's low latency puts mnemiq_jev's p50 1.56 s (29) and 1.99 s (holdout) below mnemiq_verified's.
+
+**Same-SQL comparison (the fair head-to-head).** `results/judge-comparison/` (CSV + md) re-scores, offline and without
+rerunning any system, every (question, SQL) the gpt-oss judge scored in mnemiq_verified (132, with its logged
+confidence) plus every mnemiq_failopen answer (132). The judge inputs are rebuilt with mnemiq's own code
+(`mnemiq/judge_rebuild.py`): `retrieve` + window fitter → `_judge_schema`, the SQL through mnemiq's DuckDB adapter →
+`render_result(max_rows=5)`. Correctness is EX-exact vs gold with the harness `compare`, with two documented label
+rules. **ho14** answers that are a valid top 3 under the gold tie count as correct. **ho12** answers count as correct
+when DuckDB returns the gold rows in binary-collation order and the same SQL is exact on Postgres, which is how the
+harness scored them. Result: 262 correct and only 2 wrong items (ho13 r1/r3), so the "wrong" side is tiny and the
+AUROCs are not meaningful.
+
+| judge, at threshold 0.5 | items | wrong caught | wrong passed | correct blocked | correct passed |
+|---|---|---|---|---|---|
+| gpt-oss:120b (logged, mnemiq_verified calls) | 132 | 2 | 0 | 3 | 127 |
+| Jev, same 132 calls | 132 | 1 | 1 | 15 | 115 |
+| Jev, mnemiq_failopen answers | 132 | 0 | 0 | 14 | 118 |
+| Jev, all items | 264 | 1 | 1 | 29 | 233 |
+
+Named cases (gpt-oss conf / Jev noul): h05 r1 correct 0.35 / 0.55, so Jev passes the answer gpt-oss blocked. ho10 r3
+correct 0.40 / 0.30: both block. ho13 r1 wrong 0.10 / 0.07: both catch it. ho13 r3 wrong 0.15 / **0.53**: Jev passes
+the float-division bug. ho14 r1/r2/r3 (all tie-valid) 0.30/0.21, 0.86/0.82, 0.92/0.30. A threshold sweep is in the md:
+no Jev threshold catches both wrong answers without blocking 26+ of the 130 correct ones on the same calls (at 0.6).
+**Pattern:** Jev's blocks concentrate on correct multi-row answers whose 5-row preview says `(truncated)`: it blocks 24
+of 84 such correct answers vs 5 of 178 with a complete preview (gpt-oss: 2/42 vs 1/88). That is consistent with the
+instruction's "completely answer" being read against a cut preview. It is an observation; the instruction was used as
+specified and not tuned. Offline comparison cost: 264 Jev calls, 672,721 input tokens, ~$0.028.
+
 ## Held-out evaluation (`questions_holdout.yaml`)
 
 The original 29 questions were the tuning set for `cube_v2` and the WrenAI semantic layer, so the first router run
@@ -384,6 +456,7 @@ Results (`results/run-gptoss120b-holdout-r3/`, chart `results/holdout_summary.pn
 | mnemiq (defaults) | 5/45 (11%) | 5/45 (11%) | 3.33 | 5.40 | 4,830 | 2.2 |
 | mnemiq fail-open variant | 44/45 (98%) | 44/45 (98%) | 4.10 | 7.41 | 5,237 | 3.1 |
 | mnemiq judge 1200 tok (fail-closed) | 39/45 (87%) | 39/45 (87%) | 5.13 | 9.79 | 5,250 | 3.0 |
+| mnemiq, TypeSafe Jev judge (fail-closed) | 39/45 (87%) | 39/45 (87%) | 3.14 | 4.88 | 2,823 (gpt-oss only) | 1.9 (+1 Jev) |
 
 Router fallback **17/45 (38%)** — triggers `cube_unsupported`×16, `cube_error`×1. Cube-answered path EX 22/28 (79%);
 fallback path EX 17/17 (100%). Silent-wrong (Cube answered, no fallback): `ho12`×3, `ho14`×2, `ho04`×1. No attempt

@@ -1,6 +1,6 @@
 # nl2sql-bench report (live run)
 
-- Report generated: 2026-10-20 09:41 IST
+- Report generated: 2026-10-20 10:39 IST
 - Dataset: Chinook 1.4.5 on Postgres 16.4; 29 questions x 3 run(s)
 - LLM: `gpt-oss:120b` via `https://ollama.com/v1`, embeddings `nomic-embed-text` (same for all systems, via llm-meter)
 - EX(exact) = same result set as gold (column order free; row order checked only when the question requires it).
@@ -13,6 +13,7 @@
 | mnemiq (agenticfabriq, a453b05, defaults) | 20/87 (23%) | 20/87 (23%) | 0 | 65 | 0 | 0 | 0 | 2 | 3.26 | 5.27 | 4863 | 495 |
 | mnemiq, judge fail-open variant | 87/87 (100%) | 87/87 (100%) | 0 | 0 | 0 | 0 | 0 | 0 | 4.37 | 6.48 | 5184 | 640 |
 | mnemiq, judge token-budget variant (fail-closed) | 86/87 (99%) | 86/87 (99%) | 0 | 0 | 0 | 0 | 0 | 1 | 4.97 | 7.43 | 5267 | 722 |
+| mnemiq, TypeSafe Jev judge (fail-closed) | 78/87 (90%) | 78/87 (90%) | 0 | 0 | 0 | 0 | 0 | 9 | 3.41 | 5.15 | 2848 | 395 |
 
 ## EX (exact) by difficulty
 
@@ -21,39 +22,40 @@
 | mnemiq (agenticfabriq, a453b05, defaults) | 14/24 | 6/27 | 0/36 |
 | mnemiq, judge fail-open variant | 24/24 | 27/27 | 36/36 |
 | mnemiq, judge token-budget variant (fail-closed) | 24/24 | 27/27 | 35/36 |
+| mnemiq, TypeSafe Jev judge (fail-closed) | 18/24 | 24/27 | 36/36 |
 
 ## Per question (status per run)
 
-| id | diff | mnemiq | mnemiq_failopen | mnemiq_verified |
-|---|---|---|---|---|
-| e01 | easy | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| e02 | easy | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| e03 | easy | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| e04 | easy | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| e05 | easy | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| e06 | easy | ✅ ✅ 🚫 | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| e07 | easy | ✅ ✅ 🚫 | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| e08 | easy | ⚠️ ✅ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| m01 | medium | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| m02 | medium | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| m03 | medium | ✅ ⚠️ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| m04 | medium | ✅ ⚠️ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| m05 | medium | ⚠️ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| m06 | medium | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| m07 | medium | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| m08 | medium | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| m09 | medium | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| h01 | hard | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| h02 | hard | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| h03 | hard | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| h04 | hard | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| h05 | hard | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | 🚫 ✅ ✅ |
-| h06 | hard | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| h07 | hard | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| h08 | hard | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| h09 | hard | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| h10 | hard | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| h11 | hard | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| h12 | hard | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ |
+| id | diff | mnemiq | mnemiq_failopen | mnemiq_verified | mnemiq_jev |
+|---|---|---|---|---|---|
+| e01 | easy | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
+| e02 | easy | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | 🚫 🚫 🚫 |
+| e03 | easy | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
+| e04 | easy | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
+| e05 | easy | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
+| e06 | easy | ✅ ✅ 🚫 | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
+| e07 | easy | ✅ ✅ 🚫 | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
+| e08 | easy | ⚠️ ✅ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ | 🚫 🚫 🚫 |
+| m01 | medium | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ | 🚫 🚫 ✅ |
+| m02 | medium | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
+| m03 | medium | ✅ ⚠️ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
+| m04 | medium | ✅ ⚠️ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
+| m05 | medium | ⚠️ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
+| m06 | medium | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ | 🚫 ✅ ✅ |
+| m07 | medium | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
+| m08 | medium | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
+| m09 | medium | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
+| h01 | hard | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
+| h02 | hard | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
+| h03 | hard | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
+| h04 | hard | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
+| h05 | hard | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | 🚫 ✅ ✅ | ✅ ✅ ✅ |
+| h06 | hard | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
+| h07 | hard | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
+| h08 | hard | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
+| h09 | hard | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
+| h10 | hard | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
+| h11 | hard | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
+| h12 | hard | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
 
 Legend: ✅ exact match, 🟡 match with extra columns, ❌ wrong result, 💥 SQL failed to execute, ⚠️ tool/API error, ⏱️ timeout (no answer within the per-call cap; counted as failure), ⛔ declared unsupported, 🚫 declined (mnemiq deferral; counts as not correct).

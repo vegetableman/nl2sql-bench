@@ -1,0 +1,120 @@
+diff --git a/src/mnemiq/runtime.py b/src/mnemiq/runtime.py
+index bd32e2d..44eee31 100644
+--- a/src/mnemiq/runtime.py
++++ b/src/mnemiq/runtime.py
+@@ -1,6 +1,7 @@
+ from __future__ import annotations
+ 
+ import logging
++import os
+ 
+ import time
+ from dataclasses import dataclass, field
+@@ -796,7 +797,12 @@ def _build_mode_verifiers(settings: Settings, *, client):
+                 "llm_model": settings.verify_model or settings.llm_model}))
+         else:
+             judge_client = client  # self-judge: reuse the generation client
+-        judge = SemanticJudge(judge_client)
++        # nl2sql-bench patch: MNEMIQ_VERIFY_BACKEND=jev swaps the LLM judge for TypeSafe Jev (default unchanged).
++        if os.environ.get("MNEMIQ_VERIFY_BACKEND", "llm") == "jev":
++            from mnemiq.verify.judge import JevJudge
++            judge = JevJudge()
++        else:
++            judge = SemanticJudge(judge_client)
+         judge_calls = 1
+     verifiers = {
+         name: _build_verifier(levels[name], threshold=settings.verify_threshold,
+diff --git a/src/mnemiq/verify/judge.py b/src/mnemiq/verify/judge.py
+index 0811e21..bfd9eb0 100644
+--- a/src/mnemiq/verify/judge.py
++++ b/src/mnemiq/verify/judge.py
+@@ -107,6 +107,89 @@ class SemanticJudge:
+         return self.read(question, schema, sql, preview).score
+ 
+ 
++class JevJudge:
++    """nl2sql-bench patch: the judge as one TypeSafe Jev `noul` question (POST /v1/systemone).
++
++    Same interface and counters as `SemanticJudge`: `read(question, schema, sql, preview) -> JudgeRead`,
++    `score(...)`, `calls` / `errors` / `unparsed`. Score = the noul probability. An API error (transport,
++    non-200, 429) -> JudgeRead(1.0, fell_open=True, reason="error"); a 200 whose body carries no readable
++    noul -> reason="unparsed". The Verifier's fail-closed handling and 0.5 threshold are untouched.
++    The API key is read from TYPESAFE_API_KEY and is never logged.
++    """
++
++    _URL = "https://api.typesafe.ai/v1/systemone"
++    _QID = "answers_question"
++    _INSTRUCTIONS = ("`sql` was run and returned `result`. Does `result` correctly and completely answer "
++                     "`question`, given `schema`? Check the right tables and joins, every filter the question "
++                     "implies, and the right aggregation and grain. A plausible-looking number can still be wrong.")
++
++    def __init__(self, model: str | None = None, timeout_s: float = 60.0) -> None:
++        import os
++        self._key = os.environ.get("TYPESAFE_API_KEY", "")
++        self._model = model or os.environ.get("MNEMIQ_JEV_MODEL", "jev-1.14.0")
++        self._timeout = timeout_s
++        self.calls = 0
++        self.errors = 0
++        self.unparsed = 0
++
++    @property
++    def fallbacks(self) -> int:
++        return self.errors + self.unparsed
++
++    def request_body(self, question: str, schema: str, sql: str, preview: str) -> dict:
++        return {"model": self._model,
++                "state": {"question": question, "schema": schema, "sql": sql, "result": preview},
++                "questions": {self._QID: {"type": "noul", "instructions": self._INSTRUCTIONS}}}
++
++    def read(self, question: str, schema: str, sql: str, preview: str) -> "JudgeRead":
++        import json, logging, time, urllib.error, urllib.request
++        self.calls += 1
++        log = logging.getLogger("mnemiq.bench")
++        body = json.dumps(self.request_body(question, schema, sql, preview)).encode()
++        req = urllib.request.Request(self._URL, data=body, method="POST", headers={
++            "Authorization": f"Bearer {self._key}", "Content-Type": "application/json"})
++        t0 = time.perf_counter()
++        status, payload = None, None
++        try:
++            with urllib.request.urlopen(req, timeout=self._timeout) as resp:
++                status = resp.status
++                payload = json.loads(resp.read().decode())
++        except urllib.error.HTTPError as e:
++            status = e.code
++            detail = e.read().decode(errors="replace")[:300]
++            self.errors += 1
++            log.warning("BENCH-JEV status=%s latency_ms=%.0f error=%s q=%r sql=%s", status,
++                        (time.perf_counter() - t0) * 1000, json.dumps(detail), question[:70], json.dumps(sql))
++            return JudgeRead(1.0, fell_open=True, reason="error")
++        except Exception as e:
++            self.errors += 1
++            log.warning("BENCH-JEV status=None latency_ms=%.0f error=%s q=%r sql=%s",
++                        (time.perf_counter() - t0) * 1000, json.dumps(type(e).__name__), question[:70], json.dumps(sql))
++            return JudgeRead(1.0, fell_open=True, reason="error")
++        ms = (time.perf_counter() - t0) * 1000
++        try:
++            ans = payload["answers"][self._QID]
++            if ans.get("type") != "noul":
++                raise ValueError("answer type")
++            p = float(ans["noul"])
++            if not 0.0 <= p <= 1.0:
++                raise ValueError("range")
++        except Exception:
++            self.unparsed += 1
++            log.warning("BENCH-JEV status=%s latency_ms=%.0f unparsed keys=%s q=%r sql=%s", status, ms,
++                        json.dumps(sorted(payload) if isinstance(payload, dict) else str(type(payload))),
++                        question[:70], json.dumps(sql))
++            return JudgeRead(1.0, fell_open=True, reason="unparsed")
++        usage = payload.get("usage") or {}
++        log.warning("BENCH-JEV status=%s latency_ms=%.0f model=%s input_tokens=%s output_tokens=%s noul=%s q=%r sql=%s",
++                    status, ms, payload.get("model"), usage.get("input_tokens"), usage.get("output_tokens"), p,
++                    question[:70], json.dumps(sql))
++        return JudgeRead(p, fell_open=False)
++
++    def score(self, question: str, schema: str, sql: str, preview: str) -> float:
++        return self.read(question, schema, sql, preview).score
++
++
+ class FakeJudge:
+     """Fixed score, zero tokens -- for tests and offline replay of a scripted operating point."""
+ 

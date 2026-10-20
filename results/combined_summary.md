@@ -1,6 +1,6 @@
-# nl2sql-bench — combined report (10 systems)
+# nl2sql-bench — combined report (11 systems)
 
-- Generated 2026-10-20 09:43 IST by `bench/combine.py` from: `wrenai` ← `results/run-gptoss120b-r3`, `wrenai_mdl` ← `results/run-gptoss120b-wrenmdl-r3`, `wrenai_mdl_noreason` ← `results/run-gptoss120b-wrenmdl-noreason-r3`, `dbgpt` ← `results/run-gptoss120b-r3`, `cube` ← `results/run-gptoss120b-r3`, `cube_v2` ← `results/run-gptoss120b-cubev2-r3`, `router` ← `results/run-gptoss120b-router-r3`, `mnemiq` ← `results/run-gptoss120b-mnemiq-r3`, `mnemiq_failopen` ← `results/run-gptoss120b-mnemiq-r3`, `mnemiq_verified` ← `results/run-gptoss120b-mnemiq-r3`
+- Generated 2026-10-20 10:37 IST by `bench/combine.py` from: `wrenai` ← `results/run-gptoss120b-r3`, `wrenai_mdl` ← `results/run-gptoss120b-wrenmdl-r3`, `wrenai_mdl_noreason` ← `results/run-gptoss120b-wrenmdl-noreason-r3`, `dbgpt` ← `results/run-gptoss120b-r3`, `cube` ← `results/run-gptoss120b-r3`, `cube_v2` ← `results/run-gptoss120b-cubev2-r3`, `router` ← `results/run-gptoss120b-router-r3`, `mnemiq` ← `results/run-gptoss120b-mnemiq-r3`, `mnemiq_failopen` ← `results/run-gptoss120b-mnemiq-r3`, `mnemiq_verified` ← `results/run-gptoss120b-mnemiq-r3`, `mnemiq_jev` ← `results/run-gptoss120b-mnemiq-r3`
 - Chinook on Postgres 16.4, 29 questions x 3 runs per system; LLM `gpt-oss:120b` via `https://ollama.com/v1`, embeddings `nomic-embed-text` (local ollama); same scorer, 180 s per-call cap, tokens via llm-meter.
 - `wrenai` (OOTB) and `wrenai_mdl` are two separate WrenAI 0.29.2 stacks with identical images/config; the only difference is the semantic layer in `wrenai_mdl/mdl/semantic_layer.yaml` (descriptions, relationship descriptions, 9 calculated fields, 9 generic instructions; no SQL pairs, no views).
 - `wrenai_mdl_noreason` = the same 2nd stack, same project / deployed MDL (hash checked) / instructions, with the single wren-ai-service setting `allow_sql_generation_reasoning: false` (`make wren-mdl-noreason`; `make wren-mdl-restore` switches back). Intent classification stays on. Per-stage timings: `results/stage-latency/stage_latency.md`.
@@ -23,6 +23,7 @@
 | mnemiq a453b05 (defaults) | 20/87 (23%) | 20/87 (23%) | 0 | 0 | 65 | 0 | 0 | 2 | 3.26 | 5.27 | 3.66 | 4,863 | 495 | 2.3 | run-gptoss120b-mnemiq-r3 (87 rows) |
 | mnemiq a453b05, judge fail-open variant | 87/87 (100%) | 87/87 (100%) | 0 | 0 | 0 | 0 | 0 | 0 | 4.37 | 6.48 | 4.60 | 5,184 | 640 | 3.0 | run-gptoss120b-mnemiq-r3 (87 rows) |
 | mnemiq a453b05, judge 1200-token variant (fail-closed) | 86/87 (99%) | 86/87 (99%) | 0 | 0 | 0 | 0 | 0 | 1 | 4.97 | 7.43 | 5.09 | 5,267 | 722 | 3.0 | run-gptoss120b-mnemiq-r3 (87 rows) |
+| mnemiq a453b05, TypeSafe Jev judge (fail-closed) | 78/87 (90%) | 78/87 (90%) | 0 | 0 | 0 | 0 | 0 | 9 | 3.41 | 5.15 | 3.46 | 2,848 | 395 | 1.9 | run-gptoss120b-mnemiq-r3 (87 rows) |
 
 ## EX exact by difficulty
 
@@ -38,6 +39,7 @@
 | mnemiq a453b05 (defaults) | 14/24 (58%) | 6/27 (22%) | 0/36 (0%) |
 | mnemiq a453b05, judge fail-open variant | 24/24 (100%) | 27/27 (100%) | 36/36 (100%) |
 | mnemiq a453b05, judge 1200-token variant (fail-closed) | 24/24 (100%) | 27/27 (100%) | 35/36 (97%) |
+| mnemiq a453b05, TypeSafe Jev judge (fail-closed) | 18/24 (75%) | 24/27 (89%) | 36/36 (100%) |
 
 ## Run-to-run variance
 
@@ -53,6 +55,7 @@
 | mnemiq a453b05 (defaults) | 7 / 7 / 6 | 6.7 ± 0.6 | 6 (e06, e07, e08, m03, m04, m05) | 3.43 / 3.13 / 3.29 |
 | mnemiq a453b05, judge fail-open variant | 29 / 29 / 29 | 29.0 ± 0.0 | 0 (-) | 4.59 / 4.37 / 4.19 |
 | mnemiq a453b05, judge 1200-token variant (fail-closed) | 28 / 29 / 29 | 28.7 ± 0.6 | 1 (h05) | 4.53 / 5.03 / 5.06 |
+| mnemiq a453b05, TypeSafe Jev judge (fail-closed) | 25 / 26 / 27 | 26.0 ± 1.0 | 2 (m01, m06) | 3.41 / 3.74 / 3.19 |
 
 ## WrenAI: out of the box (wrenai) vs + semantic layer (wrenai_mdl) (per question, EX exact over 3 runs)
 
@@ -326,6 +329,20 @@
 |---|---|---|---|
 | 1 | h05 | declined | declined: verification: The result may not correctly answer the question. |
 
+## mnemiq a453b05, TypeSafe Jev judge (fail-closed): every non-exact attempt
+
+| run | id | status | reason / error |
+|---|---|---|---|
+| 1 | e02 | declined | declined: verification: The result may not correctly answer the question. |
+| 1 | e08 | declined | declined: verification: The result may not correctly answer the question. |
+| 1 | m01 | declined | declined: verification: The result may not correctly answer the question. |
+| 1 | m06 | declined | declined: verification: The result may not correctly answer the question. |
+| 2 | e02 | declined | declined: verification: The result may not correctly answer the question. |
+| 2 | e08 | declined | declined: verification: The result may not correctly answer the question. |
+| 2 | m01 | declined | declined: verification: The result may not correctly answer the question. |
+| 3 | e02 | declined | declined: verification: The result may not correctly answer the question. |
+| 3 | e08 | declined | declined: verification: The result may not correctly answer the question. |
+
 ## WrenAI per-stage latency (wrenai_mdl vs wrenai_mdl_noreason)
 
 Generated by `bench/stage_latency.py`; per-attempt data in `results/stage-latency/stages.csv`. Medians over the 87 attempts per system (seconds).
@@ -363,43 +380,43 @@ Polling: the time between the ask actually finishing and wren-ui's next poll is 
 
 ## Per question, all systems (status per run)
 
-| id | diff | WrenAI 0.29.2 (out of the box) | WrenAI 0.29.2 + semantic layer | WrenAI 0.29.2 + semantic layer, no reasoning | DB-GPT 0.8.2 | Cube Core 1.8.8 + LLM adapter (baseline) | Cube Core 1.8.8 + rich model + LLM adapter v2 (harness-built) | Router (cube_v2 → WrenAI semantic, no reasoning) | mnemiq a453b05 (defaults) | mnemiq a453b05, judge fail-open variant | mnemiq a453b05, judge 1200-token variant (fail-closed) |
-|---|---|---|---|---|---|---|---|---|---|---|---|
-| e01 | easy | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| e02 | easy | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| e03 | easy | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| e04 | easy | ✅ ✅ ✅ | 🟡 ✅ ✅ | 🟡 ✅ ✅ | ❌ ❌ ❌ | ✅ ❌ ❌ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| e05 | easy | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| e06 | easy | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ 🚫 | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| e07 | easy | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | 🟡 🟡 🟡 | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ 🚫 | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| e08 | easy | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ✅ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| m01 | medium | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| m02 | medium | ❌ ❌ ❌ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| m03 | medium | ✅ 💥 ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ⚠️ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| m04 | medium | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ⚠️ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| m05 | medium | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| m06 | medium | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| m07 | medium | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | 🟡 🟡 🟡 | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| m08 | medium | ✅ ✅ ✅ | 🟡 ✅ 🟡 | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| m09 | medium | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ❌ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| h01 | hard | ✅ 🟡 ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| h02 | hard | ✅ ✅ ✅ | ❌ ❌ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| h03 | hard | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⛔ ⛔ ⛔ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| h04 | hard | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⛔ ⛔ ⛔ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| h05 | hard | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⛔ ⛔ ⛔ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | 🚫 ✅ ✅ |
-| h06 | hard | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| h07 | hard | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ❌ ❌ ❌ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| h08 | hard | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ❌ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| h09 | hard | ✅ ✅ ✅ | 💥 ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⛔ ⛔ ⛔ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| h10 | hard | ❌ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ 🟡 ✅ | ❌ ✅ ❌ | ✅ ❌ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| h11 | hard | ✅ 💥 ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | 💥 💥 💥 | ⛔ ⛔ ⛔ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| h12 | hard | ✅ 🟡 ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ |
+| id | diff | WrenAI 0.29.2 (out of the box) | WrenAI 0.29.2 + semantic layer | WrenAI 0.29.2 + semantic layer, no reasoning | DB-GPT 0.8.2 | Cube Core 1.8.8 + LLM adapter (baseline) | Cube Core 1.8.8 + rich model + LLM adapter v2 (harness-built) | Router (cube_v2 → WrenAI semantic, no reasoning) | mnemiq a453b05 (defaults) | mnemiq a453b05, judge fail-open variant | mnemiq a453b05, judge 1200-token variant (fail-closed) | mnemiq a453b05, TypeSafe Jev judge (fail-closed) |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| e01 | easy | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
+| e02 | easy | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | 🚫 🚫 🚫 |
+| e03 | easy | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
+| e04 | easy | ✅ ✅ ✅ | 🟡 ✅ ✅ | 🟡 ✅ ✅ | ❌ ❌ ❌ | ✅ ❌ ❌ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
+| e05 | easy | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
+| e06 | easy | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ 🚫 | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
+| e07 | easy | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | 🟡 🟡 🟡 | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ 🚫 | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
+| e08 | easy | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ✅ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ | 🚫 🚫 🚫 |
+| m01 | medium | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ | 🚫 🚫 ✅ |
+| m02 | medium | ❌ ❌ ❌ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
+| m03 | medium | ✅ 💥 ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ⚠️ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
+| m04 | medium | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ⚠️ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
+| m05 | medium | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
+| m06 | medium | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ | 🚫 ✅ ✅ |
+| m07 | medium | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | 🟡 🟡 🟡 | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
+| m08 | medium | ✅ ✅ ✅ | 🟡 ✅ 🟡 | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
+| m09 | medium | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ❌ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
+| h01 | hard | ✅ 🟡 ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
+| h02 | hard | ✅ ✅ ✅ | ❌ ❌ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
+| h03 | hard | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⛔ ⛔ ⛔ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
+| h04 | hard | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⛔ ⛔ ⛔ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
+| h05 | hard | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⛔ ⛔ ⛔ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | 🚫 ✅ ✅ | ✅ ✅ ✅ |
+| h06 | hard | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
+| h07 | hard | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ❌ ❌ ❌ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
+| h08 | hard | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ❌ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
+| h09 | hard | ✅ ✅ ✅ | 💥 ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⛔ ⛔ ⛔ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
+| h10 | hard | ❌ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ 🟡 ✅ | ❌ ✅ ❌ | ✅ ❌ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
+| h11 | hard | ✅ 💥 ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | 💥 💥 💥 | ⛔ ⛔ ⛔ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
+| h12 | hard | ✅ 🟡 ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
 
 Legend: ✅ exact, 🟡 extra columns, ❌ wrong result, 💥 SQL exec error, ⚠️ tool/API error, ⏱️ timeout (failure), ⛔ declared unsupported, 🚫 declined (mnemiq deferral, counts as not correct).
 
 ## Held-out set (15 new questions)
 
-Source: `bench/questions_holdout.yaml`. Models/prompts/MDL **unchanged** (not tuned to these questions). 15 q × 3 runs each for `router`, `cube_v2`, `wrenai_mdl_noreason`, `dbgpt`, `mnemiq`, `mnemiq_failopen`, `mnemiq_verified`.
+Source: `bench/questions_holdout.yaml`. Models/prompts/MDL **unchanged** (not tuned to these questions). 15 q × 3 runs each for `router`, `cube_v2`, `wrenai_mdl_noreason`, `dbgpt`, `mnemiq`, `mnemiq_failopen`, `mnemiq_verified`, `mnemiq_jev`.
 Results: `results/run-gptoss120b-holdout-r3/`. Chart: `results/holdout_summary.png`.
 
 | System | EX exact | EX relaxed | wrong | exec err | tool err | timeout | unsupported | declined | p50 s | p95 s | avg prompt tok | avg LLM calls |
@@ -411,6 +428,7 @@ Results: `results/run-gptoss120b-holdout-r3/`. Chart: `results/holdout_summary.p
 | mnemiq a453b05 (defaults) | 5/45 (11%) | 5/45 (11%) | 0 | 0 | 40 | 0 | 0 | 0 | 3.33 | 5.40 | 4,830 | 2.2 |
 | mnemiq a453b05, judge fail-open variant | 44/45 (98%) | 44/45 (98%) | 1 | 0 | 0 | 0 | 0 | 0 | 4.10 | 7.41 | 5,237 | 3.1 |
 | mnemiq a453b05, judge 1200-token variant (fail-closed) | 39/45 (87%) | 39/45 (87%) | 2 | 0 | 0 | 0 | 0 | 4 | 5.13 | 9.79 | 5,250 | 3.0 |
+| mnemiq a453b05, TypeSafe Jev judge (fail-closed) | 39/45 (87%) | 39/45 (87%) | 1 | 0 | 0 | 0 | 0 | 5 | 3.14 | 4.88 | 2,823 | 1.9 |
 
 ### Router fallback / silent-wrong (holdout)
 
@@ -494,27 +512,176 @@ Results: `results/run-gptoss120b-holdout-r3/`. Chart: `results/holdout_summary.p
 | 3 | ho13 | declined | declined: verification: The result may not correctly answer the question. |
 | 3 | ho14 | wrong_result | no predicted column matches gold column 0 |
 
+### mnemiq a453b05, TypeSafe Jev judge (fail-closed): non-exact attempts (holdout)
+
+| run | id | status | reason / error |
+|---|---|---|---|
+| 1 | ho10 | declined | declined: verification: The result may not correctly answer the question. |
+| 1 | ho14 | declined | declined: verification: The result may not correctly answer the question. |
+| 2 | ho10 | declined | declined: verification: The result may not correctly answer the question. |
+| 2 | ho14 | wrong_result | no predicted column matches gold column 0 |
+| 3 | ho10 | declined | declined: verification: The result may not correctly answer the question. |
+| 3 | ho14 | declined | declined: verification: The result may not correctly answer the question. |
+
 ### Per-question statuses (holdout)
 
-| id | diff | question | Router (cube_v2 → Wren noreason) | cube_v2 | WrenAI + semantic, no reasoning | DB-GPT 0.8.2 | mnemiq a453b05 (defaults) | mnemiq a453b05, judge fail-open variant | mnemiq a453b05, judge 1200-token variant (fail-closed) |
-|---|---|---|---|---|---|---|---|---|---|
-| ho01 | easy | How many distinct media types are there? | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| ho02 | easy | How many customers have a fax number recorded? | ✅ ✅ ✅ | ⛔ ⛔ ⛔ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| ho03 | easy | How many tracks are larger than 15 megabytes (bytes > 15 * 1 | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| ho04 | easy | How many invoices have a billing address that contains the w | ✅ ✅ ❌ | ❌ ❌ ❌ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| ho05 | medium | What is the average track file size in bytes for each media  | ✅ ✅ ✅ | ✅ ⛔ ⛔ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| ho06 | medium | How many playlists contain tracks from at least 10 different | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| ho07 | medium | List employees born in the 1970s. Return first name, last na | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| ho08 | medium | How many customers have a phone number that starts with '+55 | ✅ ✅ ✅ | ⛔ ⛔ ⛔ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| ho09 | medium | What percentage of total sales revenue (unit price times qua | ✅ ✅ ✅ | ✅ ❌ ❌ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| ho10 | hard | For each day of the week in 2024, how many invoices were iss | ✅ ✅ ✅ | ✅ ✅ ⏱️ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ 🚫 |
-| ho11 | hard | For each support representative, which customer has the high | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| ho12 | hard | Which artists have never had any track appear on an invoice  | ❌ ❌ ❌ | ❌ 💥 ❌ | ✅ ✅ ✅ | ❌ ❌ ❌ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| ho13 | hard | For each quarter of 2024, show the total invoice revenue and | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | 🚫 ✅ 🚫 |
-| ho14 | hard | Which ISO week numbers of 2023 had the highest invoice reven | ✅ ❌ ❌ | ✅ ✅ ✅ | ❌ ❌ ❌ | ❌ ❌ ❌ | ⚠️ ⚠️ ⚠️ | ❌ ✅ ✅ | 🚫 ❌ ❌ |
-| ho15 | hard | How many distinct billing postal codes appear on invoices bi | ✅ ✅ ✅ | ⛔ ⛔ ⛔ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
+| id | diff | question | Router (cube_v2 → Wren noreason) | cube_v2 | WrenAI + semantic, no reasoning | DB-GPT 0.8.2 | mnemiq a453b05 (defaults) | mnemiq a453b05, judge fail-open variant | mnemiq a453b05, judge 1200-token variant (fail-closed) | mnemiq a453b05, TypeSafe Jev judge (fail-closed) |
+|---|---|---|---|---|---|---|---|---|---|---|
+| ho01 | easy | How many distinct media types are there? | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
+| ho02 | easy | How many customers have a fax number recorded? | ✅ ✅ ✅ | ⛔ ⛔ ⛔ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
+| ho03 | easy | How many tracks are larger than 15 megabytes (bytes > 15 * 1 | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
+| ho04 | easy | How many invoices have a billing address that contains the w | ✅ ✅ ❌ | ❌ ❌ ❌ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
+| ho05 | medium | What is the average track file size in bytes for each media  | ✅ ✅ ✅ | ✅ ⛔ ⛔ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
+| ho06 | medium | How many playlists contain tracks from at least 10 different | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
+| ho07 | medium | List employees born in the 1970s. Return first name, last na | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
+| ho08 | medium | How many customers have a phone number that starts with '+55 | ✅ ✅ ✅ | ⛔ ⛔ ⛔ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
+| ho09 | medium | What percentage of total sales revenue (unit price times qua | ✅ ✅ ✅ | ✅ ❌ ❌ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
+| ho10 | hard | For each day of the week in 2024, how many invoices were iss | ✅ ✅ ✅ | ✅ ✅ ⏱️ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ 🚫 | 🚫 🚫 🚫 |
+| ho11 | hard | For each support representative, which customer has the high | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
+| ho12 | hard | Which artists have never had any track appear on an invoice  | ❌ ❌ ❌ | ❌ 💥 ❌ | ✅ ✅ ✅ | ❌ ❌ ❌ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
+| ho13 | hard | For each quarter of 2024, show the total invoice revenue and | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | 🚫 ✅ 🚫 | ✅ ✅ ✅ |
+| ho14 | hard | Which ISO week numbers of 2023 had the highest invoice reven | ✅ ❌ ❌ | ✅ ✅ ✅ | ❌ ❌ ❌ | ❌ ❌ ❌ | ⚠️ ⚠️ ⚠️ | ❌ ✅ ✅ | 🚫 ❌ ❌ | 🚫 ❌ 🚫 |
+| ho15 | hard | How many distinct billing postal codes appear on invoices bi | ✅ ✅ ✅ | ⛔ ⛔ ⛔ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
 
 Legend: ✅ exact, 🟡 extra columns, ❌ wrong, 💥 exec error, ⚠️ tool/API error, ⏱️ timeout, ⛔ unsupported (Cube), 🚫 declined (mnemiq deferral).
+
+
+## mnemiq_jev: Jev judge outcomes (29 + holdout)
+
+Jev log lines: 132; matched to attempts: 132; unmatched: 0; HTTP statuses: {'200': 132}; attempts with more than one Jev call: 0; attempts with none: 0.
+
+Jev calls bypass llm-meter, so they are counted from the log; `input_tokens` is the API's own `usage.input_tokens` (not estimated). Cost = input tokens x $0.042 per million (output tokens are free).
+
+| set | attempts | Jev calls | Jev input tokens (total) | avg per call | est. Jev cost | Jev latency p50 / p95 ms | passed | declined (verification) | judge unavailable | other |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 29 | 87 | 87 | 221,670 | 2,548 | $0.0093 | 170 / 232 | 78 | 9 | 0 | 0 |
+| holdout | 45 | 45 | 114,523 | 2,545 | $0.0048 | 175 / 234 | 40 | 5 | 0 | 0 |
+
+### Every decline: was its SQL actually right?
+
+| set | id | run | Jev noul | SQL right? | how | mnemiq_verified same attempt | mnemiq_failopen same attempt | SQL |
+|---|---|---|---|---|---|---|---|---|
+| 29 | e02 | 1 | 0.26 | RIGHT | exact | correct | correct | `SELECT name FROM genre LIMIT 1000` |
+| 29 | e08 | 1 | 0.41 | RIGHT | exact | correct | correct | `SELECT first_name, last_name, company FROM customer WHERE NOT company IS NULL AND company <> '' LIMIT 1000` |
+| 29 | m01 | 1 | 0.32 | RIGHT | exact | correct | correct | `SELECT g.name AS genre_name, COUNT(t.track_id) AS track_count FROM genre AS g LEFT JOIN track AS t ON t.genre_id = g.genre_id GROUP BY g.name ORDER BY` |
+| 29 | m06 | 1 | 0.31 | RIGHT | exact | correct | correct | `SELECT a.title, COUNT(*) AS track_count FROM track AS t JOIN album AS a ON t.album_id = a.album_id GROUP BY a.title HAVING COUNT(*) > 20 LIMIT 1000` |
+| 29 | e02 | 2 | 0.32 | RIGHT | exact | correct | correct | `SELECT name FROM genre LIMIT 1000` |
+| 29 | e08 | 2 | 0.39 | RIGHT | exact | correct | correct | `SELECT first_name, last_name, company FROM customer WHERE NOT company IS NULL AND company <> '' LIMIT 1000` |
+| 29 | m01 | 2 | 0.44 | RIGHT | exact | correct | correct | `SELECT g.name AS genre_name, COUNT(t.track_id) AS track_count FROM track AS t JOIN genre AS g ON t.genre_id = g.genre_id GROUP BY g.name ORDER BY g.na` |
+| 29 | e02 | 3 | 0.34 | RIGHT | exact | correct | correct | `SELECT name FROM genre LIMIT 1000` |
+| 29 | e08 | 3 | 0.39 | RIGHT | exact | correct | correct | `SELECT first_name, last_name, company FROM customer WHERE NOT company IS NULL AND company <> '' LIMIT 1000` |
+| holdout | ho10 | 1 | 0.32 | RIGHT | exact | correct | correct | `SELECT EXTRACT(DAYOFWEEK FROM invoice_date) AS day_of_week, COUNT(*) AS invoice_count FROM invoice WHERE EXTRACT(YEAR FROM invoice_date) = 2024 GROUP ` |
+| holdout | ho14 | 1 | 0.16 | RIGHT | valid under gold boundary tie | declined | wrong_result | `SELECT EXTRACT(WEEK FROM invoice_date) AS week_number, SUM(total) AS revenue FROM invoice WHERE invoice_date >= CAST('2023-01-01 00:00:00' AS TIMESTAM` |
+| holdout | ho10 | 2 | 0.37 | RIGHT | exact | correct | correct | `SELECT CAST(STRFTIME(invoice_date, '%w') AS INT) AS day_of_week, COUNT(*) AS invoice_count FROM invoice WHERE invoice_date >= CAST('2024-01-01 00:00:0` |
+| holdout | ho10 | 3 | 0.3 | RIGHT | exact | declined | correct | `SELECT EXTRACT(DAYOFWEEK FROM invoice_date) AS day_of_week, COUNT(*) AS invoice_count FROM invoice WHERE EXTRACT(YEAR FROM invoice_date) = 2024 GROUP ` |
+| holdout | ho14 | 3 | 0.2 | RIGHT | valid under gold boundary tie | wrong_result | correct | `SELECT EXTRACT(WEEK FROM invoice_date) AS week_number, SUM(total) AS revenue FROM invoice WHERE EXTRACT(YEAR FROM invoice_date) = 2023 GROUP BY week_n` |
+
+Declines: 14; SQL actually right: **14** (correct answers blocked); actually wrong: **0** (real mistakes caught).
+
+Answers passed by Jev and scored `wrong_result` by the harness: holdout:ho14 r2 (noul 0.83; re-labelled: right, valid under gold boundary tie)
+
+### Per question vs mnemiq_verified and mnemiq_failopen (r1 r2 r3)
+
+| set | id | mnemiq_jev | mnemiq_verified | mnemiq_failopen |
+|---|---|---|---|---|
+| 29 | e02 | 🚫🚫🚫 | ✓✓✓ | ✓✓✓ |
+| 29 | e08 | 🚫🚫🚫 | ✓✓✓ | ✓✓✓ |
+| 29 | m01 | 🚫🚫✓ | ✓✓✓ | ✓✓✓ |
+| 29 | m06 | 🚫✓✓ | ✓✓✓ | ✓✓✓ |
+| 29 | h05 | ✓✓✓ | 🚫✓✓ | ✓✓✓ |
+| holdout | ho10 | 🚫🚫🚫 | ✓✓🚫 | ✓✓✓ |
+| holdout | ho13 | ✓✓✓ | 🚫✓🚫 | ✓✓✓ |
+| holdout | ho14 | 🚫✗🚫 | 🚫✗✗ | ✗✓✓ |
+
+(Listed only where any of the three is not ✓✓✓. ✓ exact, ✗ wrong, 🚫 declined, ⚠ tool error. Generation differs run to run, so this is attempt vs attempt; the same-SQL comparison is results/judge-comparison/.)
+
+
+## Same-SQL judge comparison: Jev vs gpt-oss (offline)
+
+Each item is a (question, SQL) mnemiq produced. Its judge input is rebuilt with mnemiq's own code (`mnemiq/judge_rebuild.py`): the schema is `_judge_schema` of the packet `Runtime.ask` retrieves (same `retrieve` arguments + window fitter), and the result is the SQL run through mnemiq's own adapter (DuckDB over the same Postgres) rendered by `render_result(max_rows=5)`, exactly what the Verifier passes. Correct = EX-exact vs gold with the harness `compare` on the full result. **ho14: answers that are a valid top 3 under the gold's four-way tie for 3rd place are labelled correct** (known gold flaw). **ho12: DuckDB returns the same 110 rows as gold but in binary-collation order (Postgres' locale collation ignores spaces); these are labelled correct when the same SQL is exact on Postgres, which is how the harness scored them.** Pass = score >= 0.5 (mnemiq's Verifier defers below its 0.5 threshold).
+
+Items: 264 (132 mnemiq_verified judge calls with logged gpt-oss confidence, 132 mnemiq_failopen answers). Scored by Jev: 264; missing/unscored: 0. Correct: 262, wrong: 2.
+
+Jev calls: 264, input tokens (reported by the API's `usage.input_tokens`): 672,721 total, 2,548 avg; cost at $0.042/M input tokens: $0.0283. Latency p50 157 ms, p95 209 ms. Model reported: ['jev-1.14.0'].
+
+### At threshold 0.5
+
+| judge | items | wrong caught | wrong passed | correct blocked | correct passed | AUROC (score vs correct) |
+|---|---|---|---|---|---|---|
+| gpt-oss:120b judge (logged, mnemiq_verified calls) | 132 | 2 | 0 | 3 | 127 | 1.000 |
+| Jev, same mnemiq_verified calls | 132 | 1 | 1 | 15 | 115 | 0.929 |
+| Jev, mnemiq_failopen answers | 132 | 0 | 0 | 14 | 118 | n/a |
+| Jev, all items | 264 | 1 | 1 | 29 | 233 | 0.935 |
+
+### Threshold sweep (blocked = score below threshold)
+
+| threshold | gpt-oss: wrong caught / passed | gpt-oss: correct blocked | Jev (same calls): wrong caught / passed | Jev (same calls): correct blocked | Jev (all): wrong caught / passed | Jev (all): correct blocked |
+|---|---|---|---|---|---|---|
+| 0.1 | 0 / 2 | 0 | 1 / 1 | 0 | 1 / 1 | 0 |
+| 0.2 | 2 / 0 | 0 | 1 / 1 | 0 | 1 / 1 | 0 |
+| 0.3 | 2 / 0 | 0 | 1 / 1 | 3 | 1 / 1 | 4 |
+| 0.4 | 2 / 0 | 2 | 1 / 1 | 12 | 1 / 1 | 21 |
+| 0.5 | 2 / 0 | 3 | 1 / 1 | 15 | 1 / 1 | 29 |
+| 0.6 | 2 / 0 | 4 | 2 / 0 | 26 | 2 / 0 | 49 |
+| 0.7 | 2 / 0 | 7 | 2 / 0 | 46 | 2 / 0 | 91 |
+| 0.8 | 2 / 0 | 13 | 2 / 0 | 71 | 2 / 0 | 140 |
+| 0.9 | 2 / 0 | 25 | 2 / 0 | 109 | 2 / 0 | 219 |
+
+### Every wrong answer, and every answer either judge blocks at 0.5
+
+| source | set | id | run | correct? | detail | gpt-oss conf | Jev noul | SQL |
+|---|---|---|---|---|---|---|---|---|
+| mnemiq_failopen | 29 | e02 | 1 | yes | exact | – | 0.32 | `SELECT name FROM genre LIMIT 1000` |
+| mnemiq_failopen | 29 | e02 | 2 | yes | exact | – | 0.31 | `SELECT name FROM genre LIMIT 1000` |
+| mnemiq_failopen | 29 | e02 | 3 | yes | exact | – | 0.38 | `SELECT name FROM genre LIMIT 1000` |
+| mnemiq_verified | 29 | e02 | 1 | yes | exact | 0.98 | 0.25 | `SELECT name FROM genre LIMIT 1000` |
+| mnemiq_verified | 29 | e02 | 2 | yes | exact | 0.97 | 0.35 | `SELECT name FROM genre ORDER BY name LIMIT 1000` |
+| mnemiq_verified | 29 | e02 | 3 | yes | exact | 0.98 | 0.35 | `SELECT name FROM genre LIMIT 1000` |
+| mnemiq_failopen | 29 | e08 | 1 | yes | exact | – | 0.38 | `SELECT first_name, last_name, company FROM customer WHERE NOT company IS NULL AND company <> '' LIMIT 1000` |
+| mnemiq_failopen | 29 | e08 | 2 | yes | exact | – | 0.38 | `SELECT first_name, last_name, company FROM customer WHERE NOT company IS NULL AND TRIM(company) <> '' LIMIT 1000` |
+| mnemiq_failopen | 29 | e08 | 3 | yes | exact | – | 0.40 | `SELECT first_name, last_name, company FROM customer WHERE NOT company IS NULL AND company <> '' LIMIT 1000` |
+| mnemiq_verified | 29 | e08 | 1 | yes | exact | 0.95 | 0.43 | `SELECT first_name, last_name, company FROM customer WHERE NOT company IS NULL LIMIT 1000` |
+| mnemiq_verified | 29 | e08 | 2 | yes | exact | 0.97 | 0.37 | `SELECT first_name, last_name, company FROM customer WHERE NOT company IS NULL AND company <> '' LIMIT 1000` |
+| mnemiq_verified | 29 | e08 | 3 | yes | exact | 0.95 | 0.36 | `SELECT first_name, last_name, company FROM customer WHERE NOT company IS NULL AND company <> '' LIMIT 1000` |
+| mnemiq_verified | 29 | h05 | 1 | yes | exact | 0.35 | 0.55 | `SELECT EXTRACT(MONTH FROM invoice_date) AS month, SUM(total) AS revenue, LAG(SUM(total)) OVER (ORDER BY EXTRACT(MONTH FROM invoice_date)) AS prev_month_revenue ` |
+| mnemiq_verified | 29 | h06 | 1 | yes | exact | 0.75 | 0.38 | `SELECT a.name, COUNT(DISTINCT t.genre_id) AS distinct_genres FROM track AS t JOIN album AS al ON t.album_id = al.album_id JOIN artist AS a ON al.artist_id = a.a` |
+| mnemiq_failopen | 29 | m01 | 1 | yes | exact | – | 0.41 | `SELECT g.name AS genre_name, COUNT(t.track_id) AS track_count FROM track AS t JOIN genre AS g ON t.genre_id = g.genre_id GROUP BY g.name ORDER BY g.name LIMIT 1` |
+| mnemiq_failopen | 29 | m01 | 2 | yes | exact | – | 0.49 | `SELECT g.name AS genre_name, COUNT(t.track_id) AS track_count FROM track AS t JOIN genre AS g ON t.genre_id = g.genre_id GROUP BY g.name ORDER BY g.name LIMIT 1` |
+| mnemiq_failopen | 29 | m01 | 3 | yes | exact | – | 0.47 | `SELECT g.name, COUNT(t.track_id) AS track_count FROM track AS t JOIN genre AS g ON t.genre_id = g.genre_id GROUP BY g.name ORDER BY g.name LIMIT 1000` |
+| mnemiq_verified | 29 | m01 | 1 | yes | exact | 0.97 | 0.46 | `SELECT g.name AS genre_name, COUNT(t.track_id) AS track_count FROM genre AS g LEFT JOIN track AS t ON g.genre_id = t.genre_id GROUP BY g.name ORDER BY g.name LI` |
+| mnemiq_verified | 29 | m01 | 2 | yes | exact | 0.95 | 0.37 | `SELECT g.name AS genre_name, COUNT(t.track_id) AS track_count FROM genre AS g LEFT JOIN track AS t ON g.genre_id = t.genre_id GROUP BY g.name ORDER BY g.name LI` |
+| mnemiq_verified | 29 | m06 | 2 | yes | exact | 0.75 | 0.48 | `SELECT a.title, COUNT(t.track_id) AS track_count FROM album AS a JOIN track AS t ON a.album_id = t.album_id GROUP BY a.title HAVING COUNT(t.track_id) > 20 ORDER` |
+| mnemiq_failopen | holdout | ho10 | 1 | yes | exact | – | 0.35 | `SELECT CAST(STRFTIME(invoice_date, '%w') AS INT) AS day_of_week, COUNT(*) AS invoice_count FROM invoice WHERE invoice_date >= CAST('2024-01-01 00:00:00' AS TIME` |
+| mnemiq_failopen | holdout | ho10 | 2 | yes | exact | – | 0.31 | `SELECT EXTRACT(DAYOFWEEK FROM invoice_date) AS day_of_week, COUNT(*) AS invoice_count FROM invoice WHERE invoice_date >= CAST('2024-01-01 00:00:00' AS TIMESTAMP` |
+| mnemiq_failopen | holdout | ho10 | 3 | yes | exact | – | 0.31 | `SELECT CAST(EXTRACT(DAYOFWEEK FROM invoice_date) AS INT) AS day_of_week, COUNT(*) AS invoice_count FROM invoice WHERE CAST(EXTRACT(YEAR FROM invoice_date) AS IN` |
+| mnemiq_verified | holdout | ho10 | 1 | yes | exact | 0.72 | 0.30 | `SELECT EXTRACT(DAYOFWEEK FROM invoice_date) AS day_of_week, COUNT(*) AS invoice_count FROM invoice WHERE EXTRACT(YEAR FROM invoice_date) = 2024 GROUP BY EXTRACT` |
+| mnemiq_verified | holdout | ho10 | 2 | yes | exact | 0.58 | 0.29 | `SELECT EXTRACT(DAYOFWEEK FROM invoice_date) AS day_of_week, COUNT(*) AS invoice_count FROM invoice WHERE EXTRACT(YEAR FROM invoice_date) = 2024 GROUP BY day_of_` |
+| mnemiq_verified | holdout | ho10 | 3 | yes | exact | 0.4 | 0.30 | `SELECT EXTRACT(DAYOFWEEK FROM invoice_date) AS day_of_week, COUNT(*) AS invoice_count FROM invoice WHERE EXTRACT(YEAR FROM invoice_date) = 2024 GROUP BY day_of_` |
+| mnemiq_failopen | holdout | ho13 | 1 | yes | exact | – | 0.44 | `WITH agg AS (SELECT EXTRACT(YEAR FROM invoice_date) AS yr, EXTRACT(QUARTER FROM invoice_date) AS qtr, SUM(total) AS revenue FROM invoice WHERE EXTRACT(YEAR FROM` |
+| mnemiq_verified | holdout | ho13 | 1 | NO | wrong | 0.1 | 0.07 | `WITH q AS (SELECT ((MONTH(invoice_date) - 1) / 3) + 1 AS quarter, SUM(total) AS revenue FROM invoice WHERE YEAR(invoice_date) = 2024 GROUP BY 1) SELECT q.quarte` |
+| mnemiq_verified | holdout | ho13 | 3 | NO | wrong | 0.15 | 0.53 | `SELECT quarter, revenue, LAG(revenue) OVER (ORDER BY quarter) AS previous_quarter_revenue FROM (SELECT CAST(((EXTRACT(MONTH FROM invoice_date) - 1) / 3) + 1 AS ` |
+| mnemiq_failopen | holdout | ho14 | 2 | yes | valid under gold boundary tie | – | 0.21 | `SELECT EXTRACT(WEEK FROM invoice_date) AS week_number, SUM(total) AS revenue FROM invoice WHERE EXTRACT(YEAR FROM invoice_date) = 2023 GROUP BY week_number ORDE` |
+| mnemiq_verified | holdout | ho14 | 1 | yes | valid under gold boundary tie | 0.3 | 0.21 | `SELECT EXTRACT(WEEK FROM invoice_date) AS week_number, SUM(total) AS revenue FROM invoice WHERE EXTRACT(YEAR FROM invoice_date) = 2023 GROUP BY week_number ORDE` |
+| mnemiq_verified | holdout | ho14 | 3 | yes | valid under gold boundary tie | 0.92 | 0.30 | `SELECT CAST(DATE_PART('week', invoice_date) AS INT) AS week_number, SUM(total) AS revenue FROM invoice WHERE DATE_PART('year', invoice_date) = 2023 GROUP BY wee` |
+
+### Named cases
+
+| case | correct? | gpt-oss conf | Jev noul |
+|---|---|---|---|
+| mnemiq_verified h05 r1 | yes (exact) | 0.35 | 0.55 |
+| mnemiq_failopen h05 r1 | yes (exact) | – | 0.55 |
+| mnemiq_verified ho10 r3 | yes (exact) | 0.4 | 0.30 |
+| mnemiq_failopen ho10 r3 | yes (exact) | – | 0.31 |
+| mnemiq_verified ho13 r1 | NO (wrong) | 0.1 | 0.07 |
+| mnemiq_failopen ho13 r1 | yes (exact) | – | 0.44 |
+| mnemiq_verified ho13 r3 | NO (wrong) | 0.15 | 0.53 |
+| mnemiq_failopen ho13 r3 | yes (exact) | – | 0.86 |
+| mnemiq_verified ho14 r1 | yes (valid under gold boundary tie) | 0.3 | 0.21 |
+| mnemiq_failopen ho14 r1 | yes (exact) | – | 0.82 |
+| mnemiq_verified ho14 r2 | yes (valid under gold boundary tie) | 0.86 | 0.82 |
+| mnemiq_failopen ho14 r2 | yes (valid under gold boundary tie) | – | 0.21 |
+| mnemiq_verified ho14 r3 | yes (valid under gold boundary tie) | 0.92 | 0.30 |
+| mnemiq_failopen ho14 r3 | yes (valid under gold boundary tie) | – | 0.84 |
 
 
 ## mnemiq_verified: verifier outcomes (29 + holdout)

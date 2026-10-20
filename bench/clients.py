@@ -561,6 +561,16 @@ class MnemiqVerifiedClient(MnemiqClient):
         self.url = f"http://localhost:{env.get('MNEMIQ_VERIFIED_PORT', '8092')}/v1/ask"
 
 
+class MnemiqJevClient(MnemiqClient):
+    """Variant of `mnemiq_verified`: same fail-closed engine settings, but the judge is TypeSafe Jev
+    (patches/jev-judge.patch, MNEMIQ_VERIFY_BACKEND=jev, jev-1.14.0; calls go direct to TypeSafe, not via llm-meter,
+    and are logged per call in mnemiq/serve-jev.log). SQL generation stays on gpt-oss:120b via /mnemiqj/. :8093."""
+    name = "mnemiq_jev"
+
+    def __init__(self, env):
+        self.url = f"http://localhost:{env.get('MNEMIQ_JEV_PORT', '8093')}/v1/ask"
+
+
 class MnemiqFailOpenClient(MnemiqClient):
     """Variant of `mnemiq`: same pinned engine, store (copied), policy and endpoints; ONE setting differs,
     MNEMIQ_VERIFY_FAIL_CLOSED=0 (documented: an unreadable/unreachable judge returns the answer unchecked).
