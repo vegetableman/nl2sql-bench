@@ -478,9 +478,11 @@ to `mnemiq_jev`. The old `mnemiq_jev` run stays on disk.
 | 29 | mnemiq_verified (gpt-oss judge) | 86/87 (99%) | 4.97 / 7.43 | 1 (1 / 0) | 0 | – |
 | 29 | mnemiq_jev (v1) | 78/87 (90%) | 3.41 / 5.15 | 9 (9 / 0) | 0 | 87 / 221,670 / $0.0093 |
 | 29 | **mnemiq_jev_v2 (b)** | **85/87 (98%)** | 8.04 / 22.11* | **0** | 2* | 87 / 234,385 / $0.0098 |
+| 29 | **mnemiq_jev_v2 rerun r2** | **86/87 (99%)** | 3.42 / 8.50 | 0 (1 `invalid_query` deferral, h11 r1, no Jev call) | 0 | 87 / 234,544 / $0.0099 |
 | holdout | mnemiq_verified | 39/45 (87%) | 5.13 / 9.79 | 4 (2 / 2) | 0 | – |
 | holdout | mnemiq_jev (v1) | 39/45 (87%) | 3.14 / 4.88 | 5 (5 / 0) | 0 | 45 / 114,523 / $0.0048 |
 | holdout | **mnemiq_jev_v2 (b)** | 39/45 (87%) | 4.24 / 9.16* | 6 (**5 / 1**) | 0 | 45 / 119,872 / $0.0050 |
+| holdout | **mnemiq_jev_v2 rerun r2** | 38/45 (84%); 39/45 with the ho14 tie rule | 2.57 / 4.35 | 6 (**5 / 1**) | 0 | 44 / 117,091 / $0.0049 |
 
 \* **Latency is not comparable across these runs.** Over llm-meter's per-request timing, gpt-oss chat calls had
 p50/p95/max 1.61/2.95/4.4 s during mnemiq_verified and 1.41/2.74/3.9 s during mnemiq_jev, but **2.37/11.21/193.5 s**
@@ -497,6 +499,23 @@ gpt-oss stalls: h04 r2 and h11 r3 timed out at 180 s. Neither was a decline.
   gpt-oss prompt tokens. But on the same-SQL comparison, which is the fair one, **Jev still blocks more correct answers
   than gpt-oss (5 vs 3 of 130)**.
 * **Per-attempt analysis:** `results/run-gptoss120b-mnemiq-r3/jev_v2_analysis.md`; Jev log lines in `jev2_calls.log`.
+
+**Fresh rerun (`mnemiq_jev_v2` rerun r2).** Same configuration (variant b, threshold 0.5), with new result dirs
+`results/run-gptoss120b-mnemiq-jev-v2-r2/` and `results/run-gptoss120b-holdout-jev-v2-r2/`. I reran it because the
+previous v2 latency was contaminated by Ollama Cloud.
+
+* **Upstream latency was healthy:** probes before the start gave p50 0.93 s. During the run, gpt-oss chat calls had
+  p50/p95/max **1.45/4.07/11.2 s** on the 29 and **1.23/2.21/3.6 s** on the holdout. There were no timeouts.
+* **Jev:** 131 calls, all HTTP 200, p50/p95 154/198 ms (29) and 168/248 ms (holdout), $0.0148 in total.
+* **Holdout declines (6):** ho10 ×3 (exact) and ho14 r2/r3 (tie-valid) had correct SQL. ho12 r1 (noul 0.48) was wrong:
+  the same "any unsold track" bug (241 rows vs gold 110), so it was caught again.
+* **One wrong-scored answer passed:** ho14 r1 (noul 0.87) is tie-valid, so it is right under the tie rule.
+* **29 set:** the only miss is h11 r1, an `invalid_query` deferral. gpt-oss's SQL was rejected 3 times, so Jev was never
+  called.
+* **Repeatability:** the 5-correct-blocked / 1-caught pattern matches the previous v2 run exactly.
+* **Latency:** with a healthy upstream, v2 runs at p50 3.42 s (29) / 2.57 s (holdout), versus 4.97 / 5.13 s for
+  mnemiq_verified (whose runs also had healthy upstream: 1.61 s p50).
+* Details: `results/run-gptoss120b-mnemiq-jev-v2-r2/jev_v2_analysis.md`.
 
 ## Held-out evaluation (`questions_holdout.yaml`)
 
@@ -525,6 +544,7 @@ Results (`results/run-gptoss120b-holdout-r3/`, chart `results/holdout_summary.pn
 | mnemiq judge 1200 tok (fail-closed) | 39/45 (87%) | 39/45 (87%) | 5.13 | 9.79 | 5,250 | 3.0 |
 | mnemiq, TypeSafe Jev judge (fail-closed) | 39/45 (87%) | 39/45 (87%) | 3.14 | 4.88 | 2,823 (gpt-oss only) | 1.9 (+1 Jev) |
 | mnemiq, Jev judge v2 (truncation-aware) | 39/45 (87%) | 39/45 (87%) | 4.24* | 9.16* | 2,929 (gpt-oss only) | 1.9 (+1 Jev) |
+| mnemiq, Jev judge v2, rerun r2 | 38/45 (84%) | 38/45 (84%) | 2.57 | 4.35 | 2,804 (gpt-oss only) | 1.9 (+1 Jev) |
 
 Router fallback **17/45 (38%)** — triggers `cube_unsupported`×16, `cube_error`×1. Cube-answered path EX 22/28 (79%);
 fallback path EX 17/17 (100%). Silent-wrong (Cube answered, no fallback): `ho12`×3, `ho14`×2, `ho04`×1. No attempt

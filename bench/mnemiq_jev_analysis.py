@@ -20,6 +20,15 @@ LOG = ROOT / "mnemiq" / _TAG[0]
 if not LOG.exists():
     LOG = ROOT / "results/run-gptoss120b-mnemiq-r3" / _TAG[1]
 SETS = [("29", "run-gptoss120b-mnemiq-r3", "bench/questions.yaml"), ("holdout", "run-gptoss120b-holdout-r3", "bench/questions_holdout.yaml")]
+OUTDIR = "run-gptoss120b-mnemiq-r3"
+# `mnemiq_jev_analysis.py mnemiq_jev_v2 r2`: the fresh rerun in its own dirs, compared with the previous v2 run (old dirs)
+R2 = SYSTEM == "mnemiq_jev_v2" and len(sys.argv) > 2 and sys.argv[2] == "r2"
+PREV = {}
+if R2:
+    OLD_SETS = SETS
+    SETS = [("29", "run-gptoss120b-mnemiq-jev-v2-r2", "bench/questions.yaml"), ("holdout", "run-gptoss120b-holdout-jev-v2-r2", "bench/questions_holdout.yaml")]
+    OUTDIR = "run-gptoss120b-mnemiq-jev-v2-r2"; _TAG = (_TAG[0], _TAG[1], "jev_v2_analysis.md")
+    LOG = ROOT / "results" / OUTDIR / _TAG[1]
 LINE = re.compile(r"BENCH-JEV (.*?) q=(.*?) sql=(\".*\")\s*$")
 PRICE = 0.042 / 1e6
 
@@ -58,13 +67,22 @@ def label(conn, dsn, q, sql, gold):
 def main():
     env = load_env(); conn = psycopg.connect(env["BENCH_DB_URL"]); jl = jev_lines(); ji = 0
     recs, other = [], defaultdict(dict)
+    if R2:  # previous runs (old dirs): the comparison columns; "mnemiq_jev" column shows the previous v2 run
+        for name, run, _ in OLD_SETS:
+            for l in open(ROOT / "results" / run / "raw.jsonl"):
+                r = json.loads(l)
+                if r["system"] == "mnemiq_jev":
+                    continue  # v1 is not compared here
+                s = {"mnemiq_jev_v2": "mnemiq_jev"}.get(r["system"], r["system"])
+                if s in ("mnemiq_verified", "mnemiq_failopen", "mnemiq_jev"):
+                    other[s][(name, r["id"], str(r["run"]))] = r["status"]
     for name, run, qf in SETS:
         qs = {q["id"]: q for q in yaml.safe_load(open(ROOT / qf))["questions"]}
         for l in open(ROOT / "results" / run / "raw.jsonl"):
             r = json.loads(l)
             if r["system"] == SYSTEM:
                 r["_set"], r["_q"] = name, qs[r["id"]]; recs.append(r)
-            elif r["system"] in ("mnemiq", "mnemiq_verified", "mnemiq_failopen", "mnemiq_jev"):
+            elif not R2 and r["system"] in ("mnemiq", "mnemiq_verified", "mnemiq_failopen", "mnemiq_jev"):
                 other[r["system"]][(name, r["id"], str(r["run"]))] = r["status"]
     recs.sort(key=lambda r: r["t_start_epoch"])
     # Each attempt takes the earliest unused log line for ITS question. Strict log order breaks when the harness
@@ -80,7 +98,7 @@ def main():
     ji = sum(used)
     gold = {}
     L = [f"# {SYSTEM}: TypeSafe Jev as mnemiq's judge (fail-closed, threshold 0.5"
-         + (", truncation-aware request MNEMIQ_JEV_PROMPT=b)" if SYSTEM == "mnemiq_jev_v2" else ", original request)"), "",
+         + (", truncation-aware request MNEMIQ_JEV_PROMPT=b; fresh rerun r2)" if R2 else ", truncation-aware request MNEMIQ_JEV_PROMPT=b)" if SYSTEM == "mnemiq_jev_v2" else ", original request)"), "",
          f"Jev log lines: {len(jl)}; matched to attempts: {ji}; unmatched: {len(jl) - ji}; "
          f"HTTP statuses: {dict(Counter(x.get('status') for x in jl))}; attempts with more than one Jev call: {sum(len(r['_jev']) > 1 for r in recs)}; "
          f"attempts with none: {sum(not r['_jev'] for r in recs)}.", "",
@@ -124,8 +142,8 @@ def main():
         pw.append(f"{r['_set']}:{r['id']} r{r['run']} (noul {r['_jev'][-1].get('noul') if r['_jev'] else '?'}; re-labelled: {'right, ' + how if ok else 'genuinely wrong'})")
     L += ["", f"Declines: {dec_right + dec_wrong}; SQL actually right: **{dec_right}** (correct answers blocked); actually wrong: **{dec_wrong}** (real mistakes caught).", "",
           "Answers passed by Jev and scored `wrong_result` by the harness: " + ("; ".join(pw) or "none"), "",
-          f"## Per question vs {'mnemiq_jev (v1), ' if SYSTEM == 'mnemiq_jev_v2' else ''}mnemiq_verified and mnemiq_failopen (r1 r2 r3)", "",
-          f"| set | id | {SYSTEM} |{' mnemiq_jev (v1) |' if SYSTEM == 'mnemiq_jev_v2' else ''} mnemiq_verified | mnemiq_failopen |",
+          f"## Per question vs {'previous mnemiq_jev_v2 run, ' if R2 else 'mnemiq_jev (v1), ' if SYSTEM == 'mnemiq_jev_v2' else ''}mnemiq_verified and mnemiq_failopen (r1 r2 r3)", "",
+          f"| set | id | {SYSTEM} |{' previous v2 run |' if R2 else ' mnemiq_jev (v1) |' if SYSTEM == 'mnemiq_jev_v2' else ''} mnemiq_verified | mnemiq_failopen |",
           "|---|---|---|---|---|" + ("---|" if SYSTEM == "mnemiq_jev_v2" else "")]
     ab = {"correct": "✓", "correct_extra_cols": "≈", "wrong_result": "✗", "declined": "🚫", "tool_error": "⚠", "exec_error": "E", "timeout": "T"}
     by = defaultdict(dict)
@@ -140,7 +158,7 @@ def main():
             L.append(f"| {name} | {qid} | {j} |" + (f" {o} |" if SYSTEM == "mnemiq_jev_v2" else "") + f" {v} | {f} |")
     L += ["", "(Listed only where any of the three is not ✓✓✓. ✓ exact, ✗ wrong, 🚫 declined, ⚠ tool error. Generation differs run to run, "
           "so this is attempt vs attempt; the same-SQL comparison is results/judge-comparison/.)", ""]
-    txt = "\n".join(L); (ROOT / "results/run-gptoss120b-mnemiq-r3" / _TAG[2]).write_text(txt); print(txt)
+    txt = "\n".join(L); (ROOT / "results" / OUTDIR / _TAG[2]).write_text(txt); print(txt)
 
 
 if __name__ == "__main__":

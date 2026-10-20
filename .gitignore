@@ -26,3 +26,5 @@ mnemiq/state/
 mnemiq/*.log
 !results/run-gptoss120b-mnemiq-r3/
 !results/judge-comparison/
+!results/run-gptoss120b-mnemiq-jev-v2-r2/
+!results/run-gptoss120b-holdout-jev-v2-r2/

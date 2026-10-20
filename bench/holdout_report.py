@@ -6,11 +6,11 @@ import yaml
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 RUN = ROOT / "results" / "run-gptoss120b-holdout-r3"
-ORDER = ["router", "cube_v2", "wrenai_mdl_noreason", "dbgpt", "mnemiq", "mnemiq_failopen", "mnemiq_verified", "mnemiq_jev", "mnemiq_jev_v2"]
+ORDER = ["router", "cube_v2", "wrenai_mdl_noreason", "dbgpt", "mnemiq", "mnemiq_failopen", "mnemiq_verified", "mnemiq_jev", "mnemiq_jev_v2", "mnemiq_jev_v2_r2"]
 LABEL = {"router": "Router (cube_v2 → Wren noreason)", "cube_v2": "cube_v2", "wrenai_mdl_noreason": "WrenAI + semantic, no reasoning",
-         "dbgpt": "DB-GPT 0.8.2", "mnemiq": "mnemiq a453b05 (defaults)", "mnemiq_failopen": "mnemiq a453b05, judge fail-open variant", "mnemiq_verified": "mnemiq a453b05, judge 1200-token variant (fail-closed)", "mnemiq_jev": "mnemiq a453b05, TypeSafe Jev judge (fail-closed)", "mnemiq_jev_v2": "mnemiq a453b05, Jev judge v2 (truncation-aware)"}
+         "dbgpt": "DB-GPT 0.8.2", "mnemiq": "mnemiq a453b05 (defaults)", "mnemiq_failopen": "mnemiq a453b05, judge fail-open variant", "mnemiq_verified": "mnemiq a453b05, judge 1200-token variant (fail-closed)", "mnemiq_jev": "mnemiq a453b05, TypeSafe Jev judge (fail-closed)", "mnemiq_jev_v2": "mnemiq a453b05, Jev judge v2 (truncation-aware)", "mnemiq_jev_v2_r2": "mnemiq a453b05, Jev judge v2, rerun r2"}
 SHORT = {"router": "Router\n(cube→Wren)", "cube_v2": "cube_v2", "wrenai_mdl_noreason": "WrenAI\n+ sem.\nnoreason", "dbgpt": "DB-GPT\n0.8.2",
-         "mnemiq": "mnemiq\n(defaults)", "mnemiq_failopen": "mnemiq\n(fail-open\nvariant)", "mnemiq_verified": "mnemiq\n(judge 1200 tok,\nfail-closed)", "mnemiq_jev": "mnemiq\n(Jev judge,\nfail-closed)", "mnemiq_jev_v2": "mnemiq\n(Jev judge v2,\ntrunc-aware)"}
+         "mnemiq": "mnemiq\n(defaults)", "mnemiq_failopen": "mnemiq\n(fail-open\nvariant)", "mnemiq_verified": "mnemiq\n(judge 1200 tok,\nfail-closed)", "mnemiq_jev": "mnemiq\n(Jev judge,\nfail-closed)", "mnemiq_jev_v2": "mnemiq\n(Jev judge v2,\ntrunc-aware)", "mnemiq_jev_v2_r2": "mnemiq\n(Jev judge v2,\nrerun r2)"}
 EMO = {"correct": "✅", "correct_extra_cols": "🟡", "wrong_result": "❌", "exec_error": "💥", "tool_error": "⚠️",
        "unsupported": "⛔", "timeout": "⏱️", "declined": "🚫"}
 T = lambda v: v == "True"
@@ -23,6 +23,9 @@ def pct(xs, p):
 
 def load():
     rows = list(csv.DictReader(open(RUN / "results.csv")))
+    r2 = ROOT / "results" / "run-gptoss120b-holdout-jev-v2-r2" / "results.csv"  # fresh mnemiq_jev_v2 rerun, aliased
+    if r2.exists():
+        rows += [{**r, "system": "mnemiq_jev_v2_r2"} for r in csv.DictReader(open(r2)) if r["system"] == "mnemiq_jev_v2"]
     qs = yaml.safe_load(open(ROOT / "bench" / "questions_holdout.yaml"))["questions"]
     systems = [s for s in ORDER if any(r["system"] == s for r in rows)]
     return rows, qs, systems
@@ -64,7 +67,7 @@ def section():
               f"- Fallback path: EX {sum(T(r['exact']) for r in fb)}/{len(fb)} ({100*sum(T(r['exact']) for r in fb)/len(fb):.0f}%), p50/p95 {pct(fl,50):.2f}/{pct(fl,95):.2f} s",
               f"- Silent-wrong (Cube answered, no fallback, not EX): {len(silent)} — " + ", ".join(f"{r['id']}@r{r['run']}" for r in silent),
               f"- Fell back but Wren still wrong: {len(fbw)} — " + (", ".join(f"{r['id']}@r{r['run']}" for r in fbw) or "none")]
-    for s in [x for x in systems if x in ("dbgpt", "mnemiq", "mnemiq_failopen", "mnemiq_verified", "mnemiq_jev", "mnemiq_jev_v2")]:
+    for s in [x for x in systems if x in ("dbgpt", "mnemiq", "mnemiq_failopen", "mnemiq_verified", "mnemiq_jev", "mnemiq_jev_v2", "mnemiq_jev_v2_r2")]:
         miss = [r for r in S[s]["X"] if not T(r["exact"])]
         L += ["", f"### {LABEL[s]}: non-exact attempts (holdout)", "", "| run | id | status | reason / error |", "|---|---|---|---|"]
         L += [f"| {r['run']} | {r['id']} | {r['status']} | {(r['reason'] or r['error'] or '')[:150].replace('|','/').replace(chr(10),' ')} |" for r in miss] or ["| - | - | - | none |"]
