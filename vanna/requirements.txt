@@ -1,0 +1,4 @@
+vanna[chromadb,openai,postgres]==2.0.2
+chromadb==1.5.9
+openai==3.35.1
+psycopg2-binary==2.9.13

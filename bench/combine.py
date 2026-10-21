@@ -13,7 +13,8 @@ ACC_RUNS = {  # system -> run dir used for accuracy/latency
     "dbgpt": "run-gptoss120b-r3", "cube": "run-gptoss120b-r3", "cube_v2": "run-gptoss120b-cubev2-r3",
     "router": "run-gptoss120b-router-r3",
     "mnemiq": "run-gptoss120b-mnemiq-r3", "mnemiq_failopen": "run-gptoss120b-mnemiq-r3", "mnemiq_verified": "run-gptoss120b-mnemiq-r3", "mnemiq_jev": "run-gptoss120b-mnemiq-r3", "mnemiq_jev_v2": "run-gptoss120b-mnemiq-r3",
-    "mnemiq_jev_v2_r2": "run-gptoss120b-mnemiq-jev-v2-r2"}  # fresh rerun of mnemiq_jev_v2 (system name in that dir: mnemiq_jev_v2)
+    "mnemiq_jev_v2_r2": "run-gptoss120b-mnemiq-jev-v2-r2",
+    "vanna": "run-gptoss120b-vanna-r3"}  # fresh rerun of mnemiq_jev_v2 (system name in that dir: mnemiq_jev_v2)
 SRC_SYS = {"mnemiq_jev_v2_r2": "mnemiq_jev_v2"}
 TOK_RUNS = {**ACC_RUNS, "wrenai": "run-gptoss120b-wren-tokens"}  # OOTB Wren tokens were lost in r3 (meter-key bug)
 LABEL = {"wrenai": "WrenAI 0.29.2 (out of the box)", "wrenai_mdl": "WrenAI 0.29.2 + semantic layer",
@@ -21,7 +22,7 @@ LABEL = {"wrenai": "WrenAI 0.29.2 (out of the box)", "wrenai_mdl": "WrenAI 0.29.
          "dbgpt": "DB-GPT 0.8.2", "cube": "Cube Core 1.8.8 + LLM adapter (baseline)",
          "cube_v2": "Cube Core 1.8.8 + rich model + LLM adapter v2 (harness-built)",
          "router": "Router (cube_v2 → WrenAI semantic, no reasoning)",
-         "mnemiq": "mnemiq a453b05 (defaults)", "mnemiq_failopen": "mnemiq a453b05, judge fail-open variant", "mnemiq_verified": "mnemiq a453b05, judge 1200-token variant (fail-closed)", "mnemiq_jev": "mnemiq a453b05, TypeSafe Jev judge (fail-closed)", "mnemiq_jev_v2": "mnemiq a453b05, Jev judge v2 (truncation-aware)", "mnemiq_jev_v2_r2": "mnemiq a453b05, Jev judge v2, rerun r2"}
+         "mnemiq": "mnemiq a453b05 (defaults)", "mnemiq_failopen": "mnemiq a453b05, judge fail-open variant", "mnemiq_verified": "mnemiq a453b05, judge 1200-token variant (fail-closed)", "mnemiq_jev": "mnemiq a453b05, TypeSafe Jev judge (fail-closed)", "mnemiq_jev_v2": "mnemiq a453b05, Jev judge v2 (truncation-aware)", "mnemiq_jev_v2_r2": "mnemiq a453b05, Jev judge v2, rerun r2", "vanna": "Vanna 2.0.2 (legacy generate_sql, DDL-trained)"}
 SYSTEMS = list(ACC_RUNS)
 EMO = {"correct": "✅", "correct_extra_cols": "🟡", "wrong_result": "❌", "exec_error": "💥", "tool_error": "⚠️", "unsupported": "⛔", "timeout": "⏱️", "declined": "🚫"}
 T = lambda v: v == "True"
@@ -143,7 +144,7 @@ if "router" in rows:
           ""]
 
 # failure details for the semantic-layer variants
-for S in ("wrenai_mdl", "wrenai_mdl_noreason", "cube_v2", "router", "mnemiq", "mnemiq_failopen", "mnemiq_verified", "mnemiq_jev", "mnemiq_jev_v2", "mnemiq_jev_v2_r2"):
+for S in ("wrenai_mdl", "wrenai_mdl_noreason", "cube_v2", "router", "mnemiq", "mnemiq_failopen", "mnemiq_verified", "mnemiq_jev", "mnemiq_jev_v2", "mnemiq_jev_v2_r2", "vanna"):
     L += [f"## {LABEL[S]}: every non-exact attempt", "", "| run | id | status | reason / error |", "|---|---|---|---|"]
     for r in rows[S]:
         if not T(r["exact"]):
@@ -180,7 +181,7 @@ import matplotlib; matplotlib.use("Agg"); import matplotlib.pyplot as plt
 short = {"wrenai": "WrenAI 0.29.2\n(out of the box)", "wrenai_mdl": "WrenAI 0.29.2\n+ semantic layer",
          "wrenai_mdl_noreason": "WrenAI 0.29.2\n+ sem. layer,\nno reasoning", "dbgpt": "DB-GPT 0.8.2",
          "cube": "Cube Core 1.8.8\n+ LLM adapter\n(baseline)", "cube_v2": "Cube Core 1.8.8\n+ rich model\n+ adapter v2",
-         "router": "Router\n(cube_v2 -> Wren\nnoreason)", "mnemiq": "mnemiq\n(defaults)", "mnemiq_failopen": "mnemiq\n(fail-open\nvariant)", "mnemiq_verified": "mnemiq\n(judge 1200 tok,\nfail-closed)", "mnemiq_jev": "mnemiq\n(Jev judge,\nfail-closed)", "mnemiq_jev_v2": "mnemiq\n(Jev judge v2,\ntrunc-aware)", "mnemiq_jev_v2_r2": "mnemiq\n(Jev judge v2,\nrerun r2)"}
+         "router": "Router\n(cube_v2 -> Wren\nnoreason)", "mnemiq": "mnemiq\n(defaults)", "mnemiq_failopen": "mnemiq\n(fail-open\nvariant)", "mnemiq_verified": "mnemiq\n(judge 1200 tok,\nfail-closed)", "mnemiq_jev": "mnemiq\n(Jev judge,\nfail-closed)", "mnemiq_jev_v2": "mnemiq\n(Jev judge v2,\ntrunc-aware)", "mnemiq_jev_v2_r2": "mnemiq\n(Jev judge v2,\nrerun r2)", "vanna": "Vanna 2.0.2\n(DDL-trained)"}
 fig, ax = plt.subplots(1, 3, figsize=(34, 6.5)); x = range(len(SYSTEMS)); w = 0.38
 ex = [100 * sum(T(r["exact"]) for r in rows[s]) / len(rows[s]) for s in SYSTEMS]
 rx = [100 * sum(T(r["relaxed"]) for r in rows[s]) / len(rows[s]) for s in SYSTEMS]

@@ -515,6 +515,31 @@ class RouterClient:
 
 
 # ------------------------------------------------------------------ mnemiq
+class VannaClient:
+    """Vanna 2.0.2, classic NL->SQL path (vanna.legacy generate_sql) behind vanna/server.py (:8095).
+    Trained on the 11 Chinook CREATE TABLE statements only (vanna/training/ddl.sql). Vanna returns SQL; the harness
+    executes it read-only. A reply that is not SQL (Vanna's intermediate_sql refusal or an 'insufficient context'
+    explanation) is passed through unchanged and therefore fails at execution, as Vanna's own output would."""
+    name = "vanna"
+
+    def __init__(self, env):
+        self.url = f"http://localhost:{env.get('VANNA_PORT', '8095')}/v1/generate"
+
+    def generate(self, question):
+        r = httpx.post(self.url, json={"question": question}, timeout=TIMEOUT)
+        try:
+            j = r.json()
+        except Exception:
+            return {"error": f"HTTP {r.status_code}: {r.text[:300]}"}
+        raw = {k: j.get(k) for k in ("llm_calls", "ddl_tables", "seconds")}
+        raw["llm_response"] = (j.get("llm_response") or "")[:2000]
+        if r.status_code != 200:
+            return {"error": f"HTTP {r.status_code}: {j.get('error')}", "raw": raw}
+        if not (j.get("sql") or "").strip():
+            return {"error": "vanna: empty SQL", "raw": raw}
+        return {"sql": j["sql"], "raw": raw}
+
+
 class MnemiqClient:
     """mnemiq (agenticfabriq/mnemiq, Apache-2.0) – HTTP API of `mnemiq serve --http` (mnemiq/run.sh serve,
     :8090), out-of-the-box engine settings (default mode `thinking`). POST /v1/ask {question}.

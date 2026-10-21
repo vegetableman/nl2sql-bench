@@ -7,7 +7,7 @@ REPEATS ?= 1
 SYSTEMS ?= wrenai,dbgpt,cube
 QUESTIONS ?= bench/questions.yaml
 
-.PHONY: wren-mdl wren-mdl-noreason wren-mdl-restore wren-mdl-up report up down clean setup bench mock verify probe status logs venv render docker netfix wait bench-router bench-holdout mnemiq-install mnemiq-up bench-mnemiq mnemiq-failopen-up bench-mnemiq-failopen mnemiq-verified-up bench-mnemiq-verified mnemiq-jev-up bench-mnemiq-jev mnemiq-jev2-up bench-mnemiq-jev2
+.PHONY: wren-mdl wren-mdl-noreason wren-mdl-restore wren-mdl-up report up down clean setup bench mock verify probe status logs venv render docker netfix wait bench-router bench-holdout mnemiq-install mnemiq-up bench-mnemiq mnemiq-failopen-up bench-mnemiq-failopen mnemiq-verified-up bench-mnemiq-verified mnemiq-jev-up bench-mnemiq-jev mnemiq-jev2-up bench-mnemiq-jev2 vanna-install vanna-up vanna-down bench-vanna
 
 up: docker netfix venv render          ## start everything and connect all tools to Postgres
 	docker compose up -d --build
@@ -159,3 +159,18 @@ mnemiq-jev2-up:                        ## variant: as mnemiq-jev but truncation-
 bench-mnemiq-jev2: mnemiq-jev2-up      ## variant x3 on the 29 and the 15 holdout (same run dirs, system mnemiq_jev_v2)
 	$(PY) bench/harness.py --repeats $(REPEATS) --systems mnemiq_jev_v2 --out run-gptoss120b-mnemiq-r3 --resume
 	$(PY) bench/harness.py --repeats $(REPEATS) --systems mnemiq_jev_v2 --questions bench/questions_holdout.yaml --out run-gptoss120b-holdout-r3 --resume
+
+vanna-install:                         ## Vanna 2.0.2 venv (vanna/.venv) + DDL training file from information_schema/pg_constraint
+	@test -x vanna/.venv/bin/python || vanna/run.sh install
+	@test -f vanna/training/ddl.sql || vanna/run.sh ddl
+
+vanna-up: vanna-install                ## Vanna service on :8095 (meter prefix /vanna/); trains the DDL into vanna/state/chroma on first start
+	@curl -sf -o /dev/null http://localhost:8095/healthz || (setsid nohup vanna/run.sh serve > vanna/serve.log 2>&1 &)
+	@printf "waiting for vanna "; for i in $$(seq 1 60); do curl -sf -o /dev/null http://localhost:8095/healthz && break; printf .; sleep 2; done; echo " ok"
+
+vanna-down:
+	-pkill -f "vanna/server.py"
+
+bench-vanna: vanna-up                  ## Vanna x3 on the 29 (own run dir) and the 15 holdout (shared holdout run dir)
+	$(PY) bench/harness.py --repeats $(REPEATS) --systems vanna --out run-gptoss120b-vanna-r3 --resume
+	$(PY) bench/harness.py --repeats $(REPEATS) --systems vanna --questions bench/questions_holdout.yaml --out run-gptoss120b-holdout-r3 --resume

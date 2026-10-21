@@ -12,11 +12,13 @@ Same natural-language questions, same Postgres database, same LLM, measured the 
 | **Cube Core 1.8.8 + rich model + LLM adapter v2 (harness-built)** — system `cube_v2` (service `cube_v2`, REST :4001, SQL API :15432) | same LLM gets the *views* of `cube_v2/model` (with descriptions) from `/v1/meta` and writes ONE Cube SQL API query (Postgres dialect, `MEASURE()`, push-down/post-processing); 1 repair retry on Cube errors | Cube SQL API (Postgres wire protocol) at `localhost:15432` — executed by Cube, never directly on Postgres |
 | **mnemiq @ a453b05** — systems `mnemiq` (defaults), `mnemiq_failopen`, `mnemiq_verified`, `mnemiq_jev` and `mnemiq_jev_v2` (one-change variants) | NL → SQL; its own enrichment (`mnemiq enrich`: profiling + one LLM description pass, 11 tables) and retrieval index (`mnemiq build`, nomic-embed-text); default mode `thinking` (1 candidate, corrector, deterministic sanity + LLM judge) | `POST http://localhost:8090/v1/ask` `{question}` (`mnemiq serve --http`; variants on :8091–:8094); a deferral is scored `declined` |
 | **Router** — system `router` | try cube_v2 first (prompt copy that may reply `CANNOT_EXPRESS`); fall back to WrenAI + semantic layer, no reasoning on unsupported / Cube error / empty result. No gold used for routing. | cube_v2 SQL API + `POST http://localhost:3001/api/v1/generate_sql`; tokens under `/router/` (+ `/wrenmdlnr/` on fallback) |
+| **Vanna 2.0.2** — system `vanna` (`vanna/server.py`, :8095) | NL → SQL with Vanna's classic `generate_sql` (`vanna.legacy`: OpenAI_Chat + ChromaDB_VectorStore), trained on the 11 Chinook `CREATE TABLE`s only; 1 LLM call, SQL only (no execution, no retry) | `POST http://localhost:8095/v1/generate` `{question}` → `{sql}`; the harness executes it |
 
 Fairness controls
 * One Postgres (Chinook 1.4.5) container; WrenAI, DB-GPT and Cube connect to it as the same **read-only role `bench`**.
 * All LLM/embedding traffic of all three goes through **llm-meter** (`meter/`, port 8089), a pass-through OpenAI-compatible proxy that sends chat calls to `LLM_UPSTREAM_BASE` and embedding calls to `EMBEDDING_UPSTREAM_BASE`, and counts tokens per tool (neither tool reports usage in its API). Same chat model for all three (`LLM_MODEL`, default **`gpt-oss:120b` on Ollama Cloud**), temperature 0; same embedding model for Wren and DB-GPT (**`nomic-embed-text`, 768-d, local `ollama` container** — Ollama Cloud has no embeddings API: `/v1/embeddings` 404, `/api/embed` 401).
 * Tools run with their default pipelines (WrenAI: intent classification, reasoning, SQL correction; DB-GPT: ChatWithDbExecute).
+* Vanna (added later) follows the same rules: read-only `bench` role, all chat and embedding calls through llm-meter (`/vanna/`), gpt-oss:120b at temperature 0, nomic-embed-text.
 * Every generated SQL is re-executed by the harness on the same Postgres in a `READ ONLY` transaction (30 s statement timeout) and compared with the gold result.
 
 ## Quick start
@@ -38,6 +40,7 @@ make bench SYSTEMS=wrenai_mdl_noreason REPEATS=3
 make bench-router REPEATS=3      # router (needs noreason variant; make target switches it)
 make mnemiq-install && make bench-mnemiq REPEATS=3   # mnemiq (pinned commit) on the 29 + the 15 holdout
 make bench-mnemiq-failopen REPEATS=3                 # mnemiq judge fail-open variant (see below)
+make bench-vanna REPEATS=3                           # Vanna 2.0.2 (:8095, meter /vanna/) on the 29 + the 15 holdout; make vanna-down stops it
 make bench-mnemiq-verified REPEATS=3                 # mnemiq judge 1200-token variant, fail-closed (patched worktree)
 .venv/bin/python bench/mnemiq_verifier_analysis.py   # verifier outcomes + re-scored SQL of rejected answers
 make bench-mnemiq-jev REPEATS=3                      # mnemiq with TypeSafe Jev as judge, original request (MNEMIQ_JEV_PROMPT=v1)
@@ -89,6 +92,7 @@ mnemiq/patches/verifier-tokens.patch  the only engine code change (mnemiq_verifi
 bench/mnemiq_verifier_analysis.py  judge-outcome analysis -> results/run-gptoss120b-mnemiq-r3/verifier_analysis.md
 mnemiq/patches/jev-judge.patch  JevJudge (TypeSafe Jev as mnemiq's judge), mnemiq_jev only, separate worktree mnemiq/engine-jev
 bench/mnemiq_jev_analysis.py, bench/judge_comparison.py, mnemiq/judge_rebuild.py  Jev run analysis; same-SQL judge comparison -> results/judge-comparison/
+vanna/                      Vanna service (server.py, run.sh, requirements.txt pinning vanna 2.0.2), build_ddl.py + training/ddl.sql; .venv/state git-ignored
 bench/holdout_report.py     holdout section + results/holdout_summary.png (called by combine.py)
 bench/harness.py            runner, scoring, report     bench/clients.py  per-system API clients (incl. router)
 bench/setup_connections.py  connects tools to the DB    bench/verify_gold.py, bench/probe.py
@@ -517,6 +521,85 @@ previous v2 latency was contaminated by Ollama Cloud.
   mnemiq_verified (whose runs also had healthy upstream: 1.61 s p50).
 * Details: `results/run-gptoss120b-mnemiq-jev-v2-r2/jev_v2_analysis.md`.
 
+## Vanna (`vanna`): classic `generate_sql`, DDL-trained
+
+**Version and path.** I pinned the latest PyPI release, **vanna 2.0.2** (`vanna[chromadb,openai,postgres]==2.0.2`,
+chromadb 1.5.9, openai 3.35.1; `vanna/requirements.txt`).
+
+* **Why the classic path:** 2.x's headline API is the Agent framework (`Agent` + `ToolRegistry` + `RunSqlTool`). There
+  the LLM *executes* SQL as a tool call and streams UI components, and it has no DDL-training step. The 2.0.2 wheel
+  still ships the classic API under **`vanna.legacy`**; the README's migration notes keep it usable via
+  `LegacyVannaAdapter`. I used that path because it is Vanna's NL→SQL flow that only returns SQL:
+  `ChromaDB_VectorStore` + `OpenAI_Chat` → `vn.train(ddl=…)` → `vn.generate_sql(question)`.
+* **How it is served:** a ~90-line stdlib HTTP wrapper (`vanna/server.py`, :8095). It returns Vanna's SQL plus, for
+  analysis only, the raw LLM text and the retrieved tables.
+
+**Configuration.**
+
+* **LLM:** gpt-oss:120b on Ollama Cloud via llm-meter `/vanna/v1`, temperature 0 (Vanna's default is 0.7).
+* **Embeddings:** Chroma's OpenAI-compatible embedding function → meter `/vanna/v1` → local ollama **nomic-embed-text**
+  (instead of Chroma's bundled all-MiniLM-L6-v2).
+* **Vector store:** Vanna's default local Chroma (persistent, `vanna/state/chroma`, git-ignored).
+* **Vanna defaults kept:**
+  * `n_results=10` per collection, so each prompt carries the 10 of 11 DDLs nearest the question;
+  * Vanna's own system prompt;
+  * `allow_llm_to_see_data=False`. An `intermediate_sql` reply would come back as Vanna's refusal text, which then fails
+    at execution. This never happened.
+* **No retries:** there is no retry or self-correction loop. The classic `generate_sql` has none: one LLM call per
+  question (measured: exactly 1 on all 132 attempts).
+* **Database access:** connects as the read-only `bench` role (sets the PostgreSQL dialect). Vanna never runs the SQL;
+  the harness executes it as for every system.
+
+**Training material.** Only `vanna/training/ddl.sql`: 11 `CREATE TABLE` statements built by `vanna/build_ddl.py`
+through the read-only role.
+
+* **Contents:** columns, types and NOT NULL from information_schema, plus the 22 PK/FK constraints from `pg_constraint`
+  (information_schema hides constraints from a SELECT-only role).
+* **No documentation:** the database has no table or column comments, so there was no generic schema description to
+  add.
+* **No leakage:** no benchmark questions and no gold SQL were trained. The question-SQL collection is empty, and
+  `generate_sql` does not auto-train.
+
+**Results** (`results/run-gptoss120b-vanna-r3/` for the 29; the holdout was appended to `results/run-gptoss120b-holdout-r3/` with `--resume`; 3 runs each):
+
+| set | EX exact | EX relaxed | p50 / p95 s | avg prompt tok | LLM calls / q |
+|---|---|---|---|---|---|
+| 29 | 84/87 (97%) | 84/87 (97%) | 1.57 / 2.80 | 969 | 1.0 |
+| holdout | 42/45 (93%); **45/45 with the ho14 tie rule** | 42/45 (93%) | 1.45 / 2.76 | 975 | 1.0 |
+
+Upstream was healthy throughout. Probes before the start gave p50 0.98 s. During the run, gpt-oss chat calls had
+p50/p95/max 1.41/2.61/3.5 s (29) and 1.32/2.16/2.9 s (holdout), with no timeouts.
+
+**Misses and root causes** (each re-executed against gold):
+
+* **h02 r1, r3** (`wrong_result`): `employee LEFT JOIN customer LEFT JOIN invoice` with `COALESCE(SUM, 0)` returns all
+  8 employees, 5 of them with total 0, instead of the 3 support agents. The question says "each sales support agent".
+  This is a real semantic error.
+* **h03 r1** (`exec_error`): **a Vanna `extract_sql` bug, not a model error.** gpt-oss returned a correct fenced query
+  (re-executed: exact against gold, 22 rows). Vanna's extraction regex keeps the *last* `SELECT … ;` match, here the
+  inner `SELECT AVG(...) FROM (...) sub );` fragment, so the SQL fails to parse.
+* **ho14 r1–r3** (`wrong_result`): a scoring artefact. All three return weeks 25 and 16 and then week 8. Week 8 is one
+  of the four weeks tied at 22.77 on the gold's `LIMIT 3` boundary, so the answer is valid under the tie rule. Vanna
+  also filtered `EXTRACT(isoyear …) = 2023`, arguably closer to "ISO week numbers of 2023" than the gold's
+  calendar-year filter, and that gives the same top 3 here.
+
+**Against existing results** (already on disk, nothing rerun):
+
+| system | 29 EX exact | holdout EX exact (tie-adjusted) | p50 s (29 / holdout) | avg prompt tok (29) | LLM calls / q |
+|---|---|---|---|---|---|
+| **Vanna 2.0.2** | 84/87 (97%) | 42/45 (**45/45**) | **1.57 / 1.45** | **969** | 1.0 |
+| WrenAI + semantic layer, no reasoning | 86/87 (99%) | 42/45 (45/45) | 4.05 / 4.06 | 20,941 | 2.0 |
+| DB-GPT 0.8.2 | 81/87 (93%) | 39/45 (42/45; ho12 ×3 wrong as recorded) | 1.95 / 2.61 | 1,684 | 1.0 |
+| mnemiq_jev_v2 rerun r2 | 86/87 (99%) | 38/45 (39/45; 6 Jev declines) | 3.42 / 2.57 | 3,012 | 2.0 (+1 Jev) |
+
+**Read-out.**
+
+* **Accuracy and cost:** with nothing but DDL, Vanna is within 2 attempts of WrenAI's tuned semantic layer on the 29.
+  It ties WrenAI on the holdout, at ~1/20 of the prompt tokens and ~⅓ of the latency.
+* **Its misses:** one recurring join-semantics error (h02) and one post-processing bug (h03 r1).
+* **Caveat:** the 29 were the tuning set for WrenAI's semantic layer and cube_v2, not for Vanna or DB-GPT. On the
+  holdout, which none of the systems were tuned on, WrenAI and Vanna are level.
+
 ## Held-out evaluation (`questions_holdout.yaml`)
 
 The original 29 questions were the tuning set for `cube_v2` and the WrenAI semantic layer, so the first router run
@@ -545,6 +628,7 @@ Results (`results/run-gptoss120b-holdout-r3/`, chart `results/holdout_summary.pn
 | mnemiq, TypeSafe Jev judge (fail-closed) | 39/45 (87%) | 39/45 (87%) | 3.14 | 4.88 | 2,823 (gpt-oss only) | 1.9 (+1 Jev) |
 | mnemiq, Jev judge v2 (truncation-aware) | 39/45 (87%) | 39/45 (87%) | 4.24* | 9.16* | 2,929 (gpt-oss only) | 1.9 (+1 Jev) |
 | mnemiq, Jev judge v2, rerun r2 | 38/45 (84%) | 38/45 (84%) | 2.57 | 4.35 | 2,804 (gpt-oss only) | 1.9 (+1 Jev) |
+| Vanna 2.0.2 (DDL-trained, legacy generate_sql) | 42/45 (93%) | 42/45 (93%) | 1.45 | 2.76 | 975 | 1.0 |
 
 Router fallback **17/45 (38%)** — triggers `cube_unsupported`×16, `cube_error`×1. Cube-answered path EX 22/28 (79%);
 fallback path EX 17/17 (100%). Silent-wrong (Cube answered, no fallback): `ho12`×3, `ho14`×2, `ho04`×1. No attempt
@@ -552,7 +636,7 @@ fell back and then still failed under Wren. cube_v2's mean latency is pulled up 
 DB-GPT (unchanged config) matches the router's 87% EX; misses are `ho12` and `ho14` (wrong_result all 3 runs each; no errors/timeouts).
 **Caveat (found later): ho14's gold has a tie at its `LIMIT 3` boundary** (see the mnemiq section). DB-GPT's and
 WrenAI's ho14 `wrong_result`s re-execute to valid top-3 answers, so their ho14 misses are scoring artefacts. Scores
-are left as recorded.
+are left as recorded. Vanna's three misses are all ho14 and all tie-valid too (see the Vanna section).
 
 ## Cube notes (baseline `cube`)
 Not expressible as a single Cube REST query over the model (counted as failures for Cube, listed in the report):

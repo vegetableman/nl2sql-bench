@@ -23,3 +23,8 @@
 | Chat LLM | gpt-oss:120b on Ollama Cloud (`https://ollama.com/v1`, OpenAI-compatible, Bearer `OLLAMA_API_KEY`) | hosted; version not pinnable by us |
 | Docker | 26.1.5 (Debian docker.io), Compose 2.26.1 | |
 | TypeSafe Jev (`mnemiq_jev` judge) | `jev-1.14.0` (versioned ID; = `jev-preview` on 2026-10-20, `jev-latest` -> 1.13) | hosted API `POST https://api.typesafe.ai/v1/systemone`, one `noul` question per judge call, via `mnemiq/patches/jev-judge.patch` (request variant `MNEMIQ_JEV_PROMPT`: `v1` for mnemiq_jev, `b` = default for mnemiq_jev_v2) (worktree `mnemiq/engine-jev`, same mnemiq commit); key `TYPESAFE_API_KEY` in .env |
+
+## Vanna
+
+* vanna **2.0.2** (PyPI, latest stable on 2026-10-21), extras `chromadb,openai,postgres`; chromadb 1.5.9, openai 3.35.1, psycopg2-binary 2.9.13 (`vanna/requirements.txt`), Python 3.12 venv `vanna/.venv`.
+* Path: classic `vanna.legacy` (`ChromaDB_VectorStore` + `OpenAI_Chat`, `generate_sql`), not the 2.x Agent API. LLM gpt-oss:120b via llm-meter `/vanna/` (temperature 0); embeddings nomic-embed-text via the meter; training = `vanna/training/ddl.sql` (11 CREATE TABLEs) only.
