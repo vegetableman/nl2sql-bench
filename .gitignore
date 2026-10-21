@@ -32,3 +32,8 @@ vanna/state/
 !results/run-gptoss120b-vanna-r3/
 vanna/serve.log
 vanna/serve-*.log
+!results/run-arctic-hf-a10g-r3/
+!results/run-arctic-hf-l4-r3/
+!results/contenders.png
+arctic/.venv/
+logs/

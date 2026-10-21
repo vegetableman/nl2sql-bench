@@ -6,11 +6,11 @@ import yaml
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 RUN = ROOT / "results" / "run-gptoss120b-holdout-r3"
-ORDER = ["router", "cube_v2", "wrenai_mdl_noreason", "dbgpt", "mnemiq", "mnemiq_failopen", "mnemiq_verified", "mnemiq_jev", "mnemiq_jev_v2", "mnemiq_jev_v2_r2", "vanna", "vanna_jev", "vanna_jev_retry"]
+ORDER = ["router", "cube_v2", "wrenai_mdl_noreason", "dbgpt", "mnemiq", "mnemiq_failopen", "mnemiq_verified", "mnemiq_jev", "mnemiq_jev_v2", "mnemiq_jev_v2_r2", "vanna", "vanna_jev", "vanna_jev_retry", "arctic"]
 LABEL = {"router": "Router (cube_v2 → Wren noreason)", "cube_v2": "cube_v2", "wrenai_mdl_noreason": "WrenAI + semantic, no reasoning",
-         "dbgpt": "DB-GPT 0.8.2", "mnemiq": "mnemiq a453b05 (defaults)", "mnemiq_failopen": "mnemiq a453b05, judge fail-open variant", "mnemiq_verified": "mnemiq a453b05, judge 1200-token variant (fail-closed)", "mnemiq_jev": "mnemiq a453b05, TypeSafe Jev judge (fail-closed)", "mnemiq_jev_v2": "mnemiq a453b05, Jev judge v2 (truncation-aware)", "mnemiq_jev_v2_r2": "mnemiq a453b05, Jev judge v2, rerun r2", "vanna": "Vanna 2.0.2 (legacy generate_sql, DDL-trained)", "vanna_jev": "Vanna 2.0.2 + Jev answer check (fail-closed)", "vanna_jev_retry": "Vanna 2.0.2 + Jev check + 1 retry"}
+         "dbgpt": "DB-GPT 0.8.2", "mnemiq": "mnemiq a453b05 (defaults)", "mnemiq_failopen": "mnemiq a453b05, judge fail-open variant", "mnemiq_verified": "mnemiq a453b05, judge 1200-token variant (fail-closed)", "mnemiq_jev": "mnemiq a453b05, TypeSafe Jev judge (fail-closed)", "mnemiq_jev_v2": "mnemiq a453b05, Jev judge v2 (truncation-aware)", "mnemiq_jev_v2_r2": "mnemiq a453b05, Jev judge v2, rerun r2", "vanna": "Vanna 2.0.2 (legacy generate_sql, DDL-trained)", "vanna_jev": "Vanna 2.0.2 + Jev answer check (fail-closed)", "vanna_jev_retry": "Vanna 2.0.2 + Jev check + 1 retry", "arctic": "Arctic-Text2SQL-R1-7B (HF A10G endpoint, own model)"}
 SHORT = {"router": "Router\n(cube→Wren)", "cube_v2": "cube_v2", "wrenai_mdl_noreason": "WrenAI\n+ sem.\nnoreason", "dbgpt": "DB-GPT\n0.8.2",
-         "mnemiq": "mnemiq\n(defaults)", "mnemiq_failopen": "mnemiq\n(fail-open\nvariant)", "mnemiq_verified": "mnemiq\n(judge 1200 tok,\nfail-closed)", "mnemiq_jev": "mnemiq\n(Jev judge,\nfail-closed)", "mnemiq_jev_v2": "mnemiq\n(Jev judge v2,\ntrunc-aware)", "mnemiq_jev_v2_r2": "mnemiq\n(Jev judge v2,\nrerun r2)", "vanna": "Vanna 2.0.2\n(DDL-trained)", "vanna_jev": "Vanna\n+ Jev check", "vanna_jev_retry": "Vanna\n+ Jev check\n+ 1 retry"}
+         "mnemiq": "mnemiq\n(defaults)", "mnemiq_failopen": "mnemiq\n(fail-open\nvariant)", "mnemiq_verified": "mnemiq\n(judge 1200 tok,\nfail-closed)", "mnemiq_jev": "mnemiq\n(Jev judge,\nfail-closed)", "mnemiq_jev_v2": "mnemiq\n(Jev judge v2,\ntrunc-aware)", "mnemiq_jev_v2_r2": "mnemiq\n(Jev judge v2,\nrerun r2)", "vanna": "Vanna 2.0.2\n(DDL-trained)", "vanna_jev": "Vanna\n+ Jev check", "vanna_jev_retry": "Vanna\n+ Jev check\n+ 1 retry", "arctic": "Arctic\nR1-7B\n(HF A10G)"}
 EMO = {"correct": "✅", "correct_extra_cols": "🟡", "wrong_result": "❌", "exec_error": "💥", "tool_error": "⚠️",
        "unsupported": "⛔", "timeout": "⏱️", "declined": "🚫"}
 T = lambda v: v == "True"
@@ -67,7 +67,7 @@ def section():
               f"- Fallback path: EX {sum(T(r['exact']) for r in fb)}/{len(fb)} ({100*sum(T(r['exact']) for r in fb)/len(fb):.0f}%), p50/p95 {pct(fl,50):.2f}/{pct(fl,95):.2f} s",
               f"- Silent-wrong (Cube answered, no fallback, not EX): {len(silent)} — " + ", ".join(f"{r['id']}@r{r['run']}" for r in silent),
               f"- Fell back but Wren still wrong: {len(fbw)} — " + (", ".join(f"{r['id']}@r{r['run']}" for r in fbw) or "none")]
-    for s in [x for x in systems if x in ("dbgpt", "mnemiq", "mnemiq_failopen", "mnemiq_verified", "mnemiq_jev", "mnemiq_jev_v2", "mnemiq_jev_v2_r2", "vanna", "vanna_jev", "vanna_jev_retry")]:
+    for s in [x for x in systems if x in ("dbgpt", "mnemiq", "mnemiq_failopen", "mnemiq_verified", "mnemiq_jev", "mnemiq_jev_v2", "mnemiq_jev_v2_r2", "vanna", "vanna_jev", "vanna_jev_retry", "arctic")]:
         miss = [r for r in S[s]["X"] if not T(r["exact"])]
         L += ["", f"### {LABEL[s]}: non-exact attempts (holdout)", "", "| run | id | status | reason / error |", "|---|---|---|---|"]
         L += [f"| {r['run']} | {r['id']} | {r['status']} | {(r['reason'] or r['error'] or '')[:150].replace('|','/').replace(chr(10),' ')} |" for r in miss] or ["| - | - | - | none |"]

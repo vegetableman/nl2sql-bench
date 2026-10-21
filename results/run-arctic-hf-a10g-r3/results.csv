@@ -1,0 +1,738 @@
+run,id,difficulty,system,latency_s,status,exact,relaxed,reason,generated,error,cube_expressible,rate_limit_retries,router_path,fallback_reason,prompt_tokens,completion_tokens,embedding_tokens,chat_requests
+1,e01,easy,arctic,6.026,correct,True,True,match,"SELECT COUNT(track_id) AS total_tracks
+FROM track;",,True,0,,,1096,168,0,1
+1,e02,easy,arctic,5.232,correct,True,True,match,"SELECT name
+FROM genre;",,True,0,,,1096,141,0,1
+1,e03,easy,arctic,6.119,correct,True,True,match,"SELECT COUNT(*) 
+FROM customer 
+WHERE country = 'Brazil';",,True,0,,,1095,171,0,1
+1,e04,easy,arctic,6.936,correct,True,True,match,"SELECT name
+FROM track
+WHERE milliseconds > 1200000;",,True,0,,,1103,196,0,1
+1,e05,easy,arctic,6.776,correct,True,True,match,"SELECT MAX(unit_price) AS highest_unit_price
+FROM track;",,True,0,,,1098,191,0,1
+1,e06,easy,arctic,7.252,correct,True,True,match,"SELECT first_name, last_name
+FROM employee
+WHERE title = 'Sales Support Agent';",,True,0,,,1104,199,0,1
+1,e07,easy,arctic,7.128,exec_error,False,False,,"SELECT COUNT(*) 
+FROM invoice 
+WHERE strftime('%Y', invoice_date) = '2023';","UndefinedFunction: function strftime(unknown, timestamp without time zone) does not exist
+LINE 3: WHERE strftime('%Y', invoice_date) = '2023';
+              ^
+HINT:  No function matches the given name and argument types. You might need to add explicit type casts.",True,0,,,1102,202,0,1
+1,e08,easy,arctic,6.894,correct,True,True,match,"SELECT first_name, last_name, company
+FROM customer
+WHERE company IS NOT NULL;",,True,0,,,1105,187,0,1
+1,m01,medium,arctic,9.396,correct,True,True,match,"SELECT g.name, COUNT(t.track_id) AS number_of_tracks
+FROM genre g
+JOIN track t ON g.genre_id = t.genre_id
+GROUP BY g.name;",,True,0,,,1107,271,0,1
+1,m02,medium,arctic,10.945,correct,True,True,match,"SELECT a.name AS artist_name, COUNT(al.album_id) AS album_count
+FROM artist a
+JOIN album al ON a.artist_id = al.artist_id
+GROUP BY a.name
+ORDER BY album_count DESC
+LIMIT 5;",,True,0,,,1113,311,0,1
+1,m03,medium,arctic,8.396,correct,True,True,match,"SELECT 
+  billing_country, 
+  SUM(total) AS total_sales
+FROM 
+  invoice
+GROUP BY 
+  billing_country
+ORDER BY 
+  total_sales DESC;",,True,0,,,1110,233,0,1
+1,m04,medium,arctic,180.002,timeout,False,False,,,timeout: no response within 180s,True,0,,,0,0,0,1
+1,m05,medium,arctic,13.374,correct,True,True,match,"SELECT 
+    mt.name AS media_type_name, 
+    AVG(t.milliseconds / 60000.0) AS average_length_minutes
+FROM 
+    track t
+JOIN 
+    media_type mt ON t.media_type_id = mt.media_type_id
+GROUP BY 
+    mt.name;",,True,0,,,1113,356,0,1
+1,m06,medium,arctic,10.796,correct,True,True,match,"SELECT 
+  a.title AS album_title, 
+  COUNT(t.track_id) AS number_of_tracks
+FROM 
+  album a
+JOIN 
+  track t ON a.album_id = t.album_id
+GROUP BY 
+  a.title
+HAVING 
+  COUNT(t.track_id) > 20;",,True,0,,,1108,313,0,1
+1,m07,medium,arctic,7.887,correct,True,True,match,"SELECT g.name
+FROM genre g
+JOIN track t ON g.genre_id = t.genre_id
+GROUP BY g.name
+ORDER BY COUNT(t.track_id) DESC
+LIMIT 1;",,True,0,,,1100,225,0,1
+1,m08,medium,arctic,8.962,correct,True,True,match,"SELECT COUNT(*) 
+FROM playlist_track AS pt
+JOIN playlist AS p ON pt.playlist_id = p.playlist_id
+WHERE p.name = '90’s Music';",,True,0,,,1103,258,0,1
+1,m09,medium,arctic,9.486,exec_error,False,False,,"SELECT 
+  strftime('%Y', invoice_date) AS year, 
+  SUM(total) AS revenue
+FROM 
+  invoice
+GROUP BY 
+  strftime('%Y', invoice_date)
+ORDER BY 
+  year;","UndefinedFunction: function strftime(unknown, timestamp without time zone) does not exist
+LINE 2:   strftime('%Y', invoice_date) AS year, 
+          ^
+HINT:  No function matches the given name and argument types. You might need to add explicit type casts.",True,0,,,1108,273,0,1
+1,h01,hard,arctic,11.872,correct,True,True,match,"SELECT g.name AS genre_name, SUM(il.unit_price * il.quantity) AS revenue
+FROM genre g
+JOIN track t ON g.genre_id = t.genre_id
+JOIN invoice_line il ON t.track_id = il.track_id
+GROUP BY g.name
+ORDER BY revenue DESC
+LIMIT 3;",,True,0,,,1120,346,0,1
+1,h02,hard,arctic,12.754,correct,True,True,match,"SELECT 
+    e.first_name, 
+    e.last_name, 
+    SUM(i.total) AS total
+FROM 
+    employee e
+JOIN 
+    customer c ON e.employee_id = c.support_rep_id
+JOIN 
+    invoice i ON c.customer_id = i.customer_id
+GROUP BY 
+    e.employee_id, e.first_name, e.last_name
+ORDER BY 
+    total DESC;",,True,0,,,1123,373,0,1
+1,h03,hard,arctic,135.482,wrong_result,False,False,row count 59 != gold 22,"SELECT 
+    c.first_name, 
+    c.last_name, 
+    SUM(i.total) AS total_spend
+FROM 
+    customer c
+JOIN 
+    invoice i ON c.customer_id = i.customer_id
+GROUP BY 
+    c.customer_id, c.first_name, c.last_name
+HAVING 
+    SUM(i.total) > (SELECT AVG(total) FROM invoice);",,False,0,,,1114,4096,0,1
+1,h04,hard,arctic,17.802,correct,True,True,match,"WITH CustomerSpend AS (
+    SELECT 
+        c.country,
+        c.first_name,
+        c.last_name,
+        SUM(i.total) AS total_spend
+    FROM 
+        customer c
+    JOIN 
+        invoice i ON c.customer_id = i.customer_id
+    GROUP BY 
+        c.country, c.first_name, c.last_name
+),
+RankedSpend AS (
+    SELECT 
+        country,
+        first_name,
+        last_name,
+        total_spend,
+        RANK() OVER (PARTITION BY country ORDER BY total_spend DESC) AS rank
+    FROM 
+        CustomerSpend
+)
+SELECT 
+    country,
+    first_name,
+    last_name,
+    total_spend
+FROM 
+    RankedSpend
+WHERE 
+    rank = 1
+ORDER BY 
+    country;",,False,0,,,1116,527,0,1
+1,h05,hard,arctic,14.521,exec_error,False,False,,"SELECT 
+    strftime('%m', invoice_date) AS month_number,
+    SUM(total) AS revenue,
+    LAG(SUM(total)) OVER (ORDER BY strftime('%m', invoice_date)) AS previous_month_revenue
+FROM 
+    invoice
+WHERE 
+    strftime('%Y', invoice_date) = '2024'
+GROUP BY 
+    strftime('%m', invoice_date)
+ORDER BY 
+    strftime('%m', invoice_date);","UndefinedFunction: function strftime(unknown, timestamp without time zone) does not exist
+LINE 2:     strftime('%m', invoice_date) AS month_number,
+            ^
+HINT:  No function matches the given name and argument types. You might need to add explicit type casts.",False,0,,,1124,427,0,1
+1,h06,hard,arctic,12.197,correct,True,True,match,"SELECT 
+    a.name AS artist_name, 
+    COUNT(DISTINCT t.genre_id) AS genre_count
+FROM 
+    artist a
+JOIN 
+    album al ON a.artist_id = al.artist_id
+JOIN 
+    track t ON al.album_id = t.album_id
+GROUP BY 
+    a.name
+HAVING 
+    COUNT(DISTINCT t.genre_id) > 3;",,True,0,,,1111,356,0,1
+1,h07,hard,arctic,7.85,correct,True,True,match,"SELECT COUNT(*) 
+FROM track 
+WHERE track_id NOT IN (SELECT track_id FROM invoice_line);",,False,0,,,1103,224,0,1
+1,h08,hard,arctic,12.721,correct,True,True,match,"SELECT 
+    e1.first_name AS employee_first_name, 
+    e1.last_name AS employee_last_name, 
+    e2.first_name AS manager_first_name, 
+    e2.last_name AS manager_last_name
+FROM 
+    employee e1
+JOIN 
+    employee e2 ON e1.reports_to = e2.employee_id
+WHERE 
+    e1.reports_to IS NOT NULL;",,True,0,,,1125,365,0,1
+1,h09,hard,arctic,12.85,exec_error,False,False,,"SELECT COUNT(DISTINCT i.customer_id) AS customer_count
+FROM invoice i
+WHERE strftime('%Y', i.invoice_date) = '2025'
+AND i.customer_id NOT IN (
+    SELECT i2.customer_id
+    FROM invoice i2
+    WHERE strftime('%Y', i2.invoice_date) = '2024'
+);","UndefinedFunction: function strftime(unknown, timestamp without time zone) does not exist
+LINE 3: WHERE strftime('%Y', i.invoice_date) = '2025'
+              ^
+HINT:  No function matches the given name and argument types. You might need to add explicit type casts.",False,0,,,1113,376,0,1
+1,h10,hard,arctic,180.002,timeout,False,False,,,timeout: no response within 180s,True,0,,,0,0,0,1
+1,h11,hard,arctic,16.465,correct,True,True,match,"SELECT 
+    mt.name AS media_type_name,
+    ROUND(SUM(il.unit_price * il.quantity) * 100.0 / (SELECT SUM(unit_price * quantity) FROM invoice_line), 2) AS percentage
+FROM 
+    invoice_line il
+JOIN 
+    track t ON il.track_id = t.track_id
+JOIN 
+    media_type mt ON t.media_type_id = mt.media_type_id
+GROUP BY 
+    mt.name;",,False,0,,,1118,449,0,1
+1,h12,hard,arctic,13.48,correct,True,True,match,"SELECT 
+    a.name AS artist_name, 
+    SUM(il.unit_price * il.quantity) AS revenue
+FROM 
+    artist a
+JOIN 
+    album al ON a.artist_id = al.artist_id
+JOIN 
+    track t ON al.album_id = t.album_id
+JOIN 
+    invoice_line il ON t.track_id = il.track_id
+GROUP BY 
+    a.name
+ORDER BY 
+    revenue DESC
+LIMIT 5;",,True,0,,,1116,389,0,1
+2,e01,easy,arctic,6.088,correct,True,True,match,"SELECT COUNT(track_id) AS total_tracks
+FROM track;",,True,0,,,1096,164,0,1
+2,e02,easy,arctic,5.206,correct,True,True,match,"SELECT name
+FROM genre;",,True,0,,,1096,137,0,1
+2,e03,easy,arctic,6.315,correct,True,True,match,"SELECT COUNT(*) 
+FROM customer 
+WHERE country = 'Brazil';",,True,0,,,1095,171,0,1
+2,e04,easy,arctic,7.139,correct,True,True,match,"SELECT name
+FROM track
+WHERE milliseconds > 1200000;",,True,0,,,1103,196,0,1
+2,e05,easy,arctic,6.956,correct,True,True,match,"SELECT MAX(unit_price) AS highest_unit_price
+FROM track;",,True,0,,,1098,193,0,1
+2,e06,easy,arctic,7.05,correct,True,True,match,"SELECT first_name, last_name
+FROM employee
+WHERE title = 'Sales Support Agent';",,True,0,,,1104,196,0,1
+2,e07,easy,arctic,7.984,exec_error,False,False,,"SELECT COUNT(*) 
+FROM invoice 
+WHERE strftime('%Y', invoice_date) = '2023';","UndefinedFunction: function strftime(unknown, timestamp without time zone) does not exist
+LINE 3: WHERE strftime('%Y', invoice_date) = '2023';
+              ^
+HINT:  No function matches the given name and argument types. You might need to add explicit type casts.",True,0,,,1102,222,0,1
+2,e08,easy,arctic,6.376,correct,True,True,match,"SELECT first_name, last_name, company
+FROM customer
+WHERE company IS NOT NULL;",,True,0,,,1105,174,0,1
+2,m01,medium,arctic,9.386,correct,True,True,match,"SELECT g.name AS genre_name, COUNT(t.track_id) AS number_of_tracks
+FROM genre g
+JOIN track t ON g.genre_id = t.genre_id
+GROUP BY g.name;",,True,0,,,1107,266,0,1
+2,m02,medium,arctic,9.975,correct,True,True,match,"SELECT a.name AS artist_name, COUNT(al.album_id) AS album_count
+FROM artist a
+JOIN album al ON a.artist_id = al.artist_id
+GROUP BY a.name
+ORDER BY album_count DESC
+LIMIT 5;",,True,0,,,1113,284,0,1
+2,m03,medium,arctic,135.612,correct,True,True,match,"SELECT 
+  billing_country, 
+  SUM(total) AS total_sales
+FROM 
+  invoice
+GROUP BY 
+  billing_country
+ORDER BY 
+  total_sales DESC;",,True,0,,,1110,4096,0,1
+2,m04,medium,arctic,9.011,correct,True,True,match,"SELECT c.first_name, c.last_name
+FROM customer c
+JOIN employee e ON c.support_rep_id = e.employee_id
+WHERE e.first_name = 'Jane' AND e.last_name = 'Peacock';",,True,0,,,1106,255,0,1
+2,m05,medium,arctic,12.388,correct,True,True,match,"SELECT 
+    mt.name AS media_type_name, 
+    AVG(t.milliseconds / 60000.0) AS average_length_minutes
+FROM 
+    track t
+JOIN 
+    media_type mt ON t.media_type_id = mt.media_type_id
+GROUP BY 
+    mt.name;",,True,0,,,1113,356,0,1
+2,m06,medium,arctic,10.962,correct,True,True,match,"SELECT 
+  a.title AS album_title, 
+  COUNT(t.track_id) AS number_of_tracks
+FROM 
+  album a
+JOIN 
+  track t ON a.album_id = t.album_id
+GROUP BY 
+  a.title
+HAVING 
+  COUNT(t.track_id) > 20;",,True,0,,,1108,313,0,1
+2,m07,medium,arctic,9.929,correct,True,True,match,"SELECT g.name
+FROM genre g
+JOIN track t ON g.genre_id = t.genre_id
+GROUP BY g.name
+ORDER BY COUNT(t.track_id) DESC
+LIMIT 1;",,True,0,,,1100,283,0,1
+2,m08,medium,arctic,9.112,correct,True,True,match,"SELECT COUNT(*) 
+FROM playlist_track AS pt
+JOIN playlist AS p ON pt.playlist_id = p.playlist_id
+WHERE p.name = '90’s Music';",,True,0,,,1103,258,0,1
+2,m09,medium,arctic,180.002,timeout,False,False,,,timeout: no response within 180s,True,0,,,0,0,0,1
+2,h01,hard,arctic,13.486,correct,True,True,match,"SELECT g.name AS genre_name, SUM(il.unit_price * il.quantity) AS revenue
+FROM genre g
+JOIN track t ON g.genre_id = t.genre_id
+JOIN invoice_line il ON t.track_id = il.track_id
+GROUP BY g.name
+ORDER BY revenue DESC
+LIMIT 3;",,True,0,,,1120,354,0,1
+2,h02,hard,arctic,15.3,correct,True,True,match,"SELECT 
+    e.first_name, 
+    e.last_name, 
+    SUM(i.total) AS total
+FROM 
+    employee e
+JOIN 
+    customer c ON e.employee_id = c.support_rep_id
+JOIN 
+    invoice i ON c.customer_id = i.customer_id
+GROUP BY 
+    e.employee_id, e.first_name, e.last_name
+ORDER BY 
+    total DESC;",,True,0,,,1123,447,0,1
+2,h03,hard,arctic,135.407,wrong_result,False,False,row count 59 != gold 22,"SELECT 
+    c.first_name, 
+    c.last_name, 
+    SUM(i.total) AS total_spend
+FROM 
+    customer c
+JOIN 
+    invoice i ON c.customer_id = i.customer_id
+GROUP BY 
+    c.customer_id, c.first_name, c.last_name
+HAVING 
+    SUM(i.total) > (SELECT AVG(total) FROM invoice);",,False,0,,,1114,4096,0,1
+2,h04,hard,arctic,17.166,correct,True,True,match,"WITH CustomerSpend AS (
+    SELECT 
+        c.country,
+        c.first_name,
+        c.last_name,
+        SUM(i.total) AS total_spend
+    FROM 
+        customer c
+    JOIN 
+        invoice i ON c.customer_id = i.customer_id
+    GROUP BY 
+        c.country, c.first_name, c.last_name
+),
+RankedSpend AS (
+    SELECT 
+        country,
+        first_name,
+        last_name,
+        total_spend,
+        RANK() OVER (PARTITION BY country ORDER BY total_spend DESC) AS rank
+    FROM 
+        CustomerSpend
+)
+SELECT 
+    country,
+    first_name,
+    last_name,
+    total_spend
+FROM 
+    RankedSpend
+WHERE 
+    rank = 1
+ORDER BY 
+    country;",,False,0,,,1116,504,0,1
+2,h05,hard,arctic,14.156,exec_error,False,False,,"SELECT 
+  strftime('%m', invoice_date) AS month_number,
+  SUM(total) AS revenue,
+  LAG(SUM(total)) OVER (ORDER BY strftime('%m', invoice_date)) AS previous_month_revenue
+FROM 
+  invoice
+WHERE 
+  strftime('%Y', invoice_date) = '2024'
+GROUP BY 
+  strftime('%m', invoice_date)
+ORDER BY 
+  strftime('%m', invoice_date);","UndefinedFunction: function strftime(unknown, timestamp without time zone) does not exist
+LINE 2:   strftime('%m', invoice_date) AS month_number,
+          ^
+HINT:  No function matches the given name and argument types. You might need to add explicit type casts.",False,0,,,1124,412,0,1
+2,h06,hard,arctic,11.969,correct,True,True,match,"SELECT 
+    a.name AS artist_name, 
+    COUNT(DISTINCT t.genre_id) AS genre_count
+FROM 
+    artist a
+JOIN 
+    album al ON a.artist_id = al.artist_id
+JOIN 
+    track t ON al.album_id = t.album_id
+GROUP BY 
+    a.name
+HAVING 
+    COUNT(DISTINCT t.genre_id) > 3;",,True,0,,,1111,345,0,1
+2,h07,hard,arctic,8.783,correct,True,True,match,"SELECT COUNT(*) 
+FROM track t
+LEFT JOIN invoice_line il ON t.track_id = il.track_id
+WHERE il.invoice_line_id IS NULL;",,False,0,,,1103,250,0,1
+2,h08,hard,arctic,13.065,correct,True,True,match,"SELECT 
+    e1.first_name AS employee_first_name, 
+    e1.last_name AS employee_last_name, 
+    e2.first_name AS manager_first_name, 
+    e2.last_name AS manager_last_name
+FROM 
+    employee e1
+JOIN 
+    employee e2 ON e1.reports_to = e2.employee_id
+WHERE 
+    e1.reports_to IS NOT NULL;",,True,0,,,1125,381,0,1
+2,h09,hard,arctic,135.603,exec_error,False,False,,"SELECT COUNT(*) 
+FROM (
+  SELECT customer_id 
+  FROM invoice 
+  WHERE strftime('%Y', invoice_date) = '2025'
+  AND customer_id NOT IN (
+    SELECT customer_id 
+    FROM invoice 
+    WHERE strftime('%Y', invoice_date) = '2024'
+  )
+) AS customers_2025_only;","UndefinedFunction: function strftime(unknown, timestamp without time zone) does not exist
+LINE 5:   WHERE strftime('%Y', invoice_date) = '2025'
+                ^
+HINT:  No function matches the given name and argument types. You might need to add explicit type casts.",False,0,,,1113,4096,0,1
+2,h10,hard,arctic,14.668,exec_error,False,False,,"WITH MonthlyRevenue AS (
+    SELECT
+        strftime('%Y-%m', invoice_date) AS month,
+        SUM(total) AS revenue
+    FROM
+        invoice
+    WHERE
+        strftime('%Y', invoice_date) = '2023'
+    GROUP BY
+        strftime('%Y-%m', invoice_date)
+)
+SELECT
+    month,
+    SUM(revenue) OVER (ORDER BY month ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS cumulative_revenue
+FROM
+    MonthlyRevenue
+ORDER BY
+    month;","UndefinedFunction: function strftime(unknown, timestamp without time zone) does not exist
+LINE 3:         strftime('%Y-%m', invoice_date) AS month,
+                ^
+HINT:  No function matches the given name and argument types. You might need to add explicit type casts.",True,0,,,1131,430,0,1
+2,h11,hard,arctic,15.366,correct,True,True,match,"SELECT 
+    mt.name AS media_type_name,
+    ROUND(SUM(il.unit_price * il.quantity) * 100.0 / (SELECT SUM(unit_price * quantity) FROM invoice_line), 2) AS percentage
+FROM 
+    invoice_line il
+JOIN 
+    track t ON il.track_id = t.track_id
+JOIN 
+    media_type mt ON t.media_type_id = mt.media_type_id
+GROUP BY 
+    mt.name;",,False,0,,,1118,449,0,1
+2,h12,hard,arctic,12.781,correct,True,True,match,"SELECT 
+    a.name AS artist_name, 
+    SUM(il.unit_price * il.quantity) AS revenue
+FROM 
+    artist a
+JOIN 
+    album al ON a.artist_id = al.artist_id
+JOIN 
+    track t ON al.album_id = t.album_id
+JOIN 
+    invoice_line il ON t.track_id = il.track_id
+GROUP BY 
+    a.name
+ORDER BY 
+    revenue DESC
+LIMIT 5;",,True,0,,,1116,371,0,1
+3,e01,easy,arctic,6.055,correct,True,True,match,"SELECT COUNT(track_id) AS total_tracks
+FROM track;",,True,0,,,1096,164,0,1
+3,e02,easy,arctic,5.134,correct,True,True,match,"SELECT name
+FROM genre;",,True,0,,,1096,137,0,1
+3,e03,easy,arctic,6.286,correct,True,True,match,"SELECT COUNT(*) 
+FROM customer 
+WHERE country = 'Brazil';",,True,0,,,1095,171,0,1
+3,e04,easy,arctic,7.102,correct,True,True,match,"SELECT name
+FROM track
+WHERE milliseconds > 1200000;",,True,0,,,1103,196,0,1
+3,e05,easy,arctic,6.965,correct,True,True,match,"SELECT MAX(unit_price) AS highest_unit_price
+FROM track;",,True,0,,,1098,193,0,1
+3,e06,easy,arctic,7.103,correct,True,True,match,"SELECT first_name, last_name
+FROM employee
+WHERE title = 'Sales Support Agent';",,True,0,,,1104,196,0,1
+3,e07,easy,arctic,7.951,exec_error,False,False,,"SELECT COUNT(*) 
+FROM invoice 
+WHERE strftime('%Y', invoice_date) = '2023';","UndefinedFunction: function strftime(unknown, timestamp without time zone) does not exist
+LINE 3: WHERE strftime('%Y', invoice_date) = '2023';
+              ^
+HINT:  No function matches the given name and argument types. You might need to add explicit type casts.",True,0,,,1102,222,0,1
+3,e08,easy,arctic,6.383,correct,True,True,match,"SELECT first_name, last_name, company
+FROM customer
+WHERE company IS NOT NULL;",,True,0,,,1105,174,0,1
+3,m01,medium,arctic,9.392,correct,True,True,match,"SELECT g.name AS genre_name, COUNT(t.track_id) AS number_of_tracks
+FROM genre g
+JOIN track t ON g.genre_id = t.genre_id
+GROUP BY g.name;",,True,0,,,1107,266,0,1
+3,m02,medium,arctic,9.983,correct,True,True,match,"SELECT a.name AS artist_name, COUNT(al.album_id) AS album_count
+FROM artist a
+JOIN album al ON a.artist_id = al.artist_id
+GROUP BY a.name
+ORDER BY album_count DESC
+LIMIT 5;",,True,0,,,1113,284,0,1
+3,m03,medium,arctic,180.002,timeout,False,False,,,timeout: no response within 180s,True,0,,,0,0,0,1
+3,m04,medium,arctic,10.323,correct,True,True,match,"SELECT c.first_name, c.last_name
+FROM customer c
+JOIN employee e ON c.support_rep_id = e.employee_id
+WHERE e.first_name = 'Jane' AND e.last_name = 'Peacock';",,True,0,,,1106,255,0,1
+3,m05,medium,arctic,12.116,correct,True,True,match,"SELECT 
+    mt.name AS media_type_name, 
+    AVG(t.milliseconds / 60000.0) AS average_length_minutes
+FROM 
+    track t
+JOIN 
+    media_type mt ON t.media_type_id = mt.media_type_id
+GROUP BY 
+    mt.name;",,True,0,,,1113,356,0,1
+3,m06,medium,arctic,10.708,correct,True,True,match,"SELECT 
+  a.title AS album_title, 
+  COUNT(t.track_id) AS number_of_tracks
+FROM 
+  album a
+JOIN 
+  track t ON a.album_id = t.album_id
+GROUP BY 
+  a.title
+HAVING 
+  COUNT(t.track_id) > 20;",,True,0,,,1108,313,0,1
+3,m07,medium,arctic,9.738,correct,True,True,match,"SELECT g.name
+FROM genre g
+JOIN track t ON g.genre_id = t.genre_id
+GROUP BY g.name
+ORDER BY COUNT(t.track_id) DESC
+LIMIT 1;",,True,0,,,1100,283,0,1
+3,m08,medium,arctic,8.912,correct,True,True,match,"SELECT COUNT(*) 
+FROM playlist_track AS pt
+JOIN playlist AS p ON pt.playlist_id = p.playlist_id
+WHERE p.name = '90’s Music';",,True,0,,,1103,258,0,1
+3,m09,medium,arctic,9.567,exec_error,False,False,,"SELECT 
+  strftime('%Y', invoice_date) AS year, 
+  SUM(total) AS revenue
+FROM 
+  invoice
+GROUP BY 
+  strftime('%Y', invoice_date)
+ORDER BY 
+  year;","UndefinedFunction: function strftime(unknown, timestamp without time zone) does not exist
+LINE 2:   strftime('%Y', invoice_date) AS year, 
+          ^
+HINT:  No function matches the given name and argument types. You might need to add explicit type casts.",True,0,,,1108,278,0,1
+3,h01,hard,arctic,12.049,correct,True,True,match,"SELECT g.name AS genre_name, SUM(il.unit_price * il.quantity) AS revenue
+FROM genre g
+JOIN track t ON g.genre_id = t.genre_id
+JOIN invoice_line il ON t.track_id = il.track_id
+GROUP BY g.name
+ORDER BY revenue DESC
+LIMIT 3;",,True,0,,,1120,354,0,1
+3,h02,hard,arctic,15.098,correct,True,True,match,"SELECT 
+    e.first_name, 
+    e.last_name, 
+    SUM(i.total) AS total
+FROM 
+    employee e
+JOIN 
+    customer c ON e.employee_id = c.support_rep_id
+JOIN 
+    invoice i ON c.customer_id = i.customer_id
+GROUP BY 
+    e.employee_id, e.first_name, e.last_name
+ORDER BY 
+    total DESC;",,True,0,,,1123,447,0,1
+3,h03,hard,arctic,135.4,wrong_result,False,False,row count 59 != gold 22,"SELECT 
+    c.first_name, 
+    c.last_name, 
+    SUM(i.total) AS total_spend
+FROM 
+    customer c
+JOIN 
+    invoice i ON c.customer_id = i.customer_id
+GROUP BY 
+    c.customer_id, c.first_name, c.last_name
+HAVING 
+    SUM(i.total) > (SELECT AVG(total) FROM invoice);",,False,0,,,1114,4096,0,1
+3,h04,hard,arctic,17.017,correct,True,True,match,"WITH CustomerSpend AS (
+    SELECT 
+        c.country,
+        c.first_name,
+        c.last_name,
+        SUM(i.total) AS total_spend
+    FROM 
+        customer c
+    JOIN 
+        invoice i ON c.customer_id = i.customer_id
+    GROUP BY 
+        c.country, c.first_name, c.last_name
+),
+RankedSpend AS (
+    SELECT 
+        country,
+        first_name,
+        last_name,
+        total_spend,
+        RANK() OVER (PARTITION BY country ORDER BY total_spend DESC) AS rank
+    FROM 
+        CustomerSpend
+)
+SELECT 
+    country,
+    first_name,
+    last_name,
+    total_spend
+FROM 
+    RankedSpend
+WHERE 
+    rank = 1
+ORDER BY 
+    country;",,False,0,,,1116,504,0,1
+3,h05,hard,arctic,14.159,exec_error,False,False,,"SELECT 
+  strftime('%m', invoice_date) AS month_number,
+  SUM(total) AS revenue,
+  LAG(SUM(total)) OVER (ORDER BY strftime('%m', invoice_date)) AS previous_month_revenue
+FROM 
+  invoice
+WHERE 
+  strftime('%Y', invoice_date) = '2024'
+GROUP BY 
+  strftime('%m', invoice_date)
+ORDER BY 
+  strftime('%m', invoice_date);","UndefinedFunction: function strftime(unknown, timestamp without time zone) does not exist
+LINE 2:   strftime('%m', invoice_date) AS month_number,
+          ^
+HINT:  No function matches the given name and argument types. You might need to add explicit type casts.",False,0,,,1124,412,0,1
+3,h06,hard,arctic,11.982,correct,True,True,match,"SELECT 
+    a.name AS artist_name, 
+    COUNT(DISTINCT t.genre_id) AS genre_count
+FROM 
+    artist a
+JOIN 
+    album al ON a.artist_id = al.artist_id
+JOIN 
+    track t ON al.album_id = t.album_id
+GROUP BY 
+    a.name
+HAVING 
+    COUNT(DISTINCT t.genre_id) > 3;",,True,0,,,1111,345,0,1
+3,h07,hard,arctic,8.656,correct,True,True,match,"SELECT COUNT(*) 
+FROM track t
+LEFT JOIN invoice_line il ON t.track_id = il.track_id
+WHERE il.invoice_line_id IS NULL;",,False,0,,,1103,250,0,1
+3,h08,hard,arctic,12.931,correct,True,True,match,"SELECT 
+    e1.first_name AS employee_first_name, 
+    e1.last_name AS employee_last_name, 
+    e2.first_name AS manager_first_name, 
+    e2.last_name AS manager_last_name
+FROM 
+    employee e1
+JOIN 
+    employee e2 ON e1.reports_to = e2.employee_id
+WHERE 
+    e1.reports_to IS NOT NULL;",,True,0,,,1125,381,0,1
+3,h09,hard,arctic,135.399,exec_error,False,False,,"SELECT COUNT(*) 
+FROM (
+  SELECT customer_id 
+  FROM invoice 
+  WHERE strftime('%Y', invoice_date) = '2025'
+  AND customer_id NOT IN (
+    SELECT customer_id 
+    FROM invoice 
+    WHERE strftime('%Y', invoice_date) = '2024'
+  )
+) AS customers_2025_only;","UndefinedFunction: function strftime(unknown, timestamp without time zone) does not exist
+LINE 5:   WHERE strftime('%Y', invoice_date) = '2025'
+                ^
+HINT:  No function matches the given name and argument types. You might need to add explicit type casts.",False,0,,,1113,4096,0,1
+3,h10,hard,arctic,14.547,exec_error,False,False,,"WITH MonthlyRevenue AS (
+    SELECT
+        strftime('%Y-%m', invoice_date) AS month,
+        SUM(total) AS revenue
+    FROM
+        invoice
+    WHERE
+        strftime('%Y', invoice_date) = '2023'
+    GROUP BY
+        strftime('%Y-%m', invoice_date)
+)
+SELECT
+    month,
+    SUM(revenue) OVER (ORDER BY month ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS cumulative_revenue
+FROM
+    MonthlyRevenue
+ORDER BY
+    month;","UndefinedFunction: function strftime(unknown, timestamp without time zone) does not exist
+LINE 3:         strftime('%Y-%m', invoice_date) AS month,
+                ^
+HINT:  No function matches the given name and argument types. You might need to add explicit type casts.",True,0,,,1131,430,0,1
+3,h11,hard,arctic,15.153,correct,True,True,match,"SELECT 
+    mt.name AS media_type_name,
+    ROUND(SUM(il.unit_price * il.quantity) * 100.0 / (SELECT SUM(unit_price * quantity) FROM invoice_line), 2) AS percentage
+FROM 
+    invoice_line il
+JOIN 
+    track t ON il.track_id = t.track_id
+JOIN 
+    media_type mt ON t.media_type_id = mt.media_type_id
+GROUP BY 
+    mt.name;",,False,0,,,1118,449,0,1
+3,h12,hard,arctic,12.608,correct,True,True,match,"SELECT 
+    a.name AS artist_name, 
+    SUM(il.unit_price * il.quantity) AS revenue
+FROM 
+    artist a
+JOIN 
+    album al ON a.artist_id = al.artist_id
+JOIN 
+    track t ON al.album_id = t.album_id
+JOIN 
+    invoice_line il ON t.track_id = il.track_id
+GROUP BY 
+    a.name
+ORDER BY 
+    revenue DESC
+LIMIT 5;",,True,0,,,1116,371,0,1

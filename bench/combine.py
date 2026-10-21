@@ -15,7 +15,8 @@ ACC_RUNS = {  # system -> run dir used for accuracy/latency
     "mnemiq": "run-gptoss120b-mnemiq-r3", "mnemiq_failopen": "run-gptoss120b-mnemiq-r3", "mnemiq_verified": "run-gptoss120b-mnemiq-r3", "mnemiq_jev": "run-gptoss120b-mnemiq-r3", "mnemiq_jev_v2": "run-gptoss120b-mnemiq-r3",
     "mnemiq_jev_v2_r2": "run-gptoss120b-mnemiq-jev-v2-r2",
     "vanna": "run-gptoss120b-vanna-r3",
-    "vanna_jev": "run-gptoss120b-vanna-r3", "vanna_jev_retry": "run-gptoss120b-vanna-r3"}  # fresh rerun of mnemiq_jev_v2 (system name in that dir: mnemiq_jev_v2)
+    "vanna_jev": "run-gptoss120b-vanna-r3", "vanna_jev_retry": "run-gptoss120b-vanna-r3",
+    "arctic": "run-arctic-hf-a10g-r3"}  # fresh rerun of mnemiq_jev_v2 (system name in that dir: mnemiq_jev_v2)
 SRC_SYS = {"mnemiq_jev_v2_r2": "mnemiq_jev_v2"}
 TOK_RUNS = {**ACC_RUNS, "wrenai": "run-gptoss120b-wren-tokens"}  # OOTB Wren tokens were lost in r3 (meter-key bug)
 LABEL = {"wrenai": "WrenAI 0.29.2 (out of the box)", "wrenai_mdl": "WrenAI 0.29.2 + semantic layer",
@@ -23,7 +24,7 @@ LABEL = {"wrenai": "WrenAI 0.29.2 (out of the box)", "wrenai_mdl": "WrenAI 0.29.
          "dbgpt": "DB-GPT 0.8.2", "cube": "Cube Core 1.8.8 + LLM adapter (baseline)",
          "cube_v2": "Cube Core 1.8.8 + rich model + LLM adapter v2 (harness-built)",
          "router": "Router (cube_v2 → WrenAI semantic, no reasoning)",
-         "mnemiq": "mnemiq a453b05 (defaults)", "mnemiq_failopen": "mnemiq a453b05, judge fail-open variant", "mnemiq_verified": "mnemiq a453b05, judge 1200-token variant (fail-closed)", "mnemiq_jev": "mnemiq a453b05, TypeSafe Jev judge (fail-closed)", "mnemiq_jev_v2": "mnemiq a453b05, Jev judge v2 (truncation-aware)", "mnemiq_jev_v2_r2": "mnemiq a453b05, Jev judge v2, rerun r2", "vanna": "Vanna 2.0.2 (legacy generate_sql, DDL-trained)", "vanna_jev": "Vanna 2.0.2 + Jev answer check (fail-closed)", "vanna_jev_retry": "Vanna 2.0.2 + Jev check + 1 retry"}
+         "mnemiq": "mnemiq a453b05 (defaults)", "mnemiq_failopen": "mnemiq a453b05, judge fail-open variant", "mnemiq_verified": "mnemiq a453b05, judge 1200-token variant (fail-closed)", "mnemiq_jev": "mnemiq a453b05, TypeSafe Jev judge (fail-closed)", "mnemiq_jev_v2": "mnemiq a453b05, Jev judge v2 (truncation-aware)", "mnemiq_jev_v2_r2": "mnemiq a453b05, Jev judge v2, rerun r2", "vanna": "Vanna 2.0.2 (legacy generate_sql, DDL-trained)", "vanna_jev": "Vanna 2.0.2 + Jev answer check (fail-closed)", "vanna_jev_retry": "Vanna 2.0.2 + Jev check + 1 retry", "arctic": "Arctic-Text2SQL-R1-7B (HF A10G endpoint, vLLM; own model, not gpt-oss)"}
 SYSTEMS = list(ACC_RUNS)
 EMO = {"correct": "✅", "correct_extra_cols": "🟡", "wrong_result": "❌", "exec_error": "💥", "tool_error": "⚠️", "unsupported": "⛔", "timeout": "⏱️", "declined": "🚫"}
 T = lambda v: v == "True"
@@ -145,7 +146,7 @@ if "router" in rows:
           ""]
 
 # failure details for the semantic-layer variants
-for S in ("wrenai_mdl", "wrenai_mdl_noreason", "cube_v2", "router", "mnemiq", "mnemiq_failopen", "mnemiq_verified", "mnemiq_jev", "mnemiq_jev_v2", "mnemiq_jev_v2_r2", "vanna", "vanna_jev", "vanna_jev_retry"):
+for S in ("wrenai_mdl", "wrenai_mdl_noreason", "cube_v2", "router", "mnemiq", "mnemiq_failopen", "mnemiq_verified", "mnemiq_jev", "mnemiq_jev_v2", "mnemiq_jev_v2_r2", "vanna", "vanna_jev", "vanna_jev_retry", "arctic"):
     L += [f"## {LABEL[S]}: every non-exact attempt", "", "| run | id | status | reason / error |", "|---|---|---|---|"]
     for r in rows[S]:
         if not T(r["exact"]):
@@ -161,6 +162,18 @@ for q in qs:
     L.append(f"| {q['id']} | {q['difficulty']} | " + " | ".join(
         " ".join(EMO.get(r["status"], "?") for r in rows[s] if r["id"] == q["id"]) for s in SYSTEMS) + " |")
 L += ["", "Legend: ✅ exact, 🟡 extra columns, ❌ wrong result, 💥 SQL exec error, ⚠️ tool/API error, ⏱️ timeout (failure), ⛔ declared unsupported, 🚫 declined (mnemiq deferral, counts as not correct)."]
+if "arctic" in rows:  # secondary Arctic run (same endpoint/config, 1x nvidia-l4), kept as a footnote
+    _l4 = [r for r in csv.DictReader(open(R / "run-arctic-hf-l4-r3" / "results.csv")) if r["system"] == "arctic"]
+    _a = rows["arctic"]; _p = lambda xs, q: sorted(xs)[min(len(xs) - 1, int(round((len(xs) - 1) * q)))]
+    _f = lambda X: (sum(T(r["exact"]) for r in X), len(X), sum(r["status"] == "timeout" for r in X), sum(r["status"] == "exec_error" for r in X),
+                    statistics.median(float(r["latency_s"]) for r in X))
+    a_, l_ = _f(_a), _f(_l4)
+    L += ["", "## Arctic: A10G (headline) vs first L4 run (footnote)", "",
+          "Same endpoint, image, prompt and settings; only the GPU differs (the L4 run was stopped after 14/45 held-out rows, kept in "
+          "`results/run-arctic-hf-l4-r3/holdout_partial.jsonl`, not in the shared held-out file).", "",
+          "| GPU | 29 EX exact | timeouts (180 s) | exec errors | p50 s |", "|---|---|---|---|---|",
+          f"| 1x nvidia-a10g (headline) | {a_[0]}/{a_[1]} | {a_[2]} | {a_[3]} | {a_[4]:.2f} |",
+          f"| 1x nvidia-l4 | {l_[0]}/{l_[1]} | {l_[2]} | {l_[3]} | {l_[4]:.2f} |"]
 import holdout_report
 L += ["", holdout_report.section()]
 for _extra, _title in (("results/run-gptoss120b-mnemiq-r3/jev_analysis.md", "## mnemiq_jev: Jev judge outcomes (29 + holdout)"),
@@ -183,7 +196,7 @@ import matplotlib; matplotlib.use("Agg"); import matplotlib.pyplot as plt
 short = {"wrenai": "WrenAI 0.29.2\n(out of the box)", "wrenai_mdl": "WrenAI 0.29.2\n+ semantic layer",
          "wrenai_mdl_noreason": "WrenAI 0.29.2\n+ sem. layer,\nno reasoning", "dbgpt": "DB-GPT 0.8.2",
          "cube": "Cube Core 1.8.8\n+ LLM adapter\n(baseline)", "cube_v2": "Cube Core 1.8.8\n+ rich model\n+ adapter v2",
-         "router": "Router\n(cube_v2 -> Wren\nnoreason)", "mnemiq": "mnemiq\n(defaults)", "mnemiq_failopen": "mnemiq\n(fail-open\nvariant)", "mnemiq_verified": "mnemiq\n(judge 1200 tok,\nfail-closed)", "mnemiq_jev": "mnemiq\n(Jev judge,\nfail-closed)", "mnemiq_jev_v2": "mnemiq\n(Jev judge v2,\ntrunc-aware)", "mnemiq_jev_v2_r2": "mnemiq\n(Jev judge v2,\nrerun r2)", "vanna": "Vanna 2.0.2\n(DDL-trained)", "vanna_jev": "Vanna\n+ Jev check", "vanna_jev_retry": "Vanna\n+ Jev check\n+ 1 retry"}
+         "router": "Router\n(cube_v2 -> Wren\nnoreason)", "mnemiq": "mnemiq\n(defaults)", "mnemiq_failopen": "mnemiq\n(fail-open\nvariant)", "mnemiq_verified": "mnemiq\n(judge 1200 tok,\nfail-closed)", "mnemiq_jev": "mnemiq\n(Jev judge,\nfail-closed)", "mnemiq_jev_v2": "mnemiq\n(Jev judge v2,\ntrunc-aware)", "mnemiq_jev_v2_r2": "mnemiq\n(Jev judge v2,\nrerun r2)", "vanna": "Vanna 2.0.2\n(DDL-trained)", "vanna_jev": "Vanna\n+ Jev check", "vanna_jev_retry": "Vanna\n+ Jev check\n+ 1 retry", "arctic": "Arctic-Text2SQL\nR1-7B (HF A10G,\nown model)"}
 fig, ax = plt.subplots(1, 3, figsize=(34, 6.5)); x = range(len(SYSTEMS)); w = 0.38
 ex = [100 * sum(T(r["exact"]) for r in rows[s]) / len(rows[s]) for s in SYSTEMS]
 rx = [100 * sum(T(r["relaxed"]) for r in rows[s]) / len(rows[s]) for s in SYSTEMS]
@@ -199,6 +212,6 @@ p50 = [pct([float(r["latency_s"]) for r in rows[s]], 50) for s in SYSTEMS]; p95 
 c1 = ax[2].bar([i - w/2 for i in x], p50, w, label="p50"); c2 = ax[2].bar([i + w/2 for i in x], p95, w, label="p95")
 ax[2].bar_label(c1, fmt="%.1fs"); ax[2].bar_label(c2, fmt="%.1fs")
 ax[2].set_xticks(list(x), [short[s] for s in SYSTEMS], fontsize=8); ax[2].set_title("End-to-end latency per question (s)"); ax[2].legend()
-fig.suptitle(f"nl2sql-bench — Chinook/Postgres, {len(qs)} questions x 3 runs, LLM {ENV['LLM_MODEL']} (Ollama Cloud), embeddings {ENV['EMBEDDING_MODEL']}")
+fig.suptitle(f"nl2sql-bench — Chinook/Postgres, {len(qs)} questions x 3 runs, LLM {ENV['LLM_MODEL']} (Ollama Cloud), embeddings {ENV['EMBEDDING_MODEL']}" + (" — except Arctic: own 7B model on a dedicated HF A10G endpoint" if "arctic" in SYSTEMS else ""))
 fig.tight_layout(); fig.savefig(R / "summary.png", dpi=130); print("wrote results/summary.png")
 print("wrote", holdout_report.chart())

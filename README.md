@@ -13,6 +13,7 @@ Same natural-language questions, same Postgres database, same LLM, measured the 
 | **mnemiq @ a453b05** — systems `mnemiq` (defaults), `mnemiq_failopen`, `mnemiq_verified`, `mnemiq_jev` and `mnemiq_jev_v2` (one-change variants) | NL → SQL; its own enrichment (`mnemiq enrich`: profiling + one LLM description pass, 11 tables) and retrieval index (`mnemiq build`, nomic-embed-text); default mode `thinking` (1 candidate, corrector, deterministic sanity + LLM judge) | `POST http://localhost:8090/v1/ask` `{question}` (`mnemiq serve --http`; variants on :8091–:8094); a deferral is scored `declined` |
 | **Router** — system `router` | try cube_v2 first (prompt copy that may reply `CANNOT_EXPRESS`); fall back to WrenAI + semantic layer, no reasoning on unsupported / Cube error / empty result. No gold used for routing. | cube_v2 SQL API + `POST http://localhost:3001/api/v1/generate_sql`; tokens under `/router/` (+ `/wrenmdlnr/` on fallback) |
 | **Vanna 2.0.2** — system `vanna` (`vanna/server.py`, :8095) | NL → SQL with Vanna's classic `generate_sql` (`vanna.legacy`: OpenAI_Chat + ChromaDB_VectorStore), trained on the 11 Chinook `CREATE TABLE`s only; 1 LLM call, SQL only (no execution, no retry) | `POST http://localhost:8095/v1/generate` `{question}` → `{sql}`; the harness executes it |
+| **Arctic-Text2SQL-R1-7B** — system `arctic` (its own 7B model, **not** gpt-oss) | NL → SQL with Snowflake's own eval prompt + full 11-table DDL, one raw completion (temperature 0), SQL = last ```sql block | `POST <HF Inference Endpoint>/v1/completions` via llm-meter `/arctic/` (dedicated endpoint, 1x nvidia-a10g, vLLM) |
 | **Vanna 2.0.2 + Jev answer check** — systems `vanna_jev` (:8096) and `vanna_jev_retry` (:8097) | same Vanna generation; the service executes the SQL read-only and asks TypeSafe Jev (mnemiq_jev_v2's variant-b request) whether it answers the question; < 0.5 → declined (`_retry`: one regenerate + re-judge first) | same `POST /v1/generate`; response adds `decision` and per-attempt Jev results |
 
 Fairness controls
@@ -44,6 +45,7 @@ make bench-mnemiq-failopen REPEATS=3                 # mnemiq judge fail-open va
 make bench-vanna REPEATS=3                           # Vanna 2.0.2 (:8095, meter /vanna/) on the 29 + the 15 holdout; make vanna-down stops it
 make bench-vanna-jev REPEATS=3                       # Vanna + Jev answer check (:8096, /vannaj/; needs TYPESAFE_API_KEY)
 make bench-vanna-jev-retry REPEATS=3                 # Vanna + Jev check + 1 retry (:8097, /vannajr/)
+make bench-arctic REPEATS=3                          # Arctic-Text2SQL-R1-7B on the HF endpoint (resume → warm-up → 29 + holdout → EXIT trap pauses it)
 make vanna-jev-offline                               # Jev variant b on plain vanna's saved SQLs (same-SQL view)
 make bench-mnemiq-verified REPEATS=3                 # mnemiq judge 1200-token variant, fail-closed (patched worktree)
 .venv/bin/python bench/mnemiq_verifier_analysis.py   # verifier outcomes + re-scored SQL of rejected answers
@@ -99,6 +101,8 @@ bench/mnemiq_jev_analysis.py, bench/judge_comparison.py, mnemiq/judge_rebuild.py
 vanna/                      Vanna service (server.py, run.sh, requirements.txt pinning vanna 2.0.2), build_ddl.py + training/ddl.sql; .venv/state git-ignored
 bench/jev_judge.py          Jev variant-b request (shared; parity with the mnemiq patch: bench/jev_judge_parity.py)
 bench/vanna_jev_offline.py, bench/vanna_jev_analysis.py  Vanna + Jev same-SQL view and run analysis
+arctic/                     Arctic: endpoint.py (HF endpoint create/status/wait/pause/resume), prompt.py (Snowflake eval prompt), warmup.py, bench.sh (run wrapper, EXIT trap pauses)
+bench/arctic_analysis.py, bench/contenders_chart.py  Arctic analysis -> results/<run>/arctic_analysis.md; focused chart results/contenders.png
 bench/holdout_report.py     holdout section + results/holdout_summary.png (called by combine.py)
 bench/harness.py            runner, scoring, report     bench/clients.py  per-system API clients (incl. router)
 bench/setup_connections.py  connects tools to the DB    bench/verify_gold.py, bench/probe.py
@@ -685,6 +689,51 @@ It also blocked **0 of 129** right answers.
 * It also never catches the one recurring real error (h02), which Jev scores as plausible.
 * Per-attempt details: `results/run-gptoss120b-vanna-r3/vanna_jev_analysis.md`.
 
+## Arctic-Text2SQL-R1-7B (`arctic`): a dedicated text-to-SQL model
+
+**What it is.** Snowflake's [Arctic-Text2SQL-R1-7B](https://huggingface.co/Snowflake/Arctic-Text2SQL-R1-7B)
+(Qwen2.5-Coder-7B-Instruct + GRPO, bf16, revision `2d73fac`). Unlike every other system here it does **not** use
+gpt-oss:120b: the 7B model itself writes the SQL. No retrieval, no retries, no execution feedback.
+
+* **Serving:** a dedicated Hugging Face Inference Endpoint `arctic-text2sql-r1-7b-bench` (personal namespace, aws
+  us-east-1, **1x nvidia-a10g**, vLLM image `vllm/vllm-openai:v0.32.0`, min 0 / max 1 replica, scale-to-zero 15 min),
+  managed by `arctic/endpoint.py`, reached through llm-meter `/arctic/` (the caller's HF token is forwarded, never stored).
+* **Prompt:** verbatim from Snowflake's own eval code (`snowflakedb/ArcticTraining`,
+  `projects/arctic_text2sql_r1/bird_eval/infer.py`): system + user message via the Qwen2.5 chat template, assistant
+  pre-filled with `Let me solve this step by step. \n<think>`, SQL = last ```sql block. Two substitutions in the
+  template's own slots: `Database Engine: PostgreSQL` (instead of SQLite) and the 11 Chinook `CREATE TABLE`s from
+  `vanna/training/ddl.sql`. Temperature 0, max_tokens 4096, 180 s cap per call (client cuts the stream at 179 s).
+* **Run:** `make bench-arctic REPEATS=3` → `arctic/bench.sh`: resume endpoint → wait `running` → 2 warm-up calls on a
+  non-benchmark question (not timed) → 29 × 3 into `results/run-arctic-hf-a10g-r3/` → 15 × 3 appended to
+  `results/run-gptoss120b-holdout-r3/` (`--resume`) → EXIT trap pauses the endpoint and verifies `paused` via the API.
+
+**Results (headline: 1x nvidia-a10g)** — details in `results/run-arctic-hf-a10g-r3/arctic_analysis.md`:
+
+| set | EX exact | EX relaxed | tie rule | timeouts | exec errors | wrong | p50 / p95 s | avg output tok (incl. thinking) |
+|---|---|---|---|---|---|---|---|---|
+| 29 | 67/87 (77%) | 67/87 | 67/87 | 4 | 13 | 3 | 10.71 / 135.61 | 569 |
+| holdout | 36/45 (80%) | 36/45 | 36/45 | 0 | 9 | 0 | 10.90 / 135.63 | 811 |
+
+**Misses.**
+
+* **Dialect (22 of 32 misses): SQLite `strftime()` on Postgres** — every exec error is
+  `UndefinedFunction: function strftime(unknown, timestamp …) does not exist` (e07, m09 ×2, h05, h09, h10 ×2, ho10,
+  ho13, ho14). The prompt says PostgreSQL, but the model's GRPO training (BIRD/Spider, SQLite) wins for date logic.
+  ho14's tie rule therefore never applies (it fails to execute).
+* **Timeouts (4):** m03 r3, m04 r1, m09 r2, h10 r1 hit the 180 s cap (greedy repetition, no EOS).
+* **Wrong result (3):** h03 ×3 ran to the 4096-token limit (~135 s) and the last SQL block returns all 59 customers
+  instead of the 22 above the average.
+
+**Footnote — first run on 1x nvidia-l4** (same endpoint/config, `results/run-arctic-hf-l4-r3/`; stopped by the user
+after 14/45 held-out rows, kept in `holdout_partial.jsonl` and *not* in the shared held-out file): 29-set 65/87, 13 exec
+errors, **9 timeouts**, p50 17.12 s / p95 179.71 s, generation ~17.8 tok/s vs **~30.9 tok/s on A10G**. Same failure
+types; the slower GPU turns more long reasoning traces into 180 s timeouts.
+
+**Against the main contenders** (`results/contenders.png`; held-out counts the ho14 tie as correct): Arctic is
+16–22 points below the gpt-oss-based contenders on the 29 (77% vs 93–99%) and 7–20 points below on the holdout (80% vs
+87–100%), and ~2.6–7.5× slower at p50, but it is a 7B model on
+one 24 GB GPU with a ~1.1k-token prompt and no semantic layer.
+
 ## Held-out evaluation (`questions_holdout.yaml`)
 
 The original 29 questions were the tuning set for `cube_v2` and the WrenAI semantic layer, so the first router run
@@ -716,6 +765,7 @@ Results (`results/run-gptoss120b-holdout-r3/`, chart `results/holdout_summary.pn
 | Vanna 2.0.2 (DDL-trained, legacy generate_sql) | 42/45 (93%) | 42/45 (93%) | 1.45 | 2.76 | 975 | 1.0 |
 | Vanna 2.0.2 + Jev answer check | 42/45 (93%) | 42/45 (93%) | 1.51 | 3.03 | 975 | 1.0 (+1 Jev) |
 | Vanna 2.0.2 + Jev check + 1 retry | 42/45 (93%) | 42/45 (93%) | 1.64 | 2.56 | 975 | 1.0 (+1 Jev; 0 retries) |
+| Arctic-Text2SQL-R1-7B (own model, HF A10G) | 36/45 (80%) | 36/45 (80%) | 10.90 | 135.63 | 1,112 | 1.0 |
 
 Router fallback **17/45 (38%)** — triggers `cube_unsupported`×16, `cube_error`×1. Cube-answered path EX 22/28 (79%);
 fallback path EX 17/17 (100%). Silent-wrong (Cube answered, no fallback): `ho12`×3, `ho14`×2, `ho04`×1. No attempt

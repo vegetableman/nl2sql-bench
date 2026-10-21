@@ -10,6 +10,7 @@ volumes:
   pgdata:
   dbgpt-data:
   ollama-data:
+  ollama-arctic-data:
 
 services:
   postgres:
@@ -39,6 +40,9 @@ services:
       EMBEDDING_UPSTREAM_BASE: ${EMBEDDING_UPSTREAM_BASE:-http://ollama:11434/v1}
       # local Ollama ignores auth; don't forward the cloud key to it
       STRIP_AUTH_FOR_EMBEDDINGS: "${STRIP_AUTH_FOR_EMBEDDINGS:-1}"
+      # per-tool upstream override: /arctic/ -> the HF Inference Endpoint (ARCTIC_UPSTREAM_BASE=https://<endpoint>/v1,
+      # caller's HF token forwarded as-is) or, unset, the local CPU Ollama container (system `arctic`)
+      TOOL_UPSTREAMS: "arctic=${ARCTIC_UPSTREAM_BASE:-http://ollama-arctic:11434/v1}"
     ports:
       - "${METER_PORT:-8089}:8080"
     networks: [nl2sql-net]
@@ -51,6 +55,24 @@ services:
       - ollama-data:/root/.ollama
     networks: [nl2sql-net]
     mem_limit: 2g
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 5s
+      retries: 30
+
+  # Arctic-Text2SQL-R1-7B (system `arctic`): a 2nd, CPU-only Ollama (same image) so the 7B model gets its own memory
+  # budget and never competes with the embedding container above. Opt-in: `docker compose --profile arctic up -d ollama-arctic`.
+  ollama-arctic:
+    image: ollama/ollama:${OLLAMA_VERSION:-0.40.6}
+    profiles: [arctic]
+    environment:
+      OLLAMA_NUM_PARALLEL: "1"        # one request at a time (the harness is sequential)
+      OLLAMA_MAX_LOADED_MODELS: "1"
+      OLLAMA_KEEP_ALIVE: "24h"         # keep the weights resident between questions
+    volumes:
+      - ollama-arctic-data:/root/.ollama
+    networks: [nl2sql-net]
+    mem_limit: 9g
     healthcheck:
       test: ["CMD", "ollama", "list"]
       interval: 5s

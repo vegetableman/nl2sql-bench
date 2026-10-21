@@ -4,10 +4,12 @@ PY    := .venv/bin/python
 WREN  := docker compose --project-directory wrenai --env-file wrenai/.env -f wrenai/docker-compose.yaml -f wrenai/docker-compose.override.yaml
 WRENMDL := docker compose -p wrenai-mdl --project-directory wrenai_mdl --env-file wrenai_mdl/.env -f wrenai_mdl/docker-compose.yaml -f wrenai_mdl/docker-compose.override.yaml
 REPEATS ?= 1
+ARCTIC_GPU ?= nvidia-a10g
+ARCTIC_OUT ?= run-arctic-hf-a10g-r3
 SYSTEMS ?= wrenai,dbgpt,cube
 QUESTIONS ?= bench/questions.yaml
 
-.PHONY: wren-mdl wren-mdl-noreason wren-mdl-restore wren-mdl-up report up down clean setup bench mock verify probe status logs venv render docker netfix wait bench-router bench-holdout mnemiq-install mnemiq-up bench-mnemiq mnemiq-failopen-up bench-mnemiq-failopen mnemiq-verified-up bench-mnemiq-verified mnemiq-jev-up bench-mnemiq-jev mnemiq-jev2-up bench-mnemiq-jev2 vanna-install vanna-up vanna-down bench-vanna vanna-jev-up vanna-jev-retry-up bench-vanna-jev bench-vanna-jev-retry vanna-jev-offline
+.PHONY: wren-mdl wren-mdl-noreason wren-mdl-restore wren-mdl-up report up down clean setup bench mock verify probe status logs venv render docker netfix wait bench-router bench-holdout mnemiq-install mnemiq-up bench-mnemiq mnemiq-failopen-up bench-mnemiq-failopen mnemiq-verified-up bench-mnemiq-verified mnemiq-jev-up bench-mnemiq-jev mnemiq-jev2-up bench-mnemiq-jev2 vanna-install vanna-up vanna-down bench-vanna vanna-jev-up vanna-jev-retry-up bench-vanna-jev bench-vanna-jev-retry vanna-jev-offline arctic-endpoint-up arctic-endpoint-pause bench-arctic
 
 up: docker netfix venv render          ## start everything and connect all tools to Postgres
 	docker compose up -d --build
@@ -193,3 +195,16 @@ bench-vanna-jev-retry: vanna-jev-retry-up  ## vanna_jev_retry x3 on the 29 (vann
 
 vanna-jev-offline:                     ## Jev variant b on plain vanna's saved SQLs (same-SQL view) -> results/run-gptoss120b-vanna-r3/jev_offline.jsonl
 	$(PY) bench/vanna_jev_offline.py
+
+# system arctic = Snowflake Arctic-Text2SQL-R1-7B on a dedicated HF Inference Endpoint (personal namespace, nvidia-a10g x1 (first run: nvidia-l4),
+# aws us-east-1, vLLM image, scale-to-zero 15 min) via llm-meter /arctic/ (ARCTIC_UPSTREAM_BASE in .env, HF_TOKEN from env).
+# Fallback (no endpoint): unset ARCTIC_UPSTREAM_BASE, `arctic/run.sh up import create` -> local CPU Ollama (slow, see README).
+arctic-endpoint-up:                    ## create (first time) or resume the HF endpoint and wait until running
+	@arctic/.venv/bin/python arctic/endpoint.py status >/dev/null 2>&1 && arctic/.venv/bin/python arctic/endpoint.py resume || arctic/.venv/bin/python arctic/endpoint.py create
+	arctic/.venv/bin/python arctic/endpoint.py wait
+
+arctic-endpoint-pause:                 ## pause the HF endpoint (stops billing) and print its status
+	arctic/.venv/bin/python arctic/endpoint.py pause
+
+bench-arctic:                          ## Arctic x3 on the 29 (results/$(ARCTIC_OUT)) + the 15 holdout (shared holdout dir); EXIT trap pauses the endpoint
+	REPEATS=$(REPEATS) ARCTIC_GPU=$(ARCTIC_GPU) ARCTIC_OUT=$(ARCTIC_OUT) arctic/bench.sh

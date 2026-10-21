@@ -1,0 +1,12 @@
+{"event": "created", "instance_type": "nvidia-l4", "status": "pending", "url": "https://6ad869f0cd11fb0c2c5acc32.endpoints.huggingface.cloud", "t_utc": "2026-10-21T07:29:52+00:00"}
+{"event": "status", "status": "initializing", "msg": "No replicas are ready yet", "t_utc": "2026-10-21T07:30:16+00:00"}
+{"event": "status", "status": "running", "msg": "Endpoint is ready", "t_utc": "2026-10-21T07:32:29+00:00"}
+{"event": "paused", "status": "paused", "t_utc": "2026-10-21T09:11:09+00:00"}
+{"event": "status", "status": "paused", "url": "https://6ad869f0cd11fb0c2c5acc32.endpoints.huggingface.cloud", "instance": {"id": "aws-us-east-1-nvidia-a10g-x1", "accelerator": "gpu", "instanceType": "nvidia-a10g", "instanceSize": "x1", "scaling": {"minReplica": 0, "maxReplica": 1, "scaleToZeroTimeout": 15, "measure": {"hardwareUsage": null}}}, "t_utc": "2026-10-21T09:13:04+00:00"}
+{"event": "status", "status": "paused", "url": "https://6ad869f0cd11fb0c2c5acc32.endpoints.huggingface.cloud", "instance": {"id": "aws-us-east-1-nvidia-a10g-x1", "accelerator": "gpu", "instanceType": "nvidia-a10g", "instanceSize": "x1", "scaling": {"minReplica": 0, "maxReplica": 1, "scaleToZeroTimeout": 15, "measure": {"hardwareUsage": null}}}, "t_utc": "2026-10-21T09:13:06+00:00"}
+{"event": "resume", "status": "pending", "t_utc": "2026-10-21T09:13:08+00:00"}
+{"event": "status", "status": "initializing", "msg": "No replicas are ready yet", "t_utc": "2026-10-21T09:13:11+00:00"}
+{"event": "status", "status": "running", "msg": "Endpoint is ready", "t_utc": "2026-10-21T09:15:58+00:00"}
+{"event": "paused", "status": "paused", "t_utc": "2026-10-21T10:25:34+00:00"}
+{"event": "status", "status": "paused", "url": "https://6ad869f0cd11fb0c2c5acc32.endpoints.huggingface.cloud", "instance": {"id": "aws-us-east-1-nvidia-a10g-x1", "accelerator": "gpu", "instanceType": "nvidia-a10g", "instanceSize": "x1", "scaling": {"minReplica": 0, "maxReplica": 1, "scaleToZeroTimeout": 15, "measure": {"hardwareUsage": null}}}, "t_utc": "2026-10-21T10:25:36+00:00"}
+{"event": "status", "status": "paused", "url": "https://6ad869f0cd11fb0c2c5acc32.endpoints.huggingface.cloud", "instance": {"id": "aws-us-east-1-nvidia-a10g-x1", "accelerator": "gpu", "instanceType": "nvidia-a10g", "instanceSize": "x1", "scaling": {"minReplica": 0, "maxReplica": 1, "scaleToZeroTimeout": 15, "measure": {"hardwareUsage": null}}}, "t_utc": "2026-10-21T10:25:46+00:00"}

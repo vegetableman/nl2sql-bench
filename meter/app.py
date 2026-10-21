@@ -6,7 +6,10 @@ Both WrenAI and DB-GPT are pointed at http://llm-meter:8080/<tool>/v1 so that
 
 Routes
   /{tool}/v1/{path}   forwarded to LLM_UPSTREAM_BASE/{path}
-                      (or EMBEDDING_UPSTREAM_BASE when path starts with 'embeddings')
+                      (or EMBEDDING_UPSTREAM_BASE when path starts with 'embeddings');
+                      a tool listed in TOOL_UPSTREAMS ("tool=base,tool2=base2") goes to its own base for
+                      every path, with the caller's own Authorization header (used for /arctic/ -> the
+                      dedicated HF Inference Endpoint, caller sends its HF token; or the CPU `ollama-arctic`)
   GET /meter/totals   cumulative counters per tool
   GET /meter/events   per-request timing log [{tool, kind, t_start, t_end, status}] (epoch s; ?tool=&since=)
   POST /meter/reset   zero the counters
@@ -28,6 +31,8 @@ from starlette.routing import Route
 
 LLM_UP = os.environ.get("LLM_UPSTREAM_BASE", "https://api.openai.com/v1").rstrip("/")
 EMB_UP = os.environ.get("EMBEDDING_UPSTREAM_BASE", LLM_UP).rstrip("/")
+TOOL_UP = {k.strip(): v.strip().rstrip("/") for k, v in
+           (x.split("=", 1) for x in os.environ.get("TOOL_UPSTREAMS", "").split(",") if "=" in x)}
 _lock = threading.Lock()
 
 
@@ -58,7 +63,7 @@ async def proxy(request: Request):
     tool = request.path_params["tool"]
     path = request.path_params["path"]
     kind = "embeddings" if path.startswith("embeddings") else "chat"
-    base = EMB_UP if kind == "embeddings" else LLM_UP
+    base = TOOL_UP.get(tool) or (EMB_UP if kind == "embeddings" else LLM_UP)
     body = await request.body()
     stream = False
     if body and request.method == "POST":
@@ -71,7 +76,7 @@ async def proxy(request: Request):
         except Exception:
             pass
     headers = {k: v for k, v in request.headers.items() if k.lower() not in HOP}
-    if kind == "embeddings" and os.environ.get("STRIP_AUTH_FOR_EMBEDDINGS") == "1":
+    if kind == "embeddings" and os.environ.get("STRIP_AUTH_FOR_EMBEDDINGS") == "1" and tool not in TOOL_UP:
         headers.pop("authorization", None); headers.pop("Authorization", None)
     with _lock:
         COUNTERS[tool]["requests"] += 1
@@ -89,19 +94,21 @@ async def proxy(request: Request):
     if stream and up.status_code < 400:
         async def gen():
             buf = b""
-            async for chunk in up.aiter_raw():
-                yield chunk
-                buf += chunk
-                while b"\n" in buf:
-                    line, buf = buf.split(b"\n", 1)
-                    line = line.strip()
-                    if line.startswith(b"data:") and b'"usage"' in line:
-                        try:
-                            _add(tool, json.loads(line[5:]).get("usage"), kind)
-                        except Exception:
-                            pass
-            await up.aclose()
-            EVENTS.append({"tool": tool, "kind": kind, "t_start": t0, "t_end": time.time(), "status": up.status_code})
+            try:
+                async for chunk in up.aiter_raw():
+                    yield chunk
+                    buf += chunk
+                    while b"\n" in buf:
+                        line, buf = buf.split(b"\n", 1)
+                        line = line.strip()
+                        if line.startswith(b"data:") and b'"usage"' in line:
+                            try:
+                                _add(tool, json.loads(line[5:]).get("usage"), kind)
+                            except Exception:
+                                pass
+            finally:  # also on caller disconnect: close upstream so it stops generating
+                await up.aclose()
+                EVENTS.append({"tool": tool, "kind": kind, "t_start": t0, "t_end": time.time(), "status": up.status_code})
         return StreamingResponse(gen(), status_code=up.status_code, headers=rh)
     data = await up.aread()
     await up.aclose()
@@ -130,7 +137,7 @@ async def reset(_):
 
 
 async def health(_):
-    return JSONResponse({"ok": True, "llm_upstream": LLM_UP, "embedding_upstream": EMB_UP})
+    return JSONResponse({"ok": True, "llm_upstream": LLM_UP, "embedding_upstream": EMB_UP, "tool_upstreams": TOOL_UP})
 
 
 app = Starlette(routes=[

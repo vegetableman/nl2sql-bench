@@ -1,0 +1,14 @@
+# Derived bench model: same weights as __FROM__, but a pass-through template so arctic/prompt.py's exact
+# Qwen2.5 chat-template rendering (+ "<think>" pre-fill) reaches the model unchanged; greedy decoding, no repeat penalty
+# (vLLM defaults, as in Snowflake's eval; the a-kore build ships temperature 1 / repeat_penalty 1.1); CPU threads.
+FROM __FROM__
+TEMPLATE """{{ .Prompt }}"""
+SYSTEM ""
+PARAMETER temperature 0
+PARAMETER top_p 1
+PARAMETER repeat_penalty 1
+PARAMETER num_ctx 4096
+PARAMETER num_predict 2048
+PARAMETER num_thread __THREADS__
+PARAMETER stop "<|im_end|>"
+PARAMETER stop "<|endoftext|>"

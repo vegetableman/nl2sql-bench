@@ -573,6 +573,73 @@ class VannaJevRetryClient(VannaJevClient):
     PORT = "8097"
 
 
+class ArcticClient:
+    """Snowflake Arctic-Text2SQL-R1-7B (Qwen2.5-Coder-7B + GRPO) on a dedicated Hugging Face Inference Endpoint (vLLM,
+    personal namespace; headline run 1x nvidia-a10g, first run 1x nvidia-l4), called through llm-meter /arctic/ (meter
+    forwards that prefix to ARCTIC_UPSTREAM_BASE with the caller's HF token, ARCTIC_AUTH=hf). Without
+    ARCTIC_UPSTREAM_BASE the prefix goes to the CPU `ollama-arctic` container instead (fallback / smoke test only).
+    One raw /v1/completions call per question: Snowflake's own eval prompt (arctic/prompt.py: system + user via the
+    Qwen2.5 chat template, assistant pre-filled with "Let me solve this step by step. \\n<think>"), the full 11-table
+    Chinook DDL, temperature 0, max_tokens ARCTIC_MAX_TOKENS (.env: 4096; default 2048). Streamed, so the call can be
+    cut at ARCTIC_DEADLINE_S (179 s, just inside the harness's 180 s cap); closing the stream makes the server stop
+    generating, so a timed-out question never delays the next one. SQL = last ```sql block; none -> tool error."""
+    name = "arctic"
+
+    def __init__(self, env):
+        import os, sys
+        sys.path.insert(0, str(ROOT / "arctic"))
+        import prompt as P
+        self.P = P
+        self.url = f"http://localhost:{env.get('METER_PORT', '8089')}/arctic/v1/completions"
+        self.model = os.environ.get("ARCTIC_MODEL", env.get("ARCTIC_MODEL", "arctic-text2sql-bench"))
+        self.max_tokens = int(os.environ.get("ARCTIC_MAX_TOKENS", env.get("ARCTIC_MAX_TOKENS", "2048")))
+        self.deadline = float(os.environ.get("ARCTIC_DEADLINE_S", env.get("ARCTIC_DEADLINE_S", "179")))
+        tok = os.environ.get("HF_TOKEN") if (os.environ.get("ARCTIC_AUTH") or env.get("ARCTIC_AUTH")) == "hf" else None
+        self.headers = {"Authorization": f"Bearer {tok}"} if tok else {}
+
+    def generate(self, question):
+        body = {"model": self.model, "prompt": self.P.build_prompt(question), "temperature": 0,
+                "max_tokens": self.max_tokens, "stop": ["<|im_end|>", "<|endoftext|>"], "stream": True,
+                "stream_options": {"include_usage": True}}
+        t0 = time.time(); t_first = None; parts = []; usage = None; finish = None; n_chunks = 0; timed_out = False
+        try:
+            with httpx.stream("POST", self.url, json=body, headers=self.headers, timeout=httpx.Timeout(self.deadline, connect=10.0)) as r:
+                if r.status_code != 200:
+                    r.read()
+                    return {"error": f"HTTP {r.status_code}: {r.text[:300]}"}
+                for line in r.iter_lines():
+                    if time.time() - t0 > self.deadline:
+                        timed_out = True
+                        break
+                    if not line.startswith("data:") or line.strip() == "data: [DONE]":
+                        continue
+                    j = json.loads(line[5:])
+                    if j.get("usage"):
+                        usage = j["usage"]
+                    for c in j.get("choices") or []:
+                        if c.get("text"):
+                            if t_first is None:
+                                t_first = time.time()
+                            parts.append(c["text"]); n_chunks += 1
+                        finish = c.get("finish_reason") or finish
+        except httpx.ReadTimeout:
+            timed_out = True
+        t1 = time.time(); text = "".join(parts)
+        comp_tok = (usage or {}).get("completion_tokens") or n_chunks
+        raw = {"model": self.model, "completion": (self.P.COT_PREFILL + text)[-12000:], "completion_chars": len(text),
+               "prompt_tokens": (usage or {}).get("prompt_tokens"), "completion_tokens": comp_tok,
+               "usage_reported": usage is not None, "finish_reason": finish,
+               "ttft_s": round(t_first - t0, 3) if t_first else None, "gen_s": round(t1 - t_first, 3) if t_first else None,
+               "tok_per_s": round((comp_tok - 1) / (t1 - t_first), 2) if t_first and t1 > t_first and comp_tok > 1 else None,
+               "seconds": round(t1 - t0, 3)}
+        if timed_out:
+            return {"error": f"timeout: no complete answer within {self.deadline:.0f}s ({comp_tok} tokens generated)", "timeout": True, "raw": raw}
+        sql = self.P.parse_sql(text)
+        if not sql:
+            return {"error": f"arctic: no ```sql block in completion (finish_reason={finish}, {comp_tok} tokens)", "raw": raw}
+        return {"sql": sql, "raw": raw}
+
+
 class MnemiqClient:
     """mnemiq (agenticfabriq/mnemiq, Apache-2.0) – HTTP API of `mnemiq serve --http` (mnemiq/run.sh serve,
     :8090), out-of-the-box engine settings (default mode `thinking`). POST /v1/ask {question}.

@@ -3,14 +3,14 @@
 python bench/harness.py [--systems wrenai,dbgpt,cube] [--repeats N] [--mock] [--limit K] [--ids e01,h03]
 Outputs results/<run_id>/{results.csv, summary.md, raw.jsonl}
 """
-import argparse, concurrent.futures as cf, csv, datetime as dt, json, statistics, sys, time
+import argparse, concurrent.futures as cf, csv, datetime as dt, json, os, statistics, sys, time
 import httpx, psycopg, yaml
 from zoneinfo import ZoneInfo
 from common import ROOT, load_env, compare
-from clients import WrenClient, WrenMDLClient, WrenMDLNoReasonClient, DBGPTClient, CubeClient, CubeV2Client, RouterClient, MnemiqClient, MnemiqFailOpenClient, MnemiqVerifiedClient, MnemiqJevClient, MnemiqJevV2Client, VannaClient, VannaJevClient, VannaJevRetryClient, MockSQLClient
+from clients import WrenClient, WrenMDLClient, WrenMDLNoReasonClient, DBGPTClient, CubeClient, CubeV2Client, RouterClient, MnemiqClient, MnemiqFailOpenClient, MnemiqVerifiedClient, MnemiqJevClient, MnemiqJevV2Client, VannaClient, VannaJevClient, VannaJevRetryClient, ArcticClient, MockSQLClient
 
-METER_KEY = {"cube_v2": "cube2", "wrenai": "wren", "wrenai_mdl": "wrenmdl", "wrenai_mdl_noreason": "wrenmdlnr", "router": "router", "mnemiq": "mnemiq", "mnemiq_failopen": "mnemiqfo", "mnemiq_verified": "mnemiqv", "mnemiq_jev": "mnemiqj", "mnemiq_jev_v2": "mnemiqj2", "vanna": "vanna", "vanna_jev": "vannaj", "vanna_jev_retry": "vannajr"}  # llm-meter path prefix per system; router also sums wrenmdlnr on fallback
-LABELS = {"wrenai": "WrenAI 0.29.2 (out of the box)", "wrenai_mdl": "WrenAI 0.29.2 + semantic layer", "wrenai_mdl_noreason": "WrenAI 0.29.2 + semantic layer, no reasoning", "dbgpt": "DB-GPT 0.8.2", "cube": "Cube Core 1.8.8 + LLM adapter (baseline)", "cube_v2": "Cube Core 1.8.8 + rich model + LLM adapter v2 (harness-built)", "router": "Router (cube_v2 → WrenAI semantic, no reasoning)", "mnemiq": "mnemiq (agenticfabriq, a453b05, defaults)", "mnemiq_failopen": "mnemiq, judge fail-open variant", "mnemiq_verified": "mnemiq, judge token-budget variant (fail-closed)", "mnemiq_jev": "mnemiq, TypeSafe Jev judge (fail-closed)", "mnemiq_jev_v2": "mnemiq, TypeSafe Jev judge v2 (truncation-aware, fail-closed)", "vanna": "Vanna 2.0.2 (legacy generate_sql, DDL-trained)", "vanna_jev": "Vanna 2.0.2 + Jev answer check (fail-closed)", "vanna_jev_retry": "Vanna 2.0.2 + Jev check + 1 retry"}
+METER_KEY = {"cube_v2": "cube2", "wrenai": "wren", "wrenai_mdl": "wrenmdl", "wrenai_mdl_noreason": "wrenmdlnr", "router": "router", "mnemiq": "mnemiq", "mnemiq_failopen": "mnemiqfo", "mnemiq_verified": "mnemiqv", "mnemiq_jev": "mnemiqj", "mnemiq_jev_v2": "mnemiqj2", "vanna": "vanna", "vanna_jev": "vannaj", "vanna_jev_retry": "vannajr", "arctic": "arctic"}  # llm-meter path prefix per system; router also sums wrenmdlnr on fallback
+LABELS = {"wrenai": "WrenAI 0.29.2 (out of the box)", "wrenai_mdl": "WrenAI 0.29.2 + semantic layer", "wrenai_mdl_noreason": "WrenAI 0.29.2 + semantic layer, no reasoning", "dbgpt": "DB-GPT 0.8.2", "cube": "Cube Core 1.8.8 + LLM adapter (baseline)", "cube_v2": "Cube Core 1.8.8 + rich model + LLM adapter v2 (harness-built)", "router": "Router (cube_v2 → WrenAI semantic, no reasoning)", "mnemiq": "mnemiq (agenticfabriq, a453b05, defaults)", "mnemiq_failopen": "mnemiq, judge fail-open variant", "mnemiq_verified": "mnemiq, judge token-budget variant (fail-closed)", "mnemiq_jev": "mnemiq, TypeSafe Jev judge (fail-closed)", "mnemiq_jev_v2": "mnemiq, TypeSafe Jev judge v2 (truncation-aware, fail-closed)", "vanna": "Vanna 2.0.2 (legacy generate_sql, DDL-trained)", "vanna_jev": "Vanna 2.0.2 + Jev answer check (fail-closed)", "vanna_jev_retry": "Vanna 2.0.2 + Jev check + 1 retry", "arctic": f"Arctic-Text2SQL-R1-7B (dedicated HF {os.environ.get('ARCTIC_GPU', 'nvidia-a10g')} endpoint, vLLM, Snowflake eval prompt)"}
 
 
 def run_sql(conn, sql, limit_rows=100000):
@@ -93,7 +93,7 @@ def main():
         elif a.mock:
             clients[s] = MockSQLClient(s, qs)
         else:
-            clients[s] = {"wrenai": WrenClient, "wrenai_mdl": WrenMDLClient, "wrenai_mdl_noreason": WrenMDLNoReasonClient, "dbgpt": DBGPTClient, "mnemiq": MnemiqClient, "mnemiq_failopen": MnemiqFailOpenClient, "mnemiq_verified": MnemiqVerifiedClient, "mnemiq_jev": MnemiqJevClient, "mnemiq_jev_v2": MnemiqJevV2Client, "vanna": VannaClient, "vanna_jev": VannaJevClient, "vanna_jev_retry": VannaJevRetryClient}[s](env)
+            clients[s] = {"wrenai": WrenClient, "wrenai_mdl": WrenMDLClient, "wrenai_mdl_noreason": WrenMDLNoReasonClient, "dbgpt": DBGPTClient, "mnemiq": MnemiqClient, "mnemiq_failopen": MnemiqFailOpenClient, "mnemiq_verified": MnemiqVerifiedClient, "mnemiq_jev": MnemiqJevClient, "mnemiq_jev_v2": MnemiqJevV2Client, "vanna": VannaClient, "vanna_jev": VannaJevClient, "vanna_jev_retry": VannaJevRetryClient, "arctic": ArcticClient}[s](env)
 
     run_id = a.out or (dt.datetime.now().strftime("%Y%m%d-%H%M%S") + ("-mock" if a.mock else ""))
     out = ROOT / "results" / run_id
@@ -207,6 +207,9 @@ def summary(rows, systems, qs, a, env):
          f"- Report generated: {dt.datetime.now(ZoneInfo('Asia/Kolkata')).strftime('%Y-%m-%d %H:%M')} IST",
          f"- Dataset: Chinook 1.4.5 on Postgres 16.4; {len(qs)} questions x {a.repeats} run(s)",
          f"- LLM: `{env['LLM_MODEL']}` via `{env['LLM_UPSTREAM_BASE']}`, embeddings `{env['EMBEDDING_MODEL']}` (same for all systems, via llm-meter)",
+         *([f"- **arctic** does NOT use that LLM: it is its own model, Arctic-Text2SQL-R1-7B (`{env.get('ARCTIC_MODEL', 'arctic-text2sql-bench')}`), served "
+            + (f"on a dedicated Hugging Face Inference Endpoint (1x {os.environ.get('ARCTIC_GPU', 'nvidia-a10g')}, vLLM)" if env.get("ARCTIC_UPSTREAM_BASE") else "locally on CPU (ollama-arctic container; CPU latency, not comparable)")
+            + " via llm-meter /arctic/; no embeddings."] if "arctic" in systems else []),
          "- EX(exact) = same result set as gold (column order free; row order checked only when the question requires it).",
          "  EX(relaxed) also accepts extra columns. Latency = wall time of the tool's API call (question -> SQL / result).",
          "  Tokens = measured by llm-meter proxy (chat prompt+completion; embeddings separate).",
