@@ -540,6 +540,39 @@ class VannaClient:
         return {"sql": j["sql"], "raw": raw}
 
 
+class VannaJevClient(VannaClient):
+    """vanna_jev: same Vanna 2.0.2 generation; the service executes the SQL read-only and asks TypeSafe Jev (variant b,
+    as mnemiq_jev_v2) whether it answers the question. p < 0.5 -> `declined`; Jev error -> answer returned (fail-open);
+    SQL that fails to execute -> returned unjudged. :8096, meter /vannaj/."""
+    name = "vanna_jev"
+    PORT = "8096"
+
+    def __init__(self, env):
+        self.url = f"http://localhost:{self.PORT}/v1/generate"
+
+    def generate(self, question):
+        r = httpx.post(self.url, json={"question": question}, timeout=TIMEOUT)
+        try:
+            j = r.json()
+        except Exception:
+            return {"error": f"HTTP {r.status_code}: {r.text[:300]}"}
+        raw = {k: j.get(k) for k in ("llm_calls", "ddl_tables", "seconds", "decision", "attempts")}
+        if r.status_code != 200:
+            return {"error": f"HTTP {r.status_code}: {j.get('error')}", "raw": raw}
+        if j.get("declined"):
+            ps = [a.get("jev", {}).get("p") for a in j.get("attempts") or []]
+            return {"error": f"declined: jev: answer check p={ps} below 0.5", "sql": j.get("sql") or "", "raw": raw}
+        if not (j.get("sql") or "").strip():
+            return {"error": "vanna: empty SQL", "raw": raw}
+        return {"sql": j["sql"], "raw": raw}
+
+
+class VannaJevRetryClient(VannaJevClient):
+    """vanna_jev_retry: as vanna_jev, plus one regenerate + re-judge on a decline (vanna/server.py RETRY_TEMPLATE). :8097, /vannajr/."""
+    name = "vanna_jev_retry"
+    PORT = "8097"
+
+
 class MnemiqClient:
     """mnemiq (agenticfabriq/mnemiq, Apache-2.0) – HTTP API of `mnemiq serve --http` (mnemiq/run.sh serve,
     :8090), out-of-the-box engine settings (default mode `thinking`). POST /v1/ask {question}.

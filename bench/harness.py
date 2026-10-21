@@ -7,10 +7,10 @@ import argparse, concurrent.futures as cf, csv, datetime as dt, json, statistics
 import httpx, psycopg, yaml
 from zoneinfo import ZoneInfo
 from common import ROOT, load_env, compare
-from clients import WrenClient, WrenMDLClient, WrenMDLNoReasonClient, DBGPTClient, CubeClient, CubeV2Client, RouterClient, MnemiqClient, MnemiqFailOpenClient, MnemiqVerifiedClient, MnemiqJevClient, MnemiqJevV2Client, VannaClient, MockSQLClient
+from clients import WrenClient, WrenMDLClient, WrenMDLNoReasonClient, DBGPTClient, CubeClient, CubeV2Client, RouterClient, MnemiqClient, MnemiqFailOpenClient, MnemiqVerifiedClient, MnemiqJevClient, MnemiqJevV2Client, VannaClient, VannaJevClient, VannaJevRetryClient, MockSQLClient
 
-METER_KEY = {"cube_v2": "cube2", "wrenai": "wren", "wrenai_mdl": "wrenmdl", "wrenai_mdl_noreason": "wrenmdlnr", "router": "router", "mnemiq": "mnemiq", "mnemiq_failopen": "mnemiqfo", "mnemiq_verified": "mnemiqv", "mnemiq_jev": "mnemiqj", "mnemiq_jev_v2": "mnemiqj2", "vanna": "vanna"}  # llm-meter path prefix per system; router also sums wrenmdlnr on fallback
-LABELS = {"wrenai": "WrenAI 0.29.2 (out of the box)", "wrenai_mdl": "WrenAI 0.29.2 + semantic layer", "wrenai_mdl_noreason": "WrenAI 0.29.2 + semantic layer, no reasoning", "dbgpt": "DB-GPT 0.8.2", "cube": "Cube Core 1.8.8 + LLM adapter (baseline)", "cube_v2": "Cube Core 1.8.8 + rich model + LLM adapter v2 (harness-built)", "router": "Router (cube_v2 → WrenAI semantic, no reasoning)", "mnemiq": "mnemiq (agenticfabriq, a453b05, defaults)", "mnemiq_failopen": "mnemiq, judge fail-open variant", "mnemiq_verified": "mnemiq, judge token-budget variant (fail-closed)", "mnemiq_jev": "mnemiq, TypeSafe Jev judge (fail-closed)", "mnemiq_jev_v2": "mnemiq, TypeSafe Jev judge v2 (truncation-aware, fail-closed)", "vanna": "Vanna 2.0.2 (legacy generate_sql, DDL-trained)"}
+METER_KEY = {"cube_v2": "cube2", "wrenai": "wren", "wrenai_mdl": "wrenmdl", "wrenai_mdl_noreason": "wrenmdlnr", "router": "router", "mnemiq": "mnemiq", "mnemiq_failopen": "mnemiqfo", "mnemiq_verified": "mnemiqv", "mnemiq_jev": "mnemiqj", "mnemiq_jev_v2": "mnemiqj2", "vanna": "vanna", "vanna_jev": "vannaj", "vanna_jev_retry": "vannajr"}  # llm-meter path prefix per system; router also sums wrenmdlnr on fallback
+LABELS = {"wrenai": "WrenAI 0.29.2 (out of the box)", "wrenai_mdl": "WrenAI 0.29.2 + semantic layer", "wrenai_mdl_noreason": "WrenAI 0.29.2 + semantic layer, no reasoning", "dbgpt": "DB-GPT 0.8.2", "cube": "Cube Core 1.8.8 + LLM adapter (baseline)", "cube_v2": "Cube Core 1.8.8 + rich model + LLM adapter v2 (harness-built)", "router": "Router (cube_v2 → WrenAI semantic, no reasoning)", "mnemiq": "mnemiq (agenticfabriq, a453b05, defaults)", "mnemiq_failopen": "mnemiq, judge fail-open variant", "mnemiq_verified": "mnemiq, judge token-budget variant (fail-closed)", "mnemiq_jev": "mnemiq, TypeSafe Jev judge (fail-closed)", "mnemiq_jev_v2": "mnemiq, TypeSafe Jev judge v2 (truncation-aware, fail-closed)", "vanna": "Vanna 2.0.2 (legacy generate_sql, DDL-trained)", "vanna_jev": "Vanna 2.0.2 + Jev answer check (fail-closed)", "vanna_jev_retry": "Vanna 2.0.2 + Jev check + 1 retry"}
 
 
 def run_sql(conn, sql, limit_rows=100000):
@@ -93,7 +93,7 @@ def main():
         elif a.mock:
             clients[s] = MockSQLClient(s, qs)
         else:
-            clients[s] = {"wrenai": WrenClient, "wrenai_mdl": WrenMDLClient, "wrenai_mdl_noreason": WrenMDLNoReasonClient, "dbgpt": DBGPTClient, "mnemiq": MnemiqClient, "mnemiq_failopen": MnemiqFailOpenClient, "mnemiq_verified": MnemiqVerifiedClient, "mnemiq_jev": MnemiqJevClient, "mnemiq_jev_v2": MnemiqJevV2Client, "vanna": VannaClient}[s](env)
+            clients[s] = {"wrenai": WrenClient, "wrenai_mdl": WrenMDLClient, "wrenai_mdl_noreason": WrenMDLNoReasonClient, "dbgpt": DBGPTClient, "mnemiq": MnemiqClient, "mnemiq_failopen": MnemiqFailOpenClient, "mnemiq_verified": MnemiqVerifiedClient, "mnemiq_jev": MnemiqJevClient, "mnemiq_jev_v2": MnemiqJevV2Client, "vanna": VannaClient, "vanna_jev": VannaJevClient, "vanna_jev_retry": VannaJevRetryClient}[s](env)
 
     run_id = a.out or (dt.datetime.now().strftime("%Y%m%d-%H%M%S") + ("-mock" if a.mock else ""))
     out = ROOT / "results" / run_id

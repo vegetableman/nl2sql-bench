@@ -1,6 +1,6 @@
-# nl2sql-bench — combined report (14 systems)
+# nl2sql-bench — combined report (16 systems)
 
-- Generated 2026-10-21 08:41 IST by `bench/combine.py` from: `wrenai` ← `results/run-gptoss120b-r3`, `wrenai_mdl` ← `results/run-gptoss120b-wrenmdl-r3`, `wrenai_mdl_noreason` ← `results/run-gptoss120b-wrenmdl-noreason-r3`, `dbgpt` ← `results/run-gptoss120b-r3`, `cube` ← `results/run-gptoss120b-r3`, `cube_v2` ← `results/run-gptoss120b-cubev2-r3`, `router` ← `results/run-gptoss120b-router-r3`, `mnemiq` ← `results/run-gptoss120b-mnemiq-r3`, `mnemiq_failopen` ← `results/run-gptoss120b-mnemiq-r3`, `mnemiq_verified` ← `results/run-gptoss120b-mnemiq-r3`, `mnemiq_jev` ← `results/run-gptoss120b-mnemiq-r3`, `mnemiq_jev_v2` ← `results/run-gptoss120b-mnemiq-r3`, `mnemiq_jev_v2_r2` ← `results/run-gptoss120b-mnemiq-jev-v2-r2`, `vanna` ← `results/run-gptoss120b-vanna-r3`
+- Generated 2026-10-21 09:13 IST by `bench/combine.py` from: `wrenai` ← `results/run-gptoss120b-r3`, `wrenai_mdl` ← `results/run-gptoss120b-wrenmdl-r3`, `wrenai_mdl_noreason` ← `results/run-gptoss120b-wrenmdl-noreason-r3`, `dbgpt` ← `results/run-gptoss120b-r3`, `cube` ← `results/run-gptoss120b-r3`, `cube_v2` ← `results/run-gptoss120b-cubev2-r3`, `router` ← `results/run-gptoss120b-router-r3`, `mnemiq` ← `results/run-gptoss120b-mnemiq-r3`, `mnemiq_failopen` ← `results/run-gptoss120b-mnemiq-r3`, `mnemiq_verified` ← `results/run-gptoss120b-mnemiq-r3`, `mnemiq_jev` ← `results/run-gptoss120b-mnemiq-r3`, `mnemiq_jev_v2` ← `results/run-gptoss120b-mnemiq-r3`, `mnemiq_jev_v2_r2` ← `results/run-gptoss120b-mnemiq-jev-v2-r2`, `vanna` ← `results/run-gptoss120b-vanna-r3`, `vanna_jev` ← `results/run-gptoss120b-vanna-r3`, `vanna_jev_retry` ← `results/run-gptoss120b-vanna-r3`
 - Chinook on Postgres 16.4, 29 questions x 3 runs per system; LLM `gpt-oss:120b` via `https://ollama.com/v1`, embeddings `nomic-embed-text` (local ollama); same scorer, 180 s per-call cap, tokens via llm-meter.
 - `wrenai` (OOTB) and `wrenai_mdl` are two separate WrenAI 0.29.2 stacks with identical images/config; the only difference is the semantic layer in `wrenai_mdl/mdl/semantic_layer.yaml` (descriptions, relationship descriptions, 9 calculated fields, 9 generic instructions; no SQL pairs, no views).
 - `wrenai_mdl_noreason` = the same 2nd stack, same project / deployed MDL (hash checked) / instructions, with the single wren-ai-service setting `allow_sql_generation_reasoning: false` (`make wren-mdl-noreason`; `make wren-mdl-restore` switches back). Intent classification stays on. Per-stage timings: `results/stage-latency/stage_latency.md`.
@@ -27,6 +27,8 @@
 | mnemiq a453b05, Jev judge v2 (truncation-aware) | 85/87 (98%) | 85/87 (98%) | 0 | 0 | 0 | 2 | 0 | 0 | 8.04 | 22.11 | 13.16 | 2,923 | 410 | 2.0 | run-gptoss120b-mnemiq-r3 (87 rows) |
 | mnemiq a453b05, Jev judge v2, rerun r2 | 86/87 (99%) | 86/87 (99%) | 0 | 0 | 0 | 0 | 0 | 1 | 3.42 | 8.50 | 4.15 | 3,012 | 454 | 2.0 | run-gptoss120b-mnemiq-jev-v2-r2 (87 rows) |
 | Vanna 2.0.2 (legacy generate_sql, DDL-trained) | 84/87 (97%) | 84/87 (97%) | 2 | 1 | 0 | 0 | 0 | 0 | 1.57 | 2.80 | 1.69 | 969 | 183 | 1.0 | run-gptoss120b-vanna-r3 (87 rows) |
+| Vanna 2.0.2 + Jev answer check (fail-closed) | 86/87 (99%) | 86/87 (99%) | 1 | 0 | 0 | 0 | 0 | 0 | 1.70 | 2.97 | 1.85 | 969 | 190 | 1.0 | run-gptoss120b-vanna-r3 (87 rows) |
+| Vanna 2.0.2 + Jev check + 1 retry | 87/87 (100%) | 87/87 (100%) | 0 | 0 | 0 | 0 | 0 | 0 | 1.60 | 2.31 | 1.65 | 969 | 186 | 1.0 | run-gptoss120b-vanna-r3 (87 rows) |
 
 ## EX exact by difficulty
 
@@ -46,6 +48,8 @@
 | mnemiq a453b05, Jev judge v2 (truncation-aware) | 24/24 (100%) | 27/27 (100%) | 34/36 (94%) |
 | mnemiq a453b05, Jev judge v2, rerun r2 | 24/24 (100%) | 27/27 (100%) | 35/36 (97%) |
 | Vanna 2.0.2 (legacy generate_sql, DDL-trained) | 24/24 (100%) | 27/27 (100%) | 33/36 (92%) |
+| Vanna 2.0.2 + Jev answer check (fail-closed) | 24/24 (100%) | 27/27 (100%) | 35/36 (97%) |
+| Vanna 2.0.2 + Jev check + 1 retry | 24/24 (100%) | 27/27 (100%) | 36/36 (100%) |
 
 ## Run-to-run variance
 
@@ -65,6 +69,8 @@
 | mnemiq a453b05, Jev judge v2 (truncation-aware) | 29 / 28 / 28 | 28.3 ± 0.6 | 2 (h04, h11) | 9.27 / 10.37 / 5.26 |
 | mnemiq a453b05, Jev judge v2, rerun r2 | 28 / 29 / 29 | 28.7 ± 0.6 | 1 (h11) | 4.78 / 3.29 / 2.85 |
 | Vanna 2.0.2 (legacy generate_sql, DDL-trained) | 27 / 29 / 28 | 28.0 ± 1.0 | 2 (h02, h03) | 1.62 / 1.66 / 1.40 |
+| Vanna 2.0.2 + Jev answer check (fail-closed) | 29 / 28 / 29 | 28.7 ± 0.6 | 1 (h02) | 1.70 / 1.66 / 1.72 |
+| Vanna 2.0.2 + Jev check + 1 retry | 29 / 29 / 29 | 29.0 ± 0.0 | 0 (-) | 1.63 / 1.54 / 1.62 |
 
 ## WrenAI: out of the box (wrenai) vs + semantic layer (wrenai_mdl) (per question, EX exact over 3 runs)
 
@@ -373,6 +379,17 @@
 | 1 | h03 | exec_error | SyntaxError: syntax error at or near ")" LINE 7: );         ^ |
 | 3 | h02 | wrong_result | row count 8 != gold 3 |
 
+## Vanna 2.0.2 + Jev answer check (fail-closed): every non-exact attempt
+
+| run | id | status | reason / error |
+|---|---|---|---|
+| 2 | h02 | wrong_result | row count 8 != gold 3 |
+
+## Vanna 2.0.2 + Jev check + 1 retry: every non-exact attempt
+
+| run | id | status | reason / error |
+|---|---|---|---|
+
 ## WrenAI per-stage latency (wrenai_mdl vs wrenai_mdl_noreason)
 
 Generated by `bench/stage_latency.py`; per-attempt data in `results/stage-latency/stages.csv`. Medians over the 87 attempts per system (seconds).
@@ -410,43 +427,43 @@ Polling: the time between the ask actually finishing and wren-ui's next poll is 
 
 ## Per question, all systems (status per run)
 
-| id | diff | WrenAI 0.29.2 (out of the box) | WrenAI 0.29.2 + semantic layer | WrenAI 0.29.2 + semantic layer, no reasoning | DB-GPT 0.8.2 | Cube Core 1.8.8 + LLM adapter (baseline) | Cube Core 1.8.8 + rich model + LLM adapter v2 (harness-built) | Router (cube_v2 → WrenAI semantic, no reasoning) | mnemiq a453b05 (defaults) | mnemiq a453b05, judge fail-open variant | mnemiq a453b05, judge 1200-token variant (fail-closed) | mnemiq a453b05, TypeSafe Jev judge (fail-closed) | mnemiq a453b05, Jev judge v2 (truncation-aware) | mnemiq a453b05, Jev judge v2, rerun r2 | Vanna 2.0.2 (legacy generate_sql, DDL-trained) |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| e01 | easy | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| e02 | easy | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | 🚫 🚫 🚫 | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| e03 | easy | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| e04 | easy | ✅ ✅ ✅ | 🟡 ✅ ✅ | 🟡 ✅ ✅ | ❌ ❌ ❌ | ✅ ❌ ❌ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| e05 | easy | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| e06 | easy | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ 🚫 | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| e07 | easy | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | 🟡 🟡 🟡 | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ 🚫 | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| e08 | easy | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ✅ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ | 🚫 🚫 🚫 | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| m01 | medium | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ | 🚫 🚫 ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| m02 | medium | ❌ ❌ ❌ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| m03 | medium | ✅ 💥 ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ⚠️ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| m04 | medium | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ⚠️ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| m05 | medium | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| m06 | medium | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ | 🚫 ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| m07 | medium | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | 🟡 🟡 🟡 | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| m08 | medium | ✅ ✅ ✅ | 🟡 ✅ 🟡 | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| m09 | medium | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ❌ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| h01 | hard | ✅ 🟡 ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| h02 | hard | ✅ ✅ ✅ | ❌ ❌ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ❌ ✅ ❌ |
-| h03 | hard | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⛔ ⛔ ⛔ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | 💥 ✅ ✅ |
-| h04 | hard | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⛔ ⛔ ⛔ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ⏱️ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| h05 | hard | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⛔ ⛔ ⛔ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | 🚫 ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| h06 | hard | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| h07 | hard | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ❌ ❌ ❌ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| h08 | hard | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ❌ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| h09 | hard | ✅ ✅ ✅ | 💥 ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⛔ ⛔ ⛔ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| h10 | hard | ❌ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ 🟡 ✅ | ❌ ✅ ❌ | ✅ ❌ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| h11 | hard | ✅ 💥 ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | 💥 💥 💥 | ⛔ ⛔ ⛔ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ⏱️ | 🚫 ✅ ✅ | ✅ ✅ ✅ |
-| h12 | hard | ✅ 🟡 ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
+| id | diff | WrenAI 0.29.2 (out of the box) | WrenAI 0.29.2 + semantic layer | WrenAI 0.29.2 + semantic layer, no reasoning | DB-GPT 0.8.2 | Cube Core 1.8.8 + LLM adapter (baseline) | Cube Core 1.8.8 + rich model + LLM adapter v2 (harness-built) | Router (cube_v2 → WrenAI semantic, no reasoning) | mnemiq a453b05 (defaults) | mnemiq a453b05, judge fail-open variant | mnemiq a453b05, judge 1200-token variant (fail-closed) | mnemiq a453b05, TypeSafe Jev judge (fail-closed) | mnemiq a453b05, Jev judge v2 (truncation-aware) | mnemiq a453b05, Jev judge v2, rerun r2 | Vanna 2.0.2 (legacy generate_sql, DDL-trained) | Vanna 2.0.2 + Jev answer check (fail-closed) | Vanna 2.0.2 + Jev check + 1 retry |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| e01 | easy | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
+| e02 | easy | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | 🚫 🚫 🚫 | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
+| e03 | easy | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
+| e04 | easy | ✅ ✅ ✅ | 🟡 ✅ ✅ | 🟡 ✅ ✅ | ❌ ❌ ❌ | ✅ ❌ ❌ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
+| e05 | easy | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
+| e06 | easy | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ 🚫 | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
+| e07 | easy | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | 🟡 🟡 🟡 | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ 🚫 | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
+| e08 | easy | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ✅ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ | 🚫 🚫 🚫 | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
+| m01 | medium | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ | 🚫 🚫 ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
+| m02 | medium | ❌ ❌ ❌ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
+| m03 | medium | ✅ 💥 ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ⚠️ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
+| m04 | medium | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ⚠️ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
+| m05 | medium | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
+| m06 | medium | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ | 🚫 ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
+| m07 | medium | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | 🟡 🟡 🟡 | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
+| m08 | medium | ✅ ✅ ✅ | 🟡 ✅ 🟡 | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
+| m09 | medium | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ❌ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
+| h01 | hard | ✅ 🟡 ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
+| h02 | hard | ✅ ✅ ✅ | ❌ ❌ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ❌ ✅ ❌ | ✅ ❌ ✅ | ✅ ✅ ✅ |
+| h03 | hard | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⛔ ⛔ ⛔ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | 💥 ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
+| h04 | hard | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⛔ ⛔ ⛔ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ⏱️ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
+| h05 | hard | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⛔ ⛔ ⛔ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | 🚫 ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
+| h06 | hard | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
+| h07 | hard | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ❌ ❌ ❌ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
+| h08 | hard | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ❌ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
+| h09 | hard | ✅ ✅ ✅ | 💥 ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⛔ ⛔ ⛔ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
+| h10 | hard | ❌ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ 🟡 ✅ | ❌ ✅ ❌ | ✅ ❌ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
+| h11 | hard | ✅ 💥 ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | 💥 💥 💥 | ⛔ ⛔ ⛔ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ⏱️ | 🚫 ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
+| h12 | hard | ✅ 🟡 ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
 
 Legend: ✅ exact, 🟡 extra columns, ❌ wrong result, 💥 SQL exec error, ⚠️ tool/API error, ⏱️ timeout (failure), ⛔ declared unsupported, 🚫 declined (mnemiq deferral, counts as not correct).
 
 ## Held-out set (15 new questions)
 
-Source: `bench/questions_holdout.yaml`. Models/prompts/MDL **unchanged** (not tuned to these questions). 15 q × 3 runs each for `router`, `cube_v2`, `wrenai_mdl_noreason`, `dbgpt`, `mnemiq`, `mnemiq_failopen`, `mnemiq_verified`, `mnemiq_jev`, `mnemiq_jev_v2`, `mnemiq_jev_v2_r2`, `vanna`.
+Source: `bench/questions_holdout.yaml`. Models/prompts/MDL **unchanged** (not tuned to these questions). 15 q × 3 runs each for `router`, `cube_v2`, `wrenai_mdl_noreason`, `dbgpt`, `mnemiq`, `mnemiq_failopen`, `mnemiq_verified`, `mnemiq_jev`, `mnemiq_jev_v2`, `mnemiq_jev_v2_r2`, `vanna`, `vanna_jev`, `vanna_jev_retry`.
 Results: `results/run-gptoss120b-holdout-r3/`. Chart: `results/holdout_summary.png`.
 
 | System | EX exact | EX relaxed | wrong | exec err | tool err | timeout | unsupported | declined | p50 s | p95 s | avg prompt tok | avg LLM calls |
@@ -462,6 +479,8 @@ Results: `results/run-gptoss120b-holdout-r3/`. Chart: `results/holdout_summary.p
 | mnemiq a453b05, Jev judge v2 (truncation-aware) | 39/45 (87%) | 39/45 (87%) | 0 | 0 | 0 | 0 | 0 | 6 | 4.24 | 9.16 | 2,929 | 1.9 |
 | mnemiq a453b05, Jev judge v2, rerun r2 | 38/45 (84%) | 38/45 (84%) | 1 | 0 | 0 | 0 | 0 | 6 | 2.57 | 4.35 | 2,804 | 1.9 |
 | Vanna 2.0.2 (legacy generate_sql, DDL-trained) | 42/45 (93%) | 42/45 (93%) | 3 | 0 | 0 | 0 | 0 | 0 | 1.45 | 2.76 | 975 | 1.0 |
+| Vanna 2.0.2 + Jev answer check (fail-closed) | 42/45 (93%) | 42/45 (93%) | 3 | 0 | 0 | 0 | 0 | 0 | 1.51 | 3.03 | 975 | 1.0 |
+| Vanna 2.0.2 + Jev check + 1 retry | 42/45 (93%) | 42/45 (93%) | 3 | 0 | 0 | 0 | 0 | 0 | 1.64 | 2.56 | 975 | 1.0 |
 
 ### Router fallback / silent-wrong (holdout)
 
@@ -587,25 +606,41 @@ Results: `results/run-gptoss120b-holdout-r3/`. Chart: `results/holdout_summary.p
 | 2 | ho14 | wrong_result | no predicted column matches gold column 0 |
 | 3 | ho14 | wrong_result | no predicted column matches gold column 0 |
 
+### Vanna 2.0.2 + Jev answer check (fail-closed): non-exact attempts (holdout)
+
+| run | id | status | reason / error |
+|---|---|---|---|
+| 1 | ho14 | wrong_result | no predicted column matches gold column 0 |
+| 2 | ho14 | wrong_result | no predicted column matches gold column 0 |
+| 3 | ho14 | wrong_result | no predicted column matches gold column 0 |
+
+### Vanna 2.0.2 + Jev check + 1 retry: non-exact attempts (holdout)
+
+| run | id | status | reason / error |
+|---|---|---|---|
+| 1 | ho14 | wrong_result | no predicted column matches gold column 0 |
+| 2 | ho14 | wrong_result | no predicted column matches gold column 0 |
+| 3 | ho14 | wrong_result | no predicted column matches gold column 0 |
+
 ### Per-question statuses (holdout)
 
-| id | diff | question | Router (cube_v2 → Wren noreason) | cube_v2 | WrenAI + semantic, no reasoning | DB-GPT 0.8.2 | mnemiq a453b05 (defaults) | mnemiq a453b05, judge fail-open variant | mnemiq a453b05, judge 1200-token variant (fail-closed) | mnemiq a453b05, TypeSafe Jev judge (fail-closed) | mnemiq a453b05, Jev judge v2 (truncation-aware) | mnemiq a453b05, Jev judge v2, rerun r2 | Vanna 2.0.2 (legacy generate_sql, DDL-trained) |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| ho01 | easy | How many distinct media types are there? | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| ho02 | easy | How many customers have a fax number recorded? | ✅ ✅ ✅ | ⛔ ⛔ ⛔ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| ho03 | easy | How many tracks are larger than 15 megabytes (bytes > 15 * 1 | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| ho04 | easy | How many invoices have a billing address that contains the w | ✅ ✅ ❌ | ❌ ❌ ❌ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| ho05 | medium | What is the average track file size in bytes for each media  | ✅ ✅ ✅ | ✅ ⛔ ⛔ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| ho06 | medium | How many playlists contain tracks from at least 10 different | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| ho07 | medium | List employees born in the 1970s. Return first name, last na | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| ho08 | medium | How many customers have a phone number that starts with '+55 | ✅ ✅ ✅ | ⛔ ⛔ ⛔ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| ho09 | medium | What percentage of total sales revenue (unit price times qua | ✅ ✅ ✅ | ✅ ❌ ❌ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| ho10 | hard | For each day of the week in 2024, how many invoices were iss | ✅ ✅ ✅ | ✅ ✅ ⏱️ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ 🚫 | 🚫 🚫 🚫 | 🚫 🚫 🚫 | 🚫 🚫 🚫 | ✅ ✅ ✅ |
-| ho11 | hard | For each support representative, which customer has the high | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| ho12 | hard | Which artists have never had any track appear on an invoice  | ❌ ❌ ❌ | ❌ 💥 ❌ | ✅ ✅ ✅ | ❌ ❌ ❌ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ 🚫 | 🚫 ✅ ✅ | ✅ ✅ ✅ |
-| ho13 | hard | For each quarter of 2024, show the total invoice revenue and | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | 🚫 ✅ 🚫 | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
-| ho14 | hard | Which ISO week numbers of 2023 had the highest invoice reven | ✅ ❌ ❌ | ✅ ✅ ✅ | ❌ ❌ ❌ | ❌ ❌ ❌ | ⚠️ ⚠️ ⚠️ | ❌ ✅ ✅ | 🚫 ❌ ❌ | 🚫 ❌ 🚫 | 🚫 🚫 ✅ | ❌ 🚫 🚫 | ❌ ❌ ❌ |
-| ho15 | hard | How many distinct billing postal codes appear on invoices bi | ✅ ✅ ✅ | ⛔ ⛔ ⛔ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
+| id | diff | question | Router (cube_v2 → Wren noreason) | cube_v2 | WrenAI + semantic, no reasoning | DB-GPT 0.8.2 | mnemiq a453b05 (defaults) | mnemiq a453b05, judge fail-open variant | mnemiq a453b05, judge 1200-token variant (fail-closed) | mnemiq a453b05, TypeSafe Jev judge (fail-closed) | mnemiq a453b05, Jev judge v2 (truncation-aware) | mnemiq a453b05, Jev judge v2, rerun r2 | Vanna 2.0.2 (legacy generate_sql, DDL-trained) | Vanna 2.0.2 + Jev answer check (fail-closed) | Vanna 2.0.2 + Jev check + 1 retry |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| ho01 | easy | How many distinct media types are there? | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
+| ho02 | easy | How many customers have a fax number recorded? | ✅ ✅ ✅ | ⛔ ⛔ ⛔ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
+| ho03 | easy | How many tracks are larger than 15 megabytes (bytes > 15 * 1 | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
+| ho04 | easy | How many invoices have a billing address that contains the w | ✅ ✅ ❌ | ❌ ❌ ❌ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
+| ho05 | medium | What is the average track file size in bytes for each media  | ✅ ✅ ✅ | ✅ ⛔ ⛔ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
+| ho06 | medium | How many playlists contain tracks from at least 10 different | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
+| ho07 | medium | List employees born in the 1970s. Return first name, last na | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
+| ho08 | medium | How many customers have a phone number that starts with '+55 | ✅ ✅ ✅ | ⛔ ⛔ ⛔ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
+| ho09 | medium | What percentage of total sales revenue (unit price times qua | ✅ ✅ ✅ | ✅ ❌ ❌ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
+| ho10 | hard | For each day of the week in 2024, how many invoices were iss | ✅ ✅ ✅ | ✅ ✅ ⏱️ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ 🚫 | 🚫 🚫 🚫 | 🚫 🚫 🚫 | 🚫 🚫 🚫 | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
+| ho11 | hard | For each support representative, which customer has the high | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
+| ho12 | hard | Which artists have never had any track appear on an invoice  | ❌ ❌ ❌ | ❌ 💥 ❌ | ✅ ✅ ✅ | ❌ ❌ ❌ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ 🚫 | 🚫 ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
+| ho13 | hard | For each quarter of 2024, show the total invoice revenue and | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ⚠️ | ✅ ✅ ✅ | 🚫 ✅ 🚫 | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
+| ho14 | hard | Which ISO week numbers of 2023 had the highest invoice reven | ✅ ❌ ❌ | ✅ ✅ ✅ | ❌ ❌ ❌ | ❌ ❌ ❌ | ⚠️ ⚠️ ⚠️ | ❌ ✅ ✅ | 🚫 ❌ ❌ | 🚫 ❌ 🚫 | 🚫 🚫 ✅ | ❌ 🚫 🚫 | ❌ ❌ ❌ | ❌ ❌ ❌ | ❌ ❌ ❌ |
+| ho15 | hard | How many distinct billing postal codes appear on invoices bi | ✅ ✅ ✅ | ⛔ ⛔ ⛔ | ✅ ✅ ✅ | ✅ ✅ ✅ | ⚠️ ⚠️ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ | ✅ ✅ ✅ |
 
 Legend: ✅ exact, 🟡 extra columns, ❌ wrong, 💥 exec error, ⚠️ tool/API error, ⏱️ timeout, ⛔ unsupported (Cube), 🚫 declined (mnemiq deferral).
 
@@ -703,6 +738,54 @@ Answers passed by Jev and scored `wrong_result` by the harness: none
 | holdout | ho14 | 🚫🚫✓ | 🚫✗🚫 | 🚫✗✗ | ✗✓✓ |
 
 (Listed only where any of the three is not ✓✓✓. ✓ exact, ✗ wrong, 🚫 declined, ⚠ tool error. Generation differs run to run, so this is attempt vs attempt; the same-SQL comparison is results/judge-comparison/.)
+
+
+## Vanna + Jev answer check (vanna_jev, vanna_jev_retry)
+
+Jev request = mnemiq_jev_v2's variant b (bench/jev_judge.py; parity-checked against the mnemiq patch by bench/jev_judge_parity.py). Schema = the DDL Vanna retrieved for the question. Threshold 0.5, fail-closed; Jev error -> fail-open; SQL that fails to execute is returned unjudged. Jev tokens/latency are Jev's own `usage` / measured round trip (Jev bypasses llm-meter). Cost = input tokens x $0.042/M.
+
+| set | system | attempts | EX exact | tie-rule | LLM calls/q | Jev calls/q | passed | declined | fell open | exec failed (unjudged) | retried | rescued by retry | Jev input tok | Jev cost | Jev p50/p95 ms |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 29 | vanna_jev | 87 | 86/87 | 86/87 | 1.00 | 1.00 | 87 | 0 | 0 | 0 | 0 | 0 | 118,984 | $0.0050 | 150 / 187 |
+| 29 | vanna_jev_retry | 87 | 87/87 | 87/87 | 1.00 | 1.00 | 87 | 0 | 0 | 0 | 0 | 0 | 118,916 | $0.0050 | 149 / 211 |
+| holdout | vanna_jev | 45 | 42/45 | 45/45 | 1.00 | 1.00 | 45 | 0 | 0 | 0 | 0 | 0 | 60,355 | $0.0025 | 151 / 206 |
+| holdout | vanna_jev_retry | 45 | 42/45 | 45/45 | 1.00 | 1.00 | 45 | 0 | 0 | 0 | 0 | 0 | 60,289 | $0.0025 | 158 / 204 |
+
+### Every decline (each declined attempt; retry rows show both)
+
+| set | system | id | run | attempt | Jev p | SQL right? | how | SQL |
+|---|---|---|---|---|---|---|---|---|
+| - | - | - | - | - | - | - | none | |
+
+### Retries (vanna_jev_retry)
+
+| set | system | id | run | 1st: p (SQL) | 2nd: p (SQL) | final status |
+|---|---|---|---|---|---|---|
+| - | - | - | - | - | none | |
+
+### Every other miss (not a decline)
+
+| set | system | id | run | status | SQL right? | Jev p (last attempt) | decision |
+|---|---|---|---|---|---|---|---|
+| 29 | vanna_jev | h02 | 2 | wrong_result | wrong | 0.84 | passed |
+| holdout | vanna_jev | ho14 | 1 | wrong_result | RIGHT (valid under gold boundary tie) | 0.56 | passed |
+| holdout | vanna_jev | ho14 | 2 | wrong_result | RIGHT (valid under gold boundary tie) | 0.57 | passed |
+| holdout | vanna_jev | ho14 | 3 | wrong_result | RIGHT (exact) | 0.53 | passed |
+| holdout | vanna_jev_retry | ho14 | 1 | wrong_result | RIGHT (valid under gold boundary tie) | 0.53 | passed |
+| holdout | vanna_jev_retry | ho14 | 2 | wrong_result | RIGHT (valid under gold boundary tie) | 0.57 | passed |
+| holdout | vanna_jev_retry | ho14 | 3 | wrong_result | RIGHT (valid under gold boundary tie) | 0.51 | passed |
+
+### Offline same-SQL view: Jev variant b on plain `vanna`'s 132 saved SQLs
+
+Judged 131 (1 exec failure not judged, as online); Jev HTTP [200]; fell open 0; input tokens 177,634 ($0.0075).
+
+| set | right passed | right BLOCKED | wrong CAUGHT | wrong passed | not judged (exec error) |
+|---|---|---|---|---|---|
+| 29 | 84 | 0 | 0 | 2 | 1 |
+| holdout | 45 | 0 | 0 | 0 | 0 |
+
+Plain vanna's known misses under this check: 29:h02 r1 (wrong_result; wrong) -> p=0.81 passed; 29:h03 r1 (exec_error; exec error: syntax error at or near ")"
+) -> not judged; 29:h02 r3 (wrong_result; wrong) -> p=0.84 passed; holdout:ho14 r1 (wrong_result; right: valid under gold boundary tie) -> p=0.56 passed; holdout:ho14 r2 (wrong_result; right: valid under gold boundary tie) -> p=0.56 passed; holdout:ho14 r3 (wrong_result; right: valid under gold boundary tie) -> p=0.51 passed
 
 
 ## Jev prompt variants (offline, same 264 items)

@@ -13,6 +13,7 @@ Same natural-language questions, same Postgres database, same LLM, measured the 
 | **mnemiq @ a453b05** — systems `mnemiq` (defaults), `mnemiq_failopen`, `mnemiq_verified`, `mnemiq_jev` and `mnemiq_jev_v2` (one-change variants) | NL → SQL; its own enrichment (`mnemiq enrich`: profiling + one LLM description pass, 11 tables) and retrieval index (`mnemiq build`, nomic-embed-text); default mode `thinking` (1 candidate, corrector, deterministic sanity + LLM judge) | `POST http://localhost:8090/v1/ask` `{question}` (`mnemiq serve --http`; variants on :8091–:8094); a deferral is scored `declined` |
 | **Router** — system `router` | try cube_v2 first (prompt copy that may reply `CANNOT_EXPRESS`); fall back to WrenAI + semantic layer, no reasoning on unsupported / Cube error / empty result. No gold used for routing. | cube_v2 SQL API + `POST http://localhost:3001/api/v1/generate_sql`; tokens under `/router/` (+ `/wrenmdlnr/` on fallback) |
 | **Vanna 2.0.2** — system `vanna` (`vanna/server.py`, :8095) | NL → SQL with Vanna's classic `generate_sql` (`vanna.legacy`: OpenAI_Chat + ChromaDB_VectorStore), trained on the 11 Chinook `CREATE TABLE`s only; 1 LLM call, SQL only (no execution, no retry) | `POST http://localhost:8095/v1/generate` `{question}` → `{sql}`; the harness executes it |
+| **Vanna 2.0.2 + Jev answer check** — systems `vanna_jev` (:8096) and `vanna_jev_retry` (:8097) | same Vanna generation; the service executes the SQL read-only and asks TypeSafe Jev (mnemiq_jev_v2's variant-b request) whether it answers the question; < 0.5 → declined (`_retry`: one regenerate + re-judge first) | same `POST /v1/generate`; response adds `decision` and per-attempt Jev results |
 
 Fairness controls
 * One Postgres (Chinook 1.4.5) container; WrenAI, DB-GPT and Cube connect to it as the same **read-only role `bench`**.
@@ -41,6 +42,9 @@ make bench-router REPEATS=3      # router (needs noreason variant; make target s
 make mnemiq-install && make bench-mnemiq REPEATS=3   # mnemiq (pinned commit) on the 29 + the 15 holdout
 make bench-mnemiq-failopen REPEATS=3                 # mnemiq judge fail-open variant (see below)
 make bench-vanna REPEATS=3                           # Vanna 2.0.2 (:8095, meter /vanna/) on the 29 + the 15 holdout; make vanna-down stops it
+make bench-vanna-jev REPEATS=3                       # Vanna + Jev answer check (:8096, /vannaj/; needs TYPESAFE_API_KEY)
+make bench-vanna-jev-retry REPEATS=3                 # Vanna + Jev check + 1 retry (:8097, /vannajr/)
+make vanna-jev-offline                               # Jev variant b on plain vanna's saved SQLs (same-SQL view)
 make bench-mnemiq-verified REPEATS=3                 # mnemiq judge 1200-token variant, fail-closed (patched worktree)
 .venv/bin/python bench/mnemiq_verifier_analysis.py   # verifier outcomes + re-scored SQL of rejected answers
 make bench-mnemiq-jev REPEATS=3                      # mnemiq with TypeSafe Jev as judge, original request (MNEMIQ_JEV_PROMPT=v1)
@@ -93,6 +97,8 @@ bench/mnemiq_verifier_analysis.py  judge-outcome analysis -> results/run-gptoss1
 mnemiq/patches/jev-judge.patch  JevJudge (TypeSafe Jev as mnemiq's judge), mnemiq_jev only, separate worktree mnemiq/engine-jev
 bench/mnemiq_jev_analysis.py, bench/judge_comparison.py, mnemiq/judge_rebuild.py  Jev run analysis; same-SQL judge comparison -> results/judge-comparison/
 vanna/                      Vanna service (server.py, run.sh, requirements.txt pinning vanna 2.0.2), build_ddl.py + training/ddl.sql; .venv/state git-ignored
+bench/jev_judge.py          Jev variant-b request (shared; parity with the mnemiq patch: bench/jev_judge_parity.py)
+bench/vanna_jev_offline.py, bench/vanna_jev_analysis.py  Vanna + Jev same-SQL view and run analysis
 bench/holdout_report.py     holdout section + results/holdout_summary.png (called by combine.py)
 bench/harness.py            runner, scoring, report     bench/clients.py  per-system API clients (incl. router)
 bench/setup_connections.py  connects tools to the DB    bench/verify_gold.py, bench/probe.py
@@ -600,6 +606,85 @@ p50/p95/max 1.41/2.61/3.5 s (29) and 1.32/2.16/2.9 s (holdout), with no timeouts
 * **Caveat:** the 29 were the tuning set for WrenAI's semantic layer and cube_v2, not for Vanna or DB-GPT. On the
   holdout, which none of the systems were tuned on, WrenAI and Vanna are level.
 
+## Vanna + TypeSafe Jev answer check (`vanna_jev`, `vanna_jev_retry`)
+
+**Setup.** Generation is the unchanged Vanna 2.0.2 service: same `generate_sql`, model, temperature, prompt, DDL
+training and retrieval. Each Jev variant has its own meter prefix (`/vannaj/`, `/vannajr/`) and a byte copy of the
+trained Chroma store. After generation, `vanna/server.py` (`VANNA_JEV=on|retry`) does the following:
+
+1. **Execute:** runs the SQL as the read-only `bench` role (READ ONLY transaction, 30 s statement timeout). SQL that
+   fails to execute is **returned unjudged** and scored as usual.
+2. **Ask Jev:** sends **mnemiq_jev_v2's variant-b request** to Jev jev-1.14.0: question, schema, SQL, a 50-row result
+   sample with row counts and the truncation note, and the reworded "does `sql` correctly answer `question`" noul.
+   * The schema is the DDL statements Vanna retrieved for this question.
+   * The request lives in `bench/jev_judge.py`, a stdlib copy of the patch's variant b.
+     `bench/jev_judge_parity.py` checks that its preview and request body are byte-identical to the mnemiq
+     `JevJudge(b)` output for 0 to 212 rows.
+3. **Decide:** p ≥ 0.5 → answer returned. p < 0.5 → **declined** (fail-closed). A Jev API error or an unreadable reply
+   → answer returned (fail-open) and logged. `TYPESAFE_API_KEY` is read from `.env` and never logged.
+4. **Retry (`vanna_jev_retry` only):** on a decline, **one** more `generate_sql`, with retrieval still keyed on the
+   original question. The retry SQL is executed and re-judged; below 0.5 again → declined. The exact question text
+   sent on the retry:
+
+   ```
+   {question}
+
+   Note: a previous attempt produced the SQL below, and an automated answer check judged that it probably does not answer the question correctly. Re-read the question and the schema and write a corrected SQL query.
+
+   Previous SQL:
+   {previous SQL}
+   ```
+
+**Results** (3 runs each; 29 in `results/run-gptoss120b-vanna-r3/`, holdout in `results/run-gptoss120b-holdout-r3/`).
+
+* **Upstream was healthy:** probes before the start gave p50 0.99 s. During the runs, gpt-oss per-call p50/p95 was
+  1.24–1.41 s / 1.99–2.61 s, max 3.9 s, with no timeouts.
+* **Jev:** 264 calls, all HTTP 200, none fell open.
+
+| set | system | EX exact | tie rule | p50 / p95 s | avg prompt tok | LLM / Jev calls per q | declined | Jev input tok / cost | Jev p50/p95 ms |
+|---|---|---|---|---|---|---|---|---|---|
+| 29 | vanna | 84/87 (97%) | 84/87 | 1.57 / 2.80 | 969 | 1.0 / – | – | – | – |
+| 29 | vanna_jev | 86/87 (99%) | 86/87 | 1.70 / 2.97 | 969 | 1.0 / 1.0 | **0** | 118,984 / $0.0050 | 150 / 187 |
+| 29 | vanna_jev_retry | 87/87 (100%) | 87/87 | 1.60 / 2.31 | 969 | 1.0 / 1.0 | **0** (0 retries) | 118,916 / $0.0050 | 149 / 211 |
+| holdout | vanna | 42/45 (93%) | 45/45 | 1.45 / 2.76 | 975 | 1.0 / – | – | – | – |
+| holdout | vanna_jev | 42/45 (93%) | 45/45 | 1.51 / 3.03 | 975 | 1.0 / 1.0 | **0** | 60,355 / $0.0025 | 151 / 206 |
+| holdout | vanna_jev_retry | 42/45 (93%) | 45/45 | 1.64 / 2.56 | 975 | 1.0 / 1.0 | **0** (0 retries) | 60,289 / $0.0025 | 158 / 204 |
+
+**Jev declined nothing, so the retry never fired.** Both systems returned exactly what Vanna generated.
+
+* **The 29-set gains are not Jev's:** 86/87 and 87/87 vs plain Vanna's 84/87 come from gpt-oss run-to-run variation.
+  h03's `extract_sql` truncation and h02's outer join simply didn't recur, apart from vanna_jev h02 r2.
+* **Misses:**
+  * **h02 r2 (vanna_jev):** genuinely wrong (the LEFT JOIN includes non-agents), and Jev passed it at 0.84.
+  * **ho14 ×3 in each system:** valid under the tie rule, and Jev passed them, but only at **0.51–0.57**, just above
+    the threshold.
+* **Cost and latency:** the check adds ~0.1 s (Jev p50 ~150 ms plus execution) and ~1,370 Jev input tokens per
+  question (about $0.00006).
+
+**Offline same-SQL view** (`make vanna-jev-offline` → `jev_offline.jsonl`). This is Jev variant b on plain `vanna`'s
+132 saved SQLs, each with its own retrieved schema: 131 judged, all HTTP 200.
+
+| set | right passed | right blocked | wrong caught | wrong passed | not judged (exec error) |
+|---|---|---|---|---|---|
+| 29 | 84 | 0 | 0 | 2 | 1 |
+| holdout | 45 | 0 | 0 | 0 | 0 |
+
+Of plain Vanna's known misses, the Jev check would have caught **none**:
+
+* **h02 r1 / r3:** genuinely wrong, but passed at 0.81 / 0.84.
+* **h03 r1:** fails to execute, so it is never judged. Its defect is Vanna's SQL extraction, which only an
+  execution-error retry could fix.
+* **ho14 ×3:** right under the tie rule, and correctly passed (0.51–0.56).
+
+It also blocked **0 of 129** right answers.
+
+**Bottom line.** On Vanna's output, Jev at 0.5 is a no-op in both directions here.
+
+* It never blocks a right answer, unlike mnemiq_jev_v2's 5 per 45 holdout attempts. Vanna's SQL is simple and its
+  previews short.
+* It also never catches the one recurring real error (h02), which Jev scores as plausible.
+* Per-attempt details: `results/run-gptoss120b-vanna-r3/vanna_jev_analysis.md`.
+
 ## Held-out evaluation (`questions_holdout.yaml`)
 
 The original 29 questions were the tuning set for `cube_v2` and the WrenAI semantic layer, so the first router run
@@ -629,6 +714,8 @@ Results (`results/run-gptoss120b-holdout-r3/`, chart `results/holdout_summary.pn
 | mnemiq, Jev judge v2 (truncation-aware) | 39/45 (87%) | 39/45 (87%) | 4.24* | 9.16* | 2,929 (gpt-oss only) | 1.9 (+1 Jev) |
 | mnemiq, Jev judge v2, rerun r2 | 38/45 (84%) | 38/45 (84%) | 2.57 | 4.35 | 2,804 (gpt-oss only) | 1.9 (+1 Jev) |
 | Vanna 2.0.2 (DDL-trained, legacy generate_sql) | 42/45 (93%) | 42/45 (93%) | 1.45 | 2.76 | 975 | 1.0 |
+| Vanna 2.0.2 + Jev answer check | 42/45 (93%) | 42/45 (93%) | 1.51 | 3.03 | 975 | 1.0 (+1 Jev) |
+| Vanna 2.0.2 + Jev check + 1 retry | 42/45 (93%) | 42/45 (93%) | 1.64 | 2.56 | 975 | 1.0 (+1 Jev; 0 retries) |
 
 Router fallback **17/45 (38%)** — triggers `cube_unsupported`×16, `cube_error`×1. Cube-answered path EX 22/28 (79%);
 fallback path EX 17/17 (100%). Silent-wrong (Cube answered, no fallback): `ho12`×3, `ho14`×2, `ho04`×1. No attempt
@@ -636,7 +723,7 @@ fell back and then still failed under Wren. cube_v2's mean latency is pulled up 
 DB-GPT (unchanged config) matches the router's 87% EX; misses are `ho12` and `ho14` (wrong_result all 3 runs each; no errors/timeouts).
 **Caveat (found later): ho14's gold has a tie at its `LIMIT 3` boundary** (see the mnemiq section). DB-GPT's and
 WrenAI's ho14 `wrong_result`s re-execute to valid top-3 answers, so their ho14 misses are scoring artefacts. Scores
-are left as recorded. Vanna's three misses are all ho14 and all tie-valid too (see the Vanna section).
+are left as recorded. Vanna's three misses are all ho14 and all tie-valid too (see the Vanna section); so are vanna_jev's and vanna_jev_retry's.
 
 ## Cube notes (baseline `cube`)
 Not expressible as a single Cube REST query over the model (counted as failures for Cube, listed in the report):

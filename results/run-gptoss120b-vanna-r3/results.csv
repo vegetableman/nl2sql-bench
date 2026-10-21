@@ -1,22 +1,61 @@
-run,id,difficulty,system,latency_s,status,exact,relaxed,reason,generated,error,cube_expressible,rate_limit_retries,router_path,fallback_reason,prompt_tokens,completion_tokens,embedding_tokens,chat_requests
+run,id,difficulty,system,latency_s,status,exact,relaxed,reason,generated,error,cube_expressible,rate_limit_retries,router_path,fallback_reason,prompt_tokens,completion_tokens,embedding_tokens,chat_requests,t_start_epoch,t_end_epoch
+1,e01,easy,vanna_jev_retry,1.198,correct,True,True,match,"SELECT COUNT(*) AS total_tracks
+FROM track;",,True,0,,,913,46,30,1,,
 1,e01,easy,vanna,1.081,correct,True,True,match,"SELECT COUNT(*) AS total_tracks
-FROM track;",,True,0,,,913,42,30,1
+FROM track;",,True,0,,,913,42,30,1,1792551798.355,1792551799.436
+1,e01,easy,vanna_jev,1.101,correct,True,True,match,"SELECT COUNT(*) AS total_tracks
+FROM track;",,True,0,,,913,42,30,1,1792553339.826,1792553340.927
+1,e02,easy,vanna_jev_retry,1.196,correct,True,True,match,"SELECT name
+FROM genre;",,True,0,,,892,50,30,1,,
 1,e02,easy,vanna,1.1,correct,True,True,match,"SELECT name
-FROM genre;",,True,0,,,892,55,30,1
+FROM genre;",,True,0,,,892,55,30,1,1792551799.455,1792551800.555
+1,e02,easy,vanna_jev,1.15,correct,True,True,match,"SELECT name
+FROM genre;",,True,0,,,892,51,30,1,1792553340.943,1792553342.093
+1,e03,easy,vanna_jev_retry,1.851,correct,True,True,match,"SELECT COUNT(*) AS brazil_customers
+FROM customer
+WHERE country = 'Brazil';",,True,0,,,982,47,27,1,,
 1,e03,easy,vanna,1.608,correct,True,True,match,"SELECT COUNT(*) AS brazil_customer_count
 FROM customer
-WHERE country = 'Brazil';",,True,0,,,982,48,27,1
+WHERE country = 'Brazil';",,True,0,,,982,48,27,1,1792551800.574,1792551802.182
+1,e03,easy,vanna_jev,1.19,correct,True,True,match,"SELECT COUNT(*) AS brazil_customers
+FROM customer
+WHERE country = 'Brazil';",,True,0,,,982,47,27,1,1792553342.11,1792553343.3
+1,e04,easy,vanna_jev_retry,1.321,correct,True,True,match,"SELECT name
+FROM track
+WHERE milliseconds > 20 * 60 * 1000;",,True,0,,,898,97,45,1,,
 1,e04,easy,vanna,1.115,correct,True,True,match,"SELECT name
 FROM track
-WHERE milliseconds > 1200000;",,True,0,,,898,87,45,1
+WHERE milliseconds > 1200000;",,True,0,,,898,87,45,1,1792551802.198,1792551803.313
+1,e04,easy,vanna_jev,1.276,correct,True,True,match,"SELECT name
+FROM track
+WHERE milliseconds > 20 * 60 * 1000;",,True,0,,,898,97,45,1,1792553343.314,1792553344.59
+1,e05,easy,vanna_jev_retry,1.152,correct,True,True,match,"SELECT MAX(unit_price) AS highest_price
+FROM track;",,True,0,,,887,45,36,1,,
 1,e05,easy,vanna,1.046,correct,True,True,match,"SELECT MAX(unit_price) AS highest_price
-FROM track;",,True,0,,,887,45,36,1
+FROM track;",,True,0,,,887,45,36,1,1792551803.336,1792551804.381
+1,e05,easy,vanna_jev,1.415,correct,True,True,match,"SELECT MAX(unit_price) AS highest_price
+FROM track;",,True,0,,,887,50,36,1,1792553344.607,1792553346.022
+1,e06,easy,vanna_jev_retry,1.14,correct,True,True,match,"SELECT first_name, last_name
+FROM employee
+WHERE title = 'Sales Support Agent';",,True,0,,,991,56,57,1,,
 1,e06,easy,vanna,1.061,correct,True,True,match,"SELECT first_name, last_name
 FROM employee
-WHERE title = 'Sales Support Agent';",,True,0,,,991,51,57,1
+WHERE title = 'Sales Support Agent';",,True,0,,,991,51,57,1,1792551804.398,1792551805.46
+1,e06,easy,vanna_jev,1.092,correct,True,True,match,"SELECT first_name, last_name
+FROM employee
+WHERE title = 'Sales Support Agent';",,True,0,,,991,51,57,1,1792553346.035,1792553347.127
+1,e07,easy,vanna_jev_retry,1.288,correct,True,True,match,"SELECT COUNT(*) AS invoice_count
+FROM invoice
+WHERE EXTRACT(YEAR FROM invoice_date) = 2023;",,True,0,,,987,91,45,1,,
 1,e07,easy,vanna,1.731,correct,True,True,match,"SELECT COUNT(*) AS invoice_count
 FROM invoice
-WHERE EXTRACT(YEAR FROM invoice_date) = 2023;",,True,0,,,987,84,45,1
+WHERE EXTRACT(YEAR FROM invoice_date) = 2023;",,True,0,,,987,84,45,1,1792551805.476,1792551807.208
+1,e07,easy,vanna_jev,1.227,correct,True,True,match,"SELECT COUNT(*) AS invoice_count
+FROM invoice
+WHERE EXTRACT(YEAR FROM invoice_date) = 2023;",,True,0,,,987,83,45,1,1792553347.141,1792553348.367
+1,e08,easy,vanna_jev_retry,1.469,correct,True,True,match,"SELECT first_name, last_name, company
+FROM customer
+WHERE company IS NOT NULL;",,True,0,,,992,82,57,1,,
 1,e08,easy,vanna,1.241,correct,True,True,match,"SELECT
     first_name,
     last_name,
@@ -25,7 +64,23 @@ FROM
     customer
 WHERE
     company IS NOT NULL
-    AND company <> '';",,True,0,,,992,90,57,1
+    AND company <> '';",,True,0,,,992,90,57,1,1792551807.224,1792551808.465
+1,e08,easy,vanna_jev,2.057,correct,True,True,match,"SELECT
+    first_name,
+    last_name,
+    company
+FROM
+    customer
+WHERE
+    company IS NOT NULL;",,True,0,,,992,94,57,1,1792553348.382,1792553350.439
+1,m01,medium,vanna_jev_retry,1.763,correct,True,True,match,"SELECT
+    g.name AS genre_name,
+    COUNT(t.track_id) AS track_count
+FROM genre AS g
+LEFT JOIN track AS t
+    ON t.genre_id = g.genre_id
+GROUP BY g.name
+ORDER BY g.name;",,True,0,,,903,171,63,1,,
 1,m01,medium,vanna,1.37,correct,True,True,match,"SELECT
     g.name AS genre_name,
     COUNT(t.track_id) AS track_count
@@ -33,7 +88,23 @@ FROM genre AS g
 LEFT JOIN track AS t
     ON t.genre_id = g.genre_id
 GROUP BY g.name
-ORDER BY g.name;",,True,0,,,903,167,63,1
+ORDER BY g.name;",,True,0,,,903,167,63,1,1792551808.484,1792551809.854
+1,m01,medium,vanna_jev,1.6,correct,True,True,match,"SELECT
+    g.name AS genre_name,
+    COUNT(t.track_id) AS track_count
+FROM genre AS g
+LEFT JOIN track AS t
+    ON t.genre_id = g.genre_id
+GROUP BY g.name
+ORDER BY g.name;",,True,0,,,903,185,63,1,1792553350.453,1792553352.053
+1,m02,medium,vanna_jev_retry,1.717,correct,True,True,match,"SELECT 
+    ar.name AS artist_name,
+    COUNT(al.album_id) AS album_count
+FROM artist AS ar
+JOIN album AS al ON ar.artist_id = al.artist_id
+GROUP BY ar.name
+ORDER BY album_count DESC
+LIMIT 5;",,True,0,,,1000,170,78,1,,
 1,m02,medium,vanna,1.403,correct,True,True,match,"SELECT
     ar.name AS artist_name,
     COUNT(al.album_id) AS album_count
@@ -41,46 +112,153 @@ FROM artist AS ar
 JOIN album AS al ON al.artist_id = ar.artist_id
 GROUP BY ar.name
 ORDER BY album_count DESC
-LIMIT 5;",,True,0,,,1000,181,78,1
+LIMIT 5;",,True,0,,,1000,181,78,1,1792551809.869,1792551811.272
+1,m02,medium,vanna_jev,1.699,correct,True,True,match,"SELECT
+    ar.name AS artist_name,
+    COUNT(al.album_id) AS album_count
+FROM artist AS ar
+JOIN album AS al ON ar.artist_id = al.artist_id
+GROUP BY ar.artist_id, ar.name
+ORDER BY album_count DESC
+LIMIT 5;",,True,0,,,1000,185,78,1,1792553352.068,1792553353.766
+1,m03,medium,vanna_jev_retry,1.342,correct,True,True,match,"SELECT
+    billing_country,
+    SUM(total) AS total_sales
+FROM invoice
+GROUP BY billing_country
+ORDER BY total_sales DESC;",,True,0,,,997,103,78,1,,
 1,m03,medium,vanna,1.349,correct,True,True,match,"SELECT billing_country,
        SUM(total) AS total_sales
 FROM   invoice
 GROUP BY billing_country
-ORDER BY total_sales DESC;",,True,0,,,997,94,78,1
+ORDER BY total_sales DESC;",,True,0,,,997,94,78,1,1792551811.288,1792551812.637
+1,m03,medium,vanna_jev,1.424,correct,True,True,match,"SELECT
+    billing_country,
+    SUM(total) AS total_sales
+FROM invoice
+GROUP BY billing_country
+ORDER BY total_sales DESC;",,True,0,,,997,108,78,1,1792553353.783,1792553355.207
+1,m04,medium,vanna_jev_retry,1.5,correct,True,True,match,"SELECT c.first_name,
+       c.last_name
+FROM   customer c
+JOIN   employee e ON c.support_rep_id = e.employee_id
+WHERE  e.first_name = 'Jane'
+  AND  e.last_name = 'Peacock';",,True,0,,,992,171,57,1,,
 1,m04,medium,vanna,2.12,correct,True,True,match,"SELECT c.first_name, c.last_name
 FROM customer AS c
 JOIN employee AS e ON c.support_rep_id = e.employee_id
-WHERE e.first_name = 'Jane' AND e.last_name = 'Peacock';",,True,0,,,992,151,57,1
+WHERE e.first_name = 'Jane' AND e.last_name = 'Peacock';",,True,0,,,992,151,57,1,1792551812.668,1792551814.788
+1,m04,medium,vanna_jev,1.48,correct,True,True,match,"SELECT c.first_name, c.last_name
+FROM customer AS c
+JOIN employee AS e ON c.support_rep_id = e.employee_id
+WHERE e.first_name = 'Jane' AND e.last_name = 'Peacock';",,True,0,,,992,146,57,1,1792553355.234,1792553356.714
+1,m05,medium,vanna_jev_retry,1.627,correct,True,True,match,"SELECT 
+    mt.name AS media_type,
+    AVG(t.milliseconds) / 60000.0 AS average_length_minutes
+FROM 
+    track t
+JOIN 
+    media_type mt ON t.media_type_id = mt.media_type_id
+GROUP BY 
+    mt.name
+ORDER BY 
+    mt.name;",,True,0,,,1000,197,81,1,,
 1,m05,medium,vanna,1.503,correct,True,True,match,"SELECT
     mt.name AS media_type,
     AVG(t.milliseconds) / 60000.0 AS average_length_minutes
 FROM track t
 JOIN media_type mt ON t.media_type_id = mt.media_type_id
 GROUP BY mt.name
-ORDER BY mt.name;",,True,0,,,1000,189,81,1
+ORDER BY mt.name;",,True,0,,,1000,189,81,1,1792551814.804,1792551816.307
+1,m05,medium,vanna_jev,1.71,correct,True,True,match,"SELECT 
+    mt.name AS media_type,
+    AVG(t.milliseconds) / 60000.0 AS average_length_minutes
+FROM 
+    track t
+JOIN 
+    media_type mt ON t.media_type_id = mt.media_type_id
+GROUP BY 
+    mt.name;",,True,0,,,1000,166,81,1,1792553356.73,1792553358.44
+1,m06,medium,vanna_jev_retry,1.723,correct,True,True,match,"SELECT 
+    a.title,
+    COUNT(t.track_id) AS track_count
+FROM album AS a
+JOIN track AS t
+    ON t.album_id = a.album_id
+GROUP BY a.album_id, a.title
+HAVING COUNT(t.track_id) > 20
+ORDER BY track_count DESC;",,True,0,,,903,191,60,1,,
 1,m06,medium,vanna,1.242,correct,True,True,match,"SELECT a.title,
        COUNT(t.track_id) AS track_count
 FROM album a
 JOIN track t ON t.album_id = a.album_id
 GROUP BY a.album_id, a.title
 HAVING COUNT(t.track_id) > 20
-ORDER BY track_count DESC;",,True,0,,,903,175,60,1
+ORDER BY track_count DESC;",,True,0,,,903,175,60,1,1792551816.324,1792551817.567
+1,m06,medium,vanna_jev,1.545,correct,True,True,match,"SELECT a.title,
+       COUNT(t.track_id) AS track_count
+FROM   album a
+JOIN   track t ON t.album_id = a.album_id
+GROUP BY a.album_id, a.title
+HAVING COUNT(t.track_id) > 20
+ORDER BY track_count DESC;",,True,0,,,903,176,60,1,1792553358.456,1792553360.0
+1,m07,medium,vanna_jev_retry,1.412,correct,True,True,match,"SELECT g.name
+FROM genre g
+JOIN track t ON t.genre_id = g.genre_id
+GROUP BY g.genre_id, g.name
+ORDER BY COUNT(*) DESC
+LIMIT 1;",,True,0,,,896,134,42,1,,
 1,m07,medium,vanna,1.256,correct,True,True,match,"SELECT g.name
 FROM genre g
 JOIN track t ON t.genre_id = g.genre_id
 GROUP BY g.genre_id, g.name
 ORDER BY COUNT(*) DESC
-LIMIT 1;",,True,0,,,896,138,42,1
+LIMIT 1;",,True,0,,,896,138,42,1,1792551817.592,1792551818.848
+1,m07,medium,vanna_jev,2.198,correct,True,True,match,"SELECT g.name
+FROM genre AS g
+JOIN track AS t ON g.genre_id = t.genre_id
+GROUP BY g.genre_id, g.name
+ORDER BY COUNT(*) DESC
+LIMIT 1;",,True,0,,,896,120,42,1,1792553360.021,1792553362.22
+1,m08,medium,vanna_jev_retry,1.574,correct,True,True,match,"SELECT COUNT(*) AS track_count
+FROM playlist p
+JOIN playlist_track pt ON p.playlist_id = pt.playlist_id
+WHERE p.name = '90’s Music';",,True,0,,,897,153,54,1,,
 1,m08,medium,vanna,2.231,correct,True,True,match,"SELECT COUNT(*) AS track_count
 FROM playlist_track pt
 JOIN playlist p ON pt.playlist_id = p.playlist_id
-WHERE p.name = '90’s Music';",,True,0,,,897,163,54,1
+WHERE p.name = '90’s Music';",,True,0,,,897,163,54,1,1792551818.864,1792551821.095
+1,m08,medium,vanna_jev,1.694,correct,True,True,match,"SELECT COUNT(*) AS track_count
+FROM playlist_track pt
+JOIN playlist p ON pt.playlist_id = p.playlist_id
+WHERE p.name = '90’s Music';",,True,0,,,897,166,54,1,1792553362.235,1792553363.929
+1,m09,medium,vanna_jev_retry,1.528,correct,True,True,match,"SELECT 
+    EXTRACT(YEAR FROM invoice_date)::int AS year,
+    SUM(total) AS revenue
+FROM invoice
+GROUP BY year
+ORDER BY year;",,True,0,,,995,145,72,1,,
 1,m09,medium,vanna,1.351,correct,True,True,match,"SELECT 
     EXTRACT(YEAR FROM invoice_date)::int AS year,
     SUM(total) AS revenue
 FROM invoice
 GROUP BY year
-ORDER BY year;",,True,0,,,995,149,72,1
+ORDER BY year;",,True,0,,,995,149,72,1,1792551821.11,1792551822.461
+1,m09,medium,vanna_jev,1.596,correct,True,True,match,"SELECT 
+    EXTRACT(YEAR FROM invoice_date)::INT AS year,
+    SUM(total) AS revenue
+FROM invoice
+GROUP BY year
+ORDER BY year;",,True,0,,,995,135,72,1,1792553363.942,1792553365.538
+1,h01,hard,vanna_jev_retry,1.74,correct,True,True,match,"SELECT
+    g.name AS genre_name,
+    SUM(il.unit_price * il.quantity) AS revenue
+FROM invoice_line AS il
+JOIN track      AS t ON il.track_id = t.track_id
+JOIN genre      AS g ON t.genre_id = g.genre_id
+GROUP BY g.name
+ORDER BY revenue DESC
+LIMIT 3;",,True,0,,,1007,200,105,1,,
 1,h01,hard,vanna,3.526,correct,True,True,match,"SELECT
     g.name AS genre,
     SUM(il.unit_price * il.quantity) AS revenue
@@ -89,7 +267,25 @@ JOIN track AS t        ON il.track_id = t.track_id
 JOIN genre AS g        ON t.genre_id = g.genre_id
 GROUP BY g.name
 ORDER BY revenue DESC
-LIMIT 3;",,True,0,,,1007,198,105,1
+LIMIT 3;",,True,0,,,1007,198,105,1,1792551822.476,1792551826.002
+1,h01,hard,vanna_jev,2.354,correct,True,True,match,"SELECT
+    g.name AS genre_name,
+    SUM(il.unit_price * il.quantity) AS revenue
+FROM invoice_line AS il
+JOIN track AS t      ON il.track_id = t.track_id
+JOIN genre AS g      ON t.genre_id = g.genre_id
+GROUP BY g.genre_id, g.name
+ORDER BY revenue DESC
+LIMIT 3;",,True,0,,,1007,208,105,1,1792553365.553,1792553367.907
+1,h02,hard,vanna_jev_retry,1.91,correct,True,True,match,"SELECT 
+    e.first_name,
+    e.last_name,
+    SUM(i.total) AS total
+FROM employee e
+JOIN customer c      ON c.support_rep_id = e.employee_id
+JOIN invoice i       ON i.customer_id = c.customer_id
+GROUP BY e.employee_id, e.first_name, e.last_name
+ORDER BY total DESC;",,True,0,,,1010,264,120,1,,
 1,h02,hard,vanna,1.846,wrong_result,False,False,row count 8 != gold 3,"SELECT
     e.first_name,
     e.last_name,
@@ -100,7 +296,34 @@ LEFT JOIN customer c
 LEFT JOIN invoice i
     ON i.customer_id = c.customer_id
 GROUP BY e.employee_id, e.first_name, e.last_name
-ORDER BY total DESC;",,True,0,,,1010,247,120,1
+ORDER BY total DESC;",,True,0,,,1010,247,120,1,1792551826.031,1792551827.876
+1,h02,hard,vanna_jev,1.974,correct,True,True,match,"SELECT 
+    e.first_name,
+    e.last_name,
+    SUM(i.total) AS total
+FROM employee AS e
+JOIN customer AS c
+    ON c.support_rep_id = e.employee_id
+JOIN invoice AS i
+    ON i.customer_id = c.customer_id
+GROUP BY e.employee_id, e.first_name, e.last_name
+ORDER BY total DESC;",,True,0,,,1010,248,120,1,1792553367.933,1792553369.907
+1,h03,hard,vanna_jev_retry,1.857,correct,True,True,match,"WITH customer_spend AS (
+    SELECT
+        c.customer_id,
+        c.first_name,
+        c.last_name,
+        SUM(i.total) AS total_spend
+    FROM customer c
+    JOIN invoice i ON c.customer_id = i.customer_id
+    GROUP BY c.customer_id, c.first_name, c.last_name
+)
+SELECT
+    first_name,
+    last_name,
+    total_spend
+FROM customer_spend
+WHERE total_spend > (SELECT AVG(total_spend) FROM customer_spend);",,False,0,,,1001,308,84,1,,
 1,h03,hard,vanna,1.699,exec_error,False,False,,"SELECT AVG(sub.total_spend)
     FROM (
         SELECT SUM(total) AS total_spend
@@ -109,7 +332,53 @@ ORDER BY total DESC;",,True,0,,,1010,247,120,1
     ) sub
 );","SyntaxError: syntax error at or near "")""
 LINE 7: );
-        ^",False,0,,,1001,246,84,1
+        ^",False,0,,,1001,246,84,1,1792551827.894,1792551829.593
+1,h03,hard,vanna_jev,2.125,correct,True,True,match,"SELECT c.first_name,
+       c.last_name,
+       cs.total_spend
+FROM (
+    SELECT customer_id,
+           SUM(total) AS total_spend
+    FROM invoice
+    GROUP BY customer_id
+) cs
+JOIN customer c ON c.customer_id = cs.customer_id
+WHERE cs.total_spend > (
+    SELECT AVG(total_spend)
+    FROM (
+        SELECT SUM(total) AS total_spend
+        FROM invoice
+        GROUP BY customer_id
+    ) sub
+);",,False,0,,,1001,305,84,1,1792553369.923,1792553372.049
+1,h04,hard,vanna_jev_retry,2.456,correct,True,True,match,"WITH customer_spend AS (
+    SELECT 
+        c.customer_id,
+        c.country,
+        c.first_name,
+        c.last_name,
+        COALESCE(SUM(i.total), 0) AS total_spend
+    FROM customer c
+    LEFT JOIN invoice i ON c.customer_id = i.customer_id
+    GROUP BY c.customer_id, c.country, c.first_name, c.last_name
+),
+country_max AS (
+    SELECT 
+        country,
+        MAX(total_spend) AS max_spend
+    FROM customer_spend
+    GROUP BY country
+)
+SELECT 
+    cs.country,
+    cs.first_name,
+    cs.last_name,
+    cs.total_spend
+FROM customer_spend cs
+JOIN country_max cm
+  ON cs.country = cm.country
+ AND cs.total_spend = cm.max_spend
+ORDER BY cs.country, cs.last_name, cs.first_name;",,False,0,,,1003,508,90,1,,
 1,h04,hard,vanna,2.629,correct,True,True,match,"WITH cust_spend AS (
     SELECT
         c.customer_id,
@@ -134,7 +403,49 @@ SELECT
     total_spend
 FROM ranked
 WHERE rnk = 1
-ORDER BY country, last_name, first_name;",,False,0,,,1003,453,90,1
+ORDER BY country, last_name, first_name;",,False,0,,,1003,453,90,1,1792551829.615,1792551832.244
+1,h04,hard,vanna_jev,3.067,correct,True,True,match,"WITH cust_spend AS (
+    SELECT
+        c.customer_id,
+        c.country,
+        c.first_name,
+        c.last_name,
+        SUM(i.total) AS total_spend
+    FROM customer c
+    JOIN invoice i ON c.customer_id = i.customer_id
+    GROUP BY c.customer_id, c.country, c.first_name, c.last_name
+),
+max_spend AS (
+    SELECT
+        country,
+        MAX(total_spend) AS max_total
+    FROM cust_spend
+    GROUP BY country
+)
+SELECT
+    cs.country,
+    cs.first_name,
+    cs.last_name,
+    cs.total_spend
+FROM cust_spend cs
+JOIN max_spend ms
+    ON cs.country = ms.country
+   AND cs.total_spend = ms.max_total
+ORDER BY cs.country, cs.last_name, cs.first_name;",,False,0,,,1003,425,90,1,1792553372.064,1792553375.131
+1,h05,hard,vanna_jev_retry,2.087,correct,True,True,match,"SELECT 
+    m.month,
+    COALESCE(i.revenue, 0) AS revenue,
+    LAG(COALESCE(i.revenue, 0)) OVER (ORDER BY m.month) AS previous_month_revenue
+FROM generate_series(1, 12) AS m(month)
+LEFT JOIN (
+    SELECT 
+        EXTRACT(MONTH FROM invoice_date)::int AS month,
+        SUM(total) AS revenue
+    FROM invoice
+    WHERE EXTRACT(YEAR FROM invoice_date) = 2024
+    GROUP BY EXTRACT(MONTH FROM invoice_date)
+) i ON i.month = m.month
+ORDER BY m.month;",,False,0,,,1008,342,114,1,,
 1,h05,hard,vanna,2.885,correct,True,True,match,"WITH monthly_rev AS (
     SELECT 
         DATE_TRUNC('month', invoice_date) AS month_start,
@@ -155,7 +466,32 @@ SELECT
 FROM all_months a
 LEFT JOIN monthly_rev m
        ON a.month_start = m.month_start
-ORDER BY month;",,False,0,,,1008,472,114,1
+ORDER BY month;",,False,0,,,1008,472,114,1,1792551832.262,1792551835.147
+1,h05,hard,vanna_jev,2.37,correct,True,True,match,"SELECT 
+    m.month,
+    COALESCE(i.revenue, 0) AS revenue,
+    LAG(COALESCE(i.revenue, 0)) OVER (ORDER BY m.month) AS previous_month_revenue
+FROM 
+    generate_series(1, 12) AS m(month)
+LEFT JOIN (
+    SELECT 
+        EXTRACT(MONTH FROM invoice_date)::int AS month,
+        SUM(total) AS revenue
+    FROM invoice
+    WHERE EXTRACT(YEAR FROM invoice_date) = 2024
+    GROUP BY EXTRACT(MONTH FROM invoice_date)
+) i ON i.month = m.month
+ORDER BY m.month;",,False,0,,,1008,333,114,1,1792553375.15,1792553377.519
+1,h06,hard,vanna_jev_retry,1.835,correct,True,True,match,"SELECT 
+    ar.name AS artist_name,
+    COUNT(DISTINCT tr.genre_id) AS genre_count
+FROM artist AS ar
+JOIN album  AS al ON al.artist_id = ar.artist_id
+JOIN track  AS tr ON tr.album_id = al.album_id
+WHERE tr.genre_id IS NOT NULL
+GROUP BY ar.artist_id, ar.name
+HAVING COUNT(DISTINCT tr.genre_id) > 3
+ORDER BY genre_count DESC, artist_name;",,True,0,,,928,288,72,1,,
 1,h06,hard,vanna,1.752,correct,True,True,match,"SELECT
     a.name AS artist_name,
     COUNT(DISTINCT t.genre_id) AS genre_count
@@ -165,18 +501,61 @@ JOIN track t       ON t.album_id = al.album_id
 WHERE t.genre_id IS NOT NULL
 GROUP BY a.artist_id, a.name
 HAVING COUNT(DISTINCT t.genre_id) > 3
-ORDER BY genre_count DESC, artist_name;",,True,0,,,928,260,72,1
+ORDER BY genre_count DESC, artist_name;",,True,0,,,928,260,72,1,1792551835.174,1792551836.925
+1,h06,hard,vanna_jev,1.837,correct,True,True,match,"SELECT
+    a.name AS artist_name,
+    COUNT(DISTINCT t.genre_id) AS genre_count
+FROM artist a
+JOIN album al      ON al.artist_id = a.artist_id
+JOIN track t       ON t.album_id = al.album_id
+WHERE t.genre_id IS NOT NULL
+GROUP BY a.name
+HAVING COUNT(DISTINCT t.genre_id) > 3
+ORDER BY genre_count DESC, artist_name;",,True,0,,,928,274,72,1,1792553377.534,1792553379.371
+1,h07,hard,vanna_jev_retry,1.392,correct,True,True,match,"SELECT COUNT(*) AS never_purchased_tracks
+FROM track t
+LEFT JOIN invoice_line il ON t.track_id = il.track_id
+WHERE il.track_id IS NULL;",,False,0,,,990,115,60,1,,
 1,h07,hard,vanna,1.898,correct,True,True,match,"SELECT COUNT(*) AS never_purchased_tracks
 FROM track t
 LEFT JOIN invoice_line il ON t.track_id = il.track_id
-WHERE il.track_id IS NULL;",,False,0,,,990,115,60,1
+WHERE il.track_id IS NULL;",,False,0,,,990,115,60,1,1792551836.944,1792551838.842
+1,h07,hard,vanna_jev,1.517,correct,True,True,match,"SELECT COUNT(*) AS never_purchased_tracks
+FROM track t
+LEFT JOIN invoice_line il ON t.track_id = il.track_id
+WHERE il.track_id IS NULL;",,False,0,,,990,115,60,1,1792553379.389,1792553380.906
+1,h08,hard,vanna_jev_retry,1.377,correct,True,True,match,"SELECT 
+    e.first_name  AS employee_first_name,
+    e.last_name   AS employee_last_name,
+    m.first_name  AS manager_first_name,
+    m.last_name   AS manager_last_name
+FROM employee e
+JOIN employee m
+  ON e.reports_to = m.employee_id
+WHERE e.reports_to IS NOT NULL;",,True,0,,,1012,142,120,1,,
 1,h08,hard,vanna,1.616,correct,True,True,match,"SELECT 
     e.first_name AS employee_first_name,
     e.last_name  AS employee_last_name,
     m.first_name AS manager_first_name,
     m.last_name  AS manager_last_name
 FROM employee e
-JOIN employee m ON e.reports_to = m.employee_id;",,True,0,,,1012,149,120,1
+JOIN employee m ON e.reports_to = m.employee_id;",,True,0,,,1012,149,120,1,1792551838.858,1792551840.474
+1,h08,hard,vanna_jev,1.738,correct,True,True,match,"SELECT 
+    e.first_name  AS employee_first_name,
+    e.last_name   AS employee_last_name,
+    m.first_name  AS manager_first_name,
+    m.last_name   AS manager_last_name
+FROM employee e
+JOIN employee m
+  ON e.reports_to = m.employee_id;",,True,0,,,1012,210,120,1,1792553380.921,1792553382.659
+1,h09,hard,vanna_jev_retry,1.941,correct,True,True,match,"SELECT COUNT(*) AS customer_count
+FROM (
+    SELECT customer_id
+    FROM invoice
+    GROUP BY customer_id
+    HAVING SUM(CASE WHEN EXTRACT(YEAR FROM invoice_date) = 2025 THEN 1 ELSE 0 END) > 0
+       AND SUM(CASE WHEN EXTRACT(YEAR FROM invoice_date) = 2024 THEN 1 ELSE 0 END) = 0
+) AS sub;",,False,0,,,996,277,63,1,,
 1,h09,hard,vanna,2.406,correct,True,True,match,"SELECT COUNT(DISTINCT i2025.customer_id) AS customers_2025_no_2024
 FROM invoice i2025
 WHERE i2025.invoice_date >= DATE '2025-01-01'
@@ -187,7 +566,34 @@ WHERE i2025.invoice_date >= DATE '2025-01-01'
         WHERE i2024.customer_id = i2025.customer_id
           AND i2024.invoice_date >= DATE '2024-01-01'
           AND i2024.invoice_date <  DATE '2025-01-01'
-      );",,False,0,,,996,493,63,1
+      );",,False,0,,,996,493,63,1,1792551840.503,1792551842.908
+1,h09,hard,vanna_jev,1.755,correct,True,True,match,"SELECT COUNT(DISTINCT c.customer_id) AS customers_count
+FROM customer c
+WHERE EXISTS (
+        SELECT 1
+        FROM invoice i
+        WHERE i.customer_id = c.customer_id
+          AND EXTRACT(YEAR FROM i.invoice_date) = 2025
+      )
+  AND NOT EXISTS (
+        SELECT 1
+        FROM invoice i
+        WHERE i.customer_id = c.customer_id
+          AND EXTRACT(YEAR FROM i.invoice_date) = 2024
+      );",,False,0,,,996,244,63,1,1792553382.683,1792553384.438
+1,h10,hard,vanna_jev_retry,2.312,correct,True,True,match,"SELECT 
+    to_char(month_start, 'YYYY-MM') AS month,
+    SUM(month_total) OVER (ORDER BY month_start) AS running_total
+FROM (
+    SELECT 
+        date_trunc('month', invoice_date)::date AS month_start,
+        SUM(total) AS month_total
+    FROM invoice
+    WHERE invoice_date >= DATE '2023-01-01'
+      AND invoice_date <  DATE '2024-01-01'
+    GROUP BY month_start
+) AS monthly
+ORDER BY month_start;",,True,0,,,1014,364,129,1,,
 1,h10,hard,vanna,2.867,correct,True,True,match,"SELECT 
     to_char(month_start, 'YYYY-MM') AS month,
     SUM(month_total) OVER (ORDER BY month_start) AS running_total
@@ -200,7 +606,29 @@ FROM (
       AND invoice_date <  DATE '2024-01-01'
     GROUP BY month_start
 ) AS monthly
-ORDER BY month_start;",,True,0,,,1014,384,129,1
+ORDER BY month_start;",,True,0,,,1014,384,129,1,1792551842.925,1792551845.792
+1,h10,hard,vanna_jev,3.409,correct,True,True,match,"SELECT 
+    to_char(month_start, 'YYYY-MM') AS month,
+    SUM(month_total) OVER (ORDER BY month_start) AS running_total
+FROM (
+    SELECT 
+        date_trunc('month', invoice_date) AS month_start,
+        SUM(total) AS month_total
+    FROM invoice
+    WHERE invoice_date >= DATE '2023-01-01'
+      AND invoice_date <  DATE '2024-01-01'
+    GROUP BY month_start
+) AS monthly
+ORDER BY month_start;",,True,0,,,1014,383,129,1,1792553384.452,1792553387.861
+1,h11,hard,vanna_jev_retry,2.216,correct,True,True,match,"SELECT 
+    mt.name AS media_type,
+    ROUND(100.0 * SUM(il.unit_price * il.quantity) 
+          / SUM(SUM(il.unit_price * il.quantity)) OVER (), 2) AS percentage
+FROM invoice_line il
+JOIN track t          ON il.track_id = t.track_id
+JOIN media_type mt    ON t.media_type_id = mt.media_type_id
+GROUP BY mt.name
+ORDER BY percentage DESC;",,False,0,,,1005,299,96,1,,
 1,h11,hard,vanna,2.233,correct,True,True,match,"SELECT 
     mt.name AS media_type,
     ROUND(100.0 * SUM(il.unit_price * il.quantity) 
@@ -209,7 +637,26 @@ FROM invoice_line il
 JOIN track t          ON il.track_id = t.track_id
 JOIN media_type mt    ON t.media_type_id = mt.media_type_id
 GROUP BY mt.name
-ORDER BY percentage DESC;",,False,0,,,1005,298,96,1
+ORDER BY percentage DESC;",,False,0,,,1005,298,96,1,1792551845.806,1792551848.039
+1,h11,hard,vanna_jev,2.289,correct,True,True,match,"SELECT 
+    mt.name AS media_type,
+    ROUND(100.0 * SUM(il.unit_price * il.quantity) / 
+          SUM(SUM(il.unit_price * il.quantity)) OVER (), 2) AS percentage
+FROM invoice_line il
+JOIN track t          ON il.track_id = t.track_id
+JOIN media_type mt    ON t.media_type_id = mt.media_type_id
+GROUP BY mt.name
+ORDER BY percentage DESC;",,False,0,,,1005,297,96,1,1792553387.875,1792553390.164
+1,h12,hard,vanna_jev_retry,1.934,correct,True,True,match,"SELECT
+    ar.name AS artist_name,
+    SUM(il.unit_price * il.quantity) AS revenue
+FROM invoice_line AS il
+JOIN track AS t          ON il.track_id = t.track_id
+JOIN album AS al         ON t.album_id = al.album_id
+JOIN artist AS ar        ON al.artist_id = ar.artist_id
+GROUP BY ar.name
+ORDER BY revenue DESC
+LIMIT 5;",,True,0,,,1003,240,96,1,,
 1,h12,hard,vanna,2.138,correct,True,True,match,"SELECT
     a.name AS artist_name,
     SUM(il.unit_price * il.quantity) AS revenue
@@ -219,27 +666,87 @@ JOIN album AS al         ON t.album_id = al.album_id
 JOIN artist AS a         ON al.artist_id = a.artist_id
 GROUP BY a.artist_id, a.name
 ORDER BY revenue DESC
-LIMIT 5;",,True,0,,,1003,277,96,1
+LIMIT 5;",,True,0,,,1003,277,96,1,1792551848.058,1792551850.196
+1,h12,hard,vanna_jev,2.083,correct,True,True,match,"SELECT
+    ar.name AS artist_name,
+    SUM(il.unit_price * il.quantity) AS revenue
+FROM invoice_line AS il
+JOIN track       AS t  ON il.track_id = t.track_id
+JOIN album       AS al ON t.album_id = al.album_id
+JOIN artist      AS ar ON al.artist_id = ar.artist_id
+GROUP BY ar.name
+ORDER BY revenue DESC
+LIMIT 5;",,True,0,,,1003,246,96,1,1792553390.186,1792553392.269
+2,e01,easy,vanna_jev_retry,1.252,correct,True,True,match,"SELECT COUNT(*) AS total_tracks
+FROM track;",,True,0,,,913,46,30,1,,
 2,e01,easy,vanna,1.156,correct,True,True,match,"SELECT COUNT(*) AS total_tracks
-FROM track;",,True,0,,,913,42,30,1
-2,e02,easy,vanna,1.248,correct,True,True,match,SELECT name FROM genre;,,True,0,,,892,50,30,1
+FROM track;",,True,0,,,913,42,30,1,1792551850.224,1792551851.38
+2,e01,easy,vanna_jev,1.854,correct,True,True,match,"SELECT COUNT(*) AS total_tracks
+FROM track;",,True,0,,,913,46,30,1,1792553392.289,1792553394.143
+2,e02,easy,vanna_jev_retry,1.33,correct,True,True,match,"SELECT name
+FROM genre;",,True,0,,,892,50,30,1,,
+2,e02,easy,vanna,1.248,correct,True,True,match,SELECT name FROM genre;,,True,0,,,892,50,30,1,1792551851.398,1792551852.646
+2,e02,easy,vanna_jev,1.196,correct,True,True,match,"SELECT name
+FROM genre;",,True,0,,,892,50,30,1,1792553394.157,1792553395.353
+2,e03,easy,vanna_jev_retry,1.188,correct,True,True,match,"SELECT COUNT(*) AS brazil_customer_count
+FROM customer
+WHERE country = 'Brazil';",,True,0,,,982,50,27,1,,
 2,e03,easy,vanna,1.234,correct,True,True,match,"SELECT COUNT(*) AS brazil_customers
 FROM customer
-WHERE country = 'Brazil';",,True,0,,,982,51,27,1
+WHERE country = 'Brazil';",,True,0,,,982,51,27,1,1792551852.66,1792551853.894
+2,e03,easy,vanna_jev,1.296,correct,True,True,match,"SELECT COUNT(*) AS brazil_customer_count
+FROM customer
+WHERE country = 'Brazil';",,True,0,,,982,50,27,1,1792553395.368,1792553396.664
+2,e04,easy,vanna_jev_retry,1.272,correct,True,True,match,"SELECT name
+FROM track
+WHERE milliseconds > 1200000;",,True,0,,,898,81,45,1,,
 2,e04,easy,vanna,1.357,correct,True,True,match,"SELECT name
 FROM track
-WHERE milliseconds > 1200000;",,True,0,,,898,82,45,1
+WHERE milliseconds > 1200000;",,True,0,,,898,82,45,1,1792551853.91,1792551855.267
+2,e04,easy,vanna_jev,1.32,correct,True,True,match,"SELECT name
+FROM track
+WHERE milliseconds > 1200000;",,True,0,,,898,81,45,1,1792553396.685,1792553398.005
+2,e05,easy,vanna_jev_retry,1.162,correct,True,True,match,"SELECT MAX(unit_price) AS highest_price
+FROM track;",,True,0,,,887,45,36,1,,
 2,e05,easy,vanna,1.265,correct,True,True,match,"SELECT MAX(unit_price) AS highest_price
-FROM track;",,True,0,,,887,45,36,1
+FROM track;",,True,0,,,887,45,36,1,1792551855.284,1792551856.549
+2,e05,easy,vanna_jev,1.185,correct,True,True,match,"SELECT MAX(unit_price) AS highest_price
+FROM track;",,True,0,,,887,45,36,1,1792553398.025,1792553399.21
+2,e06,easy,vanna_jev_retry,1.197,correct,True,True,match,"SELECT first_name, last_name
+FROM employee
+WHERE title = 'Sales Support Agent';",,True,0,,,991,55,57,1,,
 2,e06,easy,vanna,1.168,correct,True,True,match,"SELECT first_name, last_name
 FROM employee
-WHERE title = 'Sales Support Agent';",,True,0,,,991,51,57,1
+WHERE title = 'Sales Support Agent';",,True,0,,,991,51,57,1,1792551856.565,1792551857.733
+2,e06,easy,vanna_jev,1.204,correct,True,True,match,"SELECT first_name, last_name
+FROM employee
+WHERE title = 'Sales Support Agent';",,True,0,,,991,56,57,1,1792553399.224,1792553400.428
+2,e07,easy,vanna_jev_retry,1.349,correct,True,True,match,"SELECT COUNT(*) AS invoice_count
+FROM invoice
+WHERE EXTRACT(YEAR FROM invoice_date) = 2023;",,True,0,,,987,91,45,1,,
 2,e07,easy,vanna,1.333,correct,True,True,match,"SELECT COUNT(*) AS invoice_count_2023
 FROM invoice
-WHERE EXTRACT(YEAR FROM invoice_date) = 2023;",,True,0,,,987,87,45,1
+WHERE EXTRACT(YEAR FROM invoice_date) = 2023;",,True,0,,,987,87,45,1,1792551857.752,1792551859.084
+2,e07,easy,vanna_jev,1.423,correct,True,True,match,"SELECT COUNT(*) AS invoice_count
+FROM invoice
+WHERE EXTRACT(YEAR FROM invoice_date) = 2023;",,True,0,,,987,86,45,1,1792553400.442,1792553401.864
+2,e08,easy,vanna_jev_retry,1.285,correct,True,True,match,"SELECT first_name, last_name, company
+FROM customer
+WHERE company IS NOT NULL;",,True,0,,,992,82,57,1,,
 2,e08,easy,vanna,1.373,correct,True,True,match,"SELECT first_name, last_name, company
 FROM customer
-WHERE company IS NOT NULL;",,True,0,,,992,78,57,1
+WHERE company IS NOT NULL;",,True,0,,,992,78,57,1,1792551859.101,1792551860.474
+2,e08,easy,vanna_jev,1.374,correct,True,True,match,"SELECT first_name, last_name, company
+FROM customer
+WHERE company IS NOT NULL;",,True,0,,,992,82,57,1,1792553401.884,1792553403.258
+2,m01,medium,vanna_jev_retry,1.597,correct,True,True,match,"SELECT
+    g.name AS genre_name,
+    COUNT(t.track_id) AS track_count
+FROM genre AS g
+LEFT JOIN track AS t
+    ON t.genre_id = g.genre_id
+GROUP BY g.name
+ORDER BY g.name;",,True,0,,,903,171,63,1,,
 2,m01,medium,vanna,2.251,correct,True,True,match,"SELECT
     g.name AS genre_name,
     COUNT(t.track_id) AS track_count
@@ -247,7 +754,23 @@ FROM genre AS g
 LEFT JOIN track AS t
     ON t.genre_id = g.genre_id
 GROUP BY g.name
-ORDER BY g.name;",,True,0,,,903,167,63,1
+ORDER BY g.name;",,True,0,,,903,167,63,1,1792551860.499,1792551862.75
+2,m01,medium,vanna_jev,1.829,correct,True,True,match,"SELECT
+    g.name AS genre_name,
+    COUNT(t.track_id) AS track_count
+FROM genre AS g
+LEFT JOIN track AS t
+    ON t.genre_id = g.genre_id
+GROUP BY g.name
+ORDER BY g.name;",,True,0,,,903,171,63,1,1792553403.274,1792553405.103
+2,m02,medium,vanna_jev_retry,1.705,correct,True,True,match,"SELECT 
+    ar.name AS artist_name,
+    COUNT(al.album_id) AS album_count
+FROM artist AS ar
+JOIN album AS al ON ar.artist_id = al.artist_id
+GROUP BY ar.name
+ORDER BY album_count DESC
+LIMIT 5;",,True,0,,,1000,170,78,1,,
 2,m02,medium,vanna,1.562,correct,True,True,match,"SELECT 
     a.name AS artist_name,
     COUNT(al.album_id) AS album_count
@@ -255,48 +778,151 @@ FROM artist a
 JOIN album al ON a.artist_id = al.artist_id
 GROUP BY a.artist_id, a.name
 ORDER BY album_count DESC
-LIMIT 5;",,True,0,,,1000,183,78,1
+LIMIT 5;",,True,0,,,1000,183,78,1,1792551862.769,1792551864.331
+2,m02,medium,vanna_jev,1.949,correct,True,True,match,"SELECT
+    ar.name AS artist_name,
+    COUNT(al.album_id) AS album_count
+FROM artist AS ar
+JOIN album AS al ON ar.artist_id = al.artist_id
+GROUP BY ar.name
+ORDER BY album_count DESC
+LIMIT 5;",,True,0,,,1000,187,78,1,1792553405.119,1792553407.068
+2,m03,medium,vanna_jev_retry,1.337,correct,True,True,match,"SELECT
+    billing_country,
+    SUM(total) AS total_sales
+FROM invoice
+GROUP BY billing_country
+ORDER BY total_sales DESC;",,True,0,,,997,103,78,1,,
 2,m03,medium,vanna,1.571,correct,True,True,match,"SELECT billing_country,
        SUM(total) AS total_sales
 FROM   invoice
 GROUP BY billing_country
-ORDER BY total_sales DESC;",,True,0,,,997,103,78,1
+ORDER BY total_sales DESC;",,True,0,,,997,103,78,1,1792551864.346,1792551865.916
+2,m03,medium,vanna_jev,1.515,correct,True,True,match,"SELECT
+    billing_country,
+    SUM(total) AS total_sales
+FROM invoice
+GROUP BY billing_country
+ORDER BY total_sales DESC;",,True,0,,,997,109,78,1,1792553407.083,1792553408.598
+2,m04,medium,vanna_jev_retry,1.403,correct,True,True,match,"SELECT c.first_name, c.last_name
+FROM customer c
+JOIN employee e ON c.support_rep_id = e.employee_id
+WHERE e.first_name = 'Jane' AND e.last_name = 'Peacock';",,True,0,,,992,161,57,1,,
 2,m04,medium,vanna,1.712,correct,True,True,match,"SELECT c.first_name,
        c.last_name
 FROM   customer c
 JOIN   employee e ON c.support_rep_id = e.employee_id
 WHERE  e.first_name = 'Jane'
-  AND  e.last_name = 'Peacock';",,True,0,,,992,155,57,1
+  AND  e.last_name = 'Peacock';",,True,0,,,992,155,57,1,1792551865.938,1792551867.651
+2,m04,medium,vanna_jev,1.758,correct,True,True,match,"SELECT c.first_name,
+       c.last_name
+FROM   customer AS c
+JOIN   employee AS e
+       ON c.support_rep_id = e.employee_id
+WHERE  e.first_name = 'Jane'
+  AND  e.last_name = 'Peacock';",,True,0,,,992,149,57,1,1792553408.619,1792553410.377
+2,m05,medium,vanna_jev_retry,1.727,correct,True,True,match,"SELECT 
+    mt.name AS media_type,
+    AVG(t.milliseconds) / 60000.0 AS average_length_minutes
+FROM track AS t
+JOIN media_type AS mt
+  ON t.media_type_id = mt.media_type_id
+GROUP BY mt.name
+ORDER BY mt.name;",,True,0,,,1000,193,81,1,,
 2,m05,medium,vanna,2.006,correct,True,True,match,"SELECT
     mt.name AS media_type,
     AVG(t.milliseconds) / 60000.0 AS average_length_minutes
 FROM track t
 JOIN media_type mt ON t.media_type_id = mt.media_type_id
 GROUP BY mt.name
-ORDER BY mt.name;",,True,0,,,1000,197,81,1
+ORDER BY mt.name;",,True,0,,,1000,197,81,1,1792551867.666,1792551869.672
+2,m05,medium,vanna_jev,1.654,correct,True,True,match,"SELECT 
+    mt.name AS media_type,
+    AVG(t.milliseconds) / 60000.0 AS average_length_minutes
+FROM 
+    track t
+JOIN 
+    media_type mt ON t.media_type_id = mt.media_type_id
+GROUP BY 
+    mt.name;",,True,0,,,1000,166,81,1,1792553410.391,1792553412.045
+2,m06,medium,vanna_jev_retry,1.738,correct,True,True,match,"SELECT a.title,
+       COUNT(t.track_id) AS track_count
+FROM   album a
+JOIN   track t ON t.album_id = a.album_id
+GROUP  BY a.album_id, a.title
+HAVING COUNT(t.track_id) > 20
+ORDER  BY a.title;",,True,0,,,903,218,60,1,,
 2,m06,medium,vanna,2.136,correct,True,True,match,"SELECT a.title,
        COUNT(t.track_id) AS track_count
 FROM   album a
 JOIN   track t ON t.album_id = a.album_id
 GROUP  BY a.album_id, a.title
 HAVING COUNT(t.track_id) > 20
-ORDER  BY track_count DESC;",,True,0,,,903,210,60,1
+ORDER  BY track_count DESC;",,True,0,,,903,210,60,1,1792551869.688,1792551871.825
+2,m06,medium,vanna_jev,1.576,correct,True,True,match,"SELECT a.title,
+       COUNT(t.track_id) AS track_count
+FROM   album a
+JOIN   track t ON t.album_id = a.album_id
+GROUP  BY a.album_id, a.title
+HAVING COUNT(t.track_id) > 20
+ORDER  BY track_count DESC;",,True,0,,,903,189,60,1,1792553412.062,1792553413.639
+2,m07,medium,vanna_jev_retry,1.384,correct,True,True,match,"SELECT g.name
+FROM genre g
+JOIN track t ON t.genre_id = g.genre_id
+GROUP BY g.genre_id, g.name
+ORDER BY COUNT(*) DESC
+LIMIT 1;",,True,0,,,896,134,42,1,,
 2,m07,medium,vanna,1.491,correct,True,True,match,"SELECT g.name
 FROM genre g
 JOIN track t ON g.genre_id = t.genre_id
 GROUP BY g.genre_id, g.name
 ORDER BY COUNT(*) DESC
-LIMIT 1;",,True,0,,,896,121,42,1
+LIMIT 1;",,True,0,,,896,121,42,1,1792551871.84,1792551873.332
+2,m07,medium,vanna_jev,1.447,correct,True,True,match,"SELECT g.name
+FROM genre g
+JOIN track t ON t.genre_id = g.genre_id
+GROUP BY g.genre_id, g.name
+ORDER BY COUNT(*) DESC
+LIMIT 1;",,True,0,,,896,147,42,1,1792553413.663,1792553415.111
+2,m08,medium,vanna_jev_retry,1.518,correct,True,True,match,"SELECT COUNT(*) AS track_count
+FROM playlist p
+JOIN playlist_track pt ON p.playlist_id = pt.playlist_id
+WHERE p.name = '90’s Music';",,True,0,,,897,153,54,1,,
 2,m08,medium,vanna,1.867,correct,True,True,match,"SELECT COUNT(*) AS track_count
 FROM playlist_track pt
 JOIN playlist p ON pt.playlist_id = p.playlist_id
-WHERE p.name = '90’s Music';",,True,0,,,897,145,54,1
+WHERE p.name = '90’s Music';",,True,0,,,897,145,54,1,1792551873.357,1792551875.224
+2,m08,medium,vanna_jev,1.514,correct,True,True,match,"SELECT COUNT(*) AS track_count
+FROM playlist p
+JOIN playlist_track pt ON p.playlist_id = pt.playlist_id
+WHERE p.name = '90’s Music';",,True,0,,,897,186,54,1,1792553415.129,1792553416.642
+2,m09,medium,vanna_jev_retry,1.539,correct,True,True,match,"SELECT 
+    EXTRACT(YEAR FROM invoice_date)::int AS year,
+    SUM(total) AS revenue
+FROM invoice
+GROUP BY year
+ORDER BY year;",,True,0,,,995,144,72,1,,
 2,m09,medium,vanna,1.657,correct,True,True,match,"SELECT 
     EXTRACT(YEAR FROM invoice_date)::INT AS year,
     SUM(total) AS revenue
 FROM invoice
 GROUP BY year
-ORDER BY year;",,True,0,,,995,140,72,1
+ORDER BY year;",,True,0,,,995,140,72,1,1792551875.237,1792551876.895
+2,m09,medium,vanna_jev,1.447,correct,True,True,match,"SELECT 
+    EXTRACT(YEAR FROM invoice_date)::INT AS year,
+    SUM(total) AS revenue
+FROM invoice
+GROUP BY year
+ORDER BY year;",,True,0,,,995,129,72,1,1792553416.657,1792553418.103
+2,h01,hard,vanna_jev_retry,1.64,correct,True,True,match,"SELECT
+    g.name AS genre_name,
+    SUM(il.unit_price * il.quantity) AS revenue
+FROM invoice_line AS il
+JOIN track AS t ON il.track_id = t.track_id
+JOIN genre AS g ON t.genre_id = g.genre_id
+GROUP BY g.name
+ORDER BY revenue DESC
+LIMIT 3;",,True,0,,,1007,198,105,1,,
 2,h01,hard,vanna,1.719,correct,True,True,match,"SELECT
     g.name AS genre,
     SUM(il.unit_price * il.quantity) AS revenue
@@ -305,7 +931,27 @@ JOIN track AS t      ON il.track_id = t.track_id
 JOIN genre AS g      ON t.genre_id = g.genre_id
 GROUP BY g.name
 ORDER BY revenue DESC
-LIMIT 3;",,True,0,,,1007,198,105,1
+LIMIT 3;",,True,0,,,1007,198,105,1,1792551876.909,1792551878.628
+2,h01,hard,vanna_jev,1.657,correct,True,True,match,"SELECT
+    g.name AS genre_name,
+    SUM(il.unit_price * il.quantity) AS revenue
+FROM invoice_line AS il
+JOIN track AS t      ON il.track_id = t.track_id
+JOIN genre AS g      ON t.genre_id = g.genre_id
+GROUP BY g.name
+ORDER BY revenue DESC
+LIMIT 3;",,True,0,,,1007,200,105,1,1792553418.12,1792553419.776
+2,h02,hard,vanna_jev_retry,2.033,correct,True,True,match,"SELECT
+    e.first_name,
+    e.last_name,
+    COALESCE(SUM(i.total), 0) AS total
+FROM employee e
+JOIN customer c
+    ON c.support_rep_id = e.employee_id
+LEFT JOIN invoice i
+    ON i.customer_id = c.customer_id
+GROUP BY e.employee_id, e.first_name, e.last_name
+ORDER BY total DESC;",,True,0,,,1010,280,120,1,,
 2,h02,hard,vanna,2.098,correct,True,True,match,"SELECT e.first_name,
        e.last_name,
        SUM(i.total) AS total
@@ -313,7 +959,37 @@ FROM employee e
 JOIN customer c ON c.support_rep_id = e.employee_id
 JOIN invoice i ON i.customer_id = c.customer_id
 GROUP BY e.employee_id, e.first_name, e.last_name
-ORDER BY total DESC;",,True,0,,,1010,225,120,1
+ORDER BY total DESC;",,True,0,,,1010,225,120,1,1792551878.645,1792551880.742
+2,h02,hard,vanna_jev,2.275,wrong_result,False,False,row count 8 != gold 3,"SELECT 
+    e.first_name,
+    e.last_name,
+    COALESCE(SUM(i.total), 0) AS total
+FROM employee e
+LEFT JOIN customer c      ON c.support_rep_id = e.employee_id
+LEFT JOIN invoice i      ON i.customer_id = c.customer_id
+GROUP BY e.employee_id, e.first_name, e.last_name
+ORDER BY total DESC;",,True,0,,,1010,244,120,1,1792553419.794,1792553422.07
+2,h03,hard,vanna_jev_retry,1.922,correct,True,True,match,"WITH customer_spend AS (
+    SELECT
+        c.customer_id,
+        c.first_name,
+        c.last_name,
+        SUM(i.total) AS total_spend
+    FROM customer c
+    JOIN invoice i ON c.customer_id = i.customer_id
+    GROUP BY c.customer_id, c.first_name, c.last_name
+),
+avg_spend AS (
+    SELECT AVG(total_spend) AS avg_total FROM customer_spend
+)
+SELECT
+    cs.first_name,
+    cs.last_name,
+    cs.total_spend
+FROM customer_spend cs
+CROSS JOIN avg_spend a
+WHERE cs.total_spend > a.avg_total
+ORDER BY cs.total_spend DESC;",,False,0,,,1001,353,84,1,,
 2,h03,hard,vanna,2.811,correct,True,True,match,"SELECT
     c.first_name,
     c.last_name,
@@ -341,7 +1017,56 @@ WHERE
             GROUP BY
                 customer_id
         ) sub
-    );",,False,0,,,1001,309,84,1
+    );",,False,0,,,1001,309,84,1,1792551880.759,1792551883.57
+2,h03,hard,vanna_jev,2.946,correct,True,True,match,"WITH customer_spend AS (
+    SELECT
+        c.customer_id,
+        c.first_name,
+        c.last_name,
+        SUM(i.total) AS total_spend
+    FROM customer c
+    JOIN invoice i ON c.customer_id = i.customer_id
+    GROUP BY c.customer_id, c.first_name, c.last_name
+),
+avg_spend AS (
+    SELECT AVG(total_spend) AS avg_total FROM customer_spend
+)
+SELECT
+    cs.first_name,
+    cs.last_name,
+    cs.total_spend
+FROM customer_spend cs
+CROSS JOIN avg_spend a
+WHERE cs.total_spend > a.avg_total
+ORDER BY cs.total_spend DESC;",,False,0,,,1001,353,84,1,1792553422.084,1792553425.029
+2,h04,hard,vanna_jev_retry,2.293,correct,True,True,match,"WITH cust_spend AS (
+    SELECT
+        c.customer_id,
+        c.country,
+        c.first_name,
+        c.last_name,
+        SUM(i.total) AS total_spend
+    FROM customer c
+    JOIN invoice i ON c.customer_id = i.customer_id
+    GROUP BY c.customer_id, c.country, c.first_name, c.last_name
+),
+max_spend AS (
+    SELECT
+        country,
+        MAX(total_spend) AS max_total
+    FROM cust_spend
+    GROUP BY country
+)
+SELECT
+    cs.country,
+    cs.first_name,
+    cs.last_name,
+    cs.total_spend AS total_spend
+FROM cust_spend cs
+JOIN max_spend ms
+    ON cs.country = ms.country
+   AND cs.total_spend = ms.max_total
+ORDER BY cs.country, cs.last_name, cs.first_name;",,False,0,,,1003,489,90,1,,
 2,h04,hard,vanna,2.775,correct,True,True,match,"WITH cust_spend AS (
     SELECT
         c.customer_id,
@@ -366,7 +1091,49 @@ SELECT
     total_spend
 FROM ranked
 WHERE rnk = 1
-ORDER BY country, first_name, last_name;",,False,0,,,1003,483,90,1
+ORDER BY country, first_name, last_name;",,False,0,,,1003,483,90,1,1792551883.586,1792551886.361
+2,h04,hard,vanna_jev,2.692,correct,True,True,match,"WITH customer_spend AS (
+    SELECT
+        c.customer_id,
+        c.country,
+        c.first_name,
+        c.last_name,
+        COALESCE(SUM(i.total), 0) AS total_spend
+    FROM customer c
+    JOIN invoice i ON i.customer_id = c.customer_id
+    GROUP BY c.customer_id, c.country, c.first_name, c.last_name
+),
+ranked_spend AS (
+    SELECT
+        country,
+        first_name,
+        last_name,
+        total_spend,
+        MAX(total_spend) OVER (PARTITION BY country) AS max_spend
+    FROM customer_spend
+)
+SELECT
+    country,
+    first_name,
+    last_name,
+    total_spend
+FROM ranked_spend
+WHERE total_spend = max_spend
+ORDER BY country, last_name, first_name;",,False,0,,,1003,389,90,1,1792553425.044,1792553427.736
+2,h05,hard,vanna_jev_retry,2.055,correct,True,True,match,"SELECT 
+    m.month,
+    COALESCE(i.revenue, 0) AS revenue,
+    LAG(COALESCE(i.revenue, 0)) OVER (ORDER BY m.month) AS previous_month_revenue
+FROM generate_series(1, 12) AS m(month)
+LEFT JOIN (
+    SELECT 
+        EXTRACT(MONTH FROM invoice_date)::int AS month,
+        SUM(total) AS revenue
+    FROM invoice
+    WHERE EXTRACT(YEAR FROM invoice_date) = 2024
+    GROUP BY 1
+) i ON i.month = m.month
+ORDER BY m.month;",,False,0,,,1008,324,114,1,,
 2,h05,hard,vanna,3.716,correct,True,True,match,"WITH monthly AS (
     SELECT 
         DATE_PART('month', invoice_date)::int AS month,
@@ -381,7 +1148,34 @@ SELECT
     revenue,
     LAG(revenue) OVER (ORDER BY month) AS previous_month_revenue
 FROM monthly
-ORDER BY month;",,False,0,,,1008,345,114,1
+ORDER BY month;",,False,0,,,1008,345,114,1,1792551886.382,1792551890.098
+2,h05,hard,vanna_jev,3.727,correct,True,True,match,"WITH months AS (
+    SELECT generate_series('2024-01-01'::date, '2024-12-01'::date, interval '1 month') AS month_start
+),
+monthly_rev AS (
+    SELECT date_trunc('month', invoice_date) AS month_start,
+           SUM(total) AS revenue
+    FROM invoice
+    WHERE invoice_date >= '2024-01-01'::date
+      AND invoice_date <  '2025-01-01'::date
+    GROUP BY month_start
+)
+SELECT EXTRACT(MONTH FROM m.month_start)::int AS month,
+       COALESCE(r.revenue, 0)                         AS revenue,
+       LAG(COALESCE(r.revenue, 0)) OVER (ORDER BY m.month_start) AS previous_month_revenue
+FROM months m
+LEFT JOIN monthly_rev r USING (month_start)
+ORDER BY month;",,False,0,,,1008,584,114,1,1792553427.76,1792553431.486
+2,h06,hard,vanna_jev_retry,1.812,correct,True,True,match,"SELECT 
+    ar.name AS artist_name,
+    COUNT(DISTINCT tr.genre_id) AS genre_count
+FROM artist AS ar
+JOIN album   AS al ON al.artist_id = ar.artist_id
+JOIN track   AS tr ON tr.album_id = al.album_id
+WHERE tr.genre_id IS NOT NULL
+GROUP BY ar.artist_id, ar.name
+HAVING COUNT(DISTINCT tr.genre_id) > 3
+ORDER BY genre_count DESC, artist_name;",,True,0,,,928,288,72,1,,
 2,h06,hard,vanna,2.331,correct,True,True,match,"SELECT 
     a.name AS artist_name,
     COUNT(DISTINCT t.genre_id) AS genre_count
@@ -391,11 +1185,37 @@ JOIN track t       ON t.album_id = al.album_id
 WHERE t.genre_id IS NOT NULL
 GROUP BY a.name
 HAVING COUNT(DISTINCT t.genre_id) > 3
-ORDER BY genre_count DESC, artist_name;",,True,0,,,928,258,72,1
+ORDER BY genre_count DESC, artist_name;",,True,0,,,928,258,72,1,1792551890.123,1792551892.455
+2,h06,hard,vanna_jev,2.975,correct,True,True,match,"SELECT 
+    a.name AS artist_name,
+    COUNT(DISTINCT t.genre_id) AS genre_count
+FROM artist a
+JOIN album al      ON al.artist_id = a.artist_id
+JOIN track t       ON t.album_id = al.album_id
+WHERE t.genre_id IS NOT NULL
+GROUP BY a.artist_id, a.name
+HAVING COUNT(DISTINCT t.genre_id) > 3
+ORDER BY genre_count DESC, artist_name;",,True,0,,,928,286,72,1,1792553431.503,1792553434.477
+2,h07,hard,vanna_jev_retry,1.425,correct,True,True,match,"SELECT COUNT(*) AS never_purchased_tracks
+FROM track t
+LEFT JOIN invoice_line il ON t.track_id = il.track_id
+WHERE il.track_id IS NULL;",,False,0,,,990,115,60,1,,
 2,h07,hard,vanna,1.426,correct,True,True,match,"SELECT COUNT(*) AS never_purchased_tracks
 FROM track t
 LEFT JOIN invoice_line il ON t.track_id = il.track_id
-WHERE il.track_id IS NULL;",,False,0,,,990,115,60,1
+WHERE il.track_id IS NULL;",,False,0,,,990,115,60,1,1792551892.473,1792551893.899
+2,h07,hard,vanna_jev,1.546,correct,True,True,match,"SELECT COUNT(*) AS never_purchased_tracks
+FROM track t
+LEFT JOIN invoice_line il ON t.track_id = il.track_id
+WHERE il.track_id IS NULL;",,False,0,,,990,115,60,1,1792553434.498,1792553436.044
+2,h08,hard,vanna_jev_retry,1.411,correct,True,True,match,"SELECT 
+    e.first_name  AS employee_first_name,
+    e.last_name   AS employee_last_name,
+    m.first_name  AS manager_first_name,
+    m.last_name   AS manager_last_name
+FROM employee e
+JOIN employee m
+  ON e.reports_to = m.employee_id;",,True,0,,,1012,157,120,1,,
 2,h08,hard,vanna,1.46,correct,True,True,match,"SELECT 
     e.first_name AS employee_first_name,
     e.last_name  AS employee_last_name,
@@ -403,7 +1223,21 @@ WHERE il.track_id IS NULL;",,False,0,,,990,115,60,1
     m.last_name  AS manager_last_name
 FROM employee e
 JOIN employee m
-  ON e.reports_to = m.employee_id;",,True,0,,,1012,151,120,1
+  ON e.reports_to = m.employee_id;",,True,0,,,1012,151,120,1,1792551893.915,1792551895.375
+2,h08,hard,vanna_jev,2.638,correct,True,True,match,"SELECT e.first_name AS employee_first_name,
+       e.last_name  AS employee_last_name,
+       m.first_name AS manager_first_name,
+       m.last_name  AS manager_last_name
+FROM employee e
+JOIN employee m ON e.reports_to = m.employee_id;",,True,0,,,1012,205,120,1,1792553436.06,1792553438.698
+2,h09,hard,vanna_jev_retry,1.955,correct,True,True,match,"SELECT COUNT(*) AS customers_2025_only
+FROM (
+    SELECT customer_id
+    FROM invoice
+    GROUP BY customer_id
+    HAVING SUM(CASE WHEN EXTRACT(YEAR FROM invoice_date) = 2025 THEN 1 ELSE 0 END) > 0
+       AND SUM(CASE WHEN EXTRACT(YEAR FROM invoice_date) = 2024 THEN 1 ELSE 0 END) = 0
+) AS sub;",,False,0,,,996,303,63,1,,
 2,h09,hard,vanna,1.836,correct,True,True,match,"SELECT COUNT(DISTINCT c.customer_id) AS customers_2025_no_2024
 FROM customer c
 WHERE EXISTS (
@@ -419,7 +1253,35 @@ WHERE EXISTS (
         WHERE i.customer_id = c.customer_id
           AND i.invoice_date >= DATE '2024-01-01'
           AND i.invoice_date <  DATE '2025-01-01'
-      );",,False,0,,,996,290,63,1
+      );",,False,0,,,996,290,63,1,1792551895.397,1792551897.233
+2,h09,hard,vanna_jev,2.549,correct,True,True,match,"SELECT COUNT(*) AS customer_count
+FROM (
+    SELECT c.customer_id
+    FROM customer c
+    WHERE EXISTS (
+        SELECT 1
+        FROM invoice i
+        WHERE i.customer_id = c.customer_id
+          AND EXTRACT(YEAR FROM i.invoice_date) = 2025
+    )
+    AND NOT EXISTS (
+        SELECT 1
+        FROM invoice i
+        WHERE i.customer_id = c.customer_id
+          AND EXTRACT(YEAR FROM i.invoice_date) = 2024
+    )
+) AS sub;",,False,0,,,996,311,63,1,1792553438.72,1792553441.269
+2,h10,hard,vanna_jev_retry,2.036,correct,True,True,match,"SELECT to_char(month_start, 'YYYY-MM') AS month,
+       SUM(month_total) OVER (ORDER BY month_start) AS running_total
+FROM (
+    SELECT date_trunc('month', invoice_date) AS month_start,
+           SUM(total) AS month_total
+    FROM invoice
+    WHERE invoice_date >= DATE '2023-01-01'
+      AND invoice_date <  DATE '2024-01-01'
+    GROUP BY month_start
+) AS monthly
+ORDER BY month_start;",,True,0,,,1014,369,129,1,,
 2,h10,hard,vanna,1.849,correct,True,True,match,"SELECT 
     to_char(month_start, 'YYYY-MM') AS month,
     SUM(month_total) OVER (ORDER BY month_start) AS running_total
@@ -432,7 +1294,32 @@ FROM (
       AND invoice_date <  DATE '2024-01-01'
     GROUP BY month_start
 ) AS monthly
-ORDER BY month_start;",,True,0,,,1014,350,129,1
+ORDER BY month_start;",,True,0,,,1014,350,129,1,1792551897.249,1792551899.098
+2,h10,hard,vanna_jev,2.454,correct,True,True,match,"SELECT 
+    to_char(month_start, 'YYYY-MM') AS month,
+    SUM(month_total) OVER (ORDER BY month_start) AS running_total
+FROM (
+    SELECT 
+        date_trunc('month', invoice_date)::date AS month_start,
+        SUM(total) AS month_total
+    FROM invoice
+    WHERE invoice_date >= DATE '2023-01-01'
+      AND invoice_date <  DATE '2024-01-01'
+    GROUP BY month_start
+) AS monthly
+ORDER BY month_start;",,True,0,,,1014,364,129,1,1792553441.284,1792553443.739
+2,h11,hard,vanna_jev_retry,2.147,correct,True,True,match,"SELECT 
+    mt.name AS media_type,
+    ROUND( (SUM(il.unit_price * il.quantity) * 100.0) / total.total_rev, 2 ) AS percentage
+FROM invoice_line AS il
+JOIN track       AS t  ON il.track_id = t.track_id
+JOIN media_type  AS mt ON t.media_type_id = mt.media_type_id
+CROSS JOIN (
+    SELECT SUM(unit_price * quantity) AS total_rev
+    FROM invoice_line
+) AS total
+GROUP BY mt.name, total.total_rev
+ORDER BY percentage DESC;",,False,0,,,1005,343,96,1,,
 2,h11,hard,vanna,2.099,correct,True,True,match,"SELECT 
     mt.name AS media_type,
     ROUND(100.0 * SUM(il.unit_price * il.quantity) 
@@ -441,7 +1328,26 @@ FROM invoice_line il
 JOIN track t          ON il.track_id = t.track_id
 JOIN media_type mt    ON t.media_type_id = mt.media_type_id
 GROUP BY mt.name
-ORDER BY percentage DESC;",,False,0,,,1005,298,96,1
+ORDER BY percentage DESC;",,False,0,,,1005,298,96,1,1792551899.113,1792551901.212
+2,h11,hard,vanna_jev,2.358,correct,True,True,match,"SELECT 
+    mt.name AS media_type,
+    ROUND(100.0 * SUM(il.unit_price * il.quantity) 
+          / SUM(SUM(il.unit_price * il.quantity)) OVER (), 2) AS percentage
+FROM invoice_line il
+JOIN track t          ON il.track_id = t.track_id
+JOIN media_type mt    ON t.media_type_id = mt.media_type_id
+GROUP BY mt.name
+ORDER BY percentage DESC;",,False,0,,,1005,299,96,1,1792553443.755,1792553446.112
+2,h12,hard,vanna_jev_retry,2.008,correct,True,True,match,"SELECT
+    ar.name AS artist_name,
+    SUM(il.unit_price * il.quantity) AS revenue
+FROM invoice_line AS il
+JOIN track AS t          ON il.track_id = t.track_id
+JOIN album AS al         ON t.album_id = al.album_id
+JOIN artist AS ar        ON al.artist_id = ar.artist_id
+GROUP BY ar.name
+ORDER BY revenue DESC
+LIMIT 5;",,True,0,,,1003,291,96,1,,
 2,h12,hard,vanna,1.531,correct,True,True,match,"SELECT
     ar.name AS artist_name,
     SUM(il.unit_price * il.quantity) AS revenue
@@ -451,28 +1357,88 @@ JOIN album AS al         ON t.album_id = al.album_id
 JOIN artist AS ar        ON al.artist_id = ar.artist_id
 GROUP BY ar.name
 ORDER BY revenue DESC
-LIMIT 5;",,True,0,,,1003,245,96,1
+LIMIT 5;",,True,0,,,1003,245,96,1,1792551901.228,1792551902.759
+2,h12,hard,vanna_jev,1.983,correct,True,True,match,"SELECT
+    ar.name AS artist_name,
+    SUM(il.unit_price * il.quantity) AS revenue
+FROM invoice_line AS il
+JOIN track AS t          ON il.track_id = t.track_id
+JOIN album AS al         ON t.album_id = al.album_id
+JOIN artist AS ar        ON al.artist_id = ar.artist_id
+GROUP BY ar.name
+ORDER BY revenue DESC
+LIMIT 5;",,True,0,,,1003,240,96,1,1792553446.137,1792553448.12
+3,e01,easy,vanna_jev_retry,1.227,correct,True,True,match,"SELECT COUNT(*) AS total_tracks
+FROM track;",,True,0,,,913,46,30,1,,
 3,e01,easy,vanna,1.138,correct,True,True,match,"SELECT COUNT(*) AS total_tracks
-FROM track;",,True,0,,,913,42,30,1
-3,e02,easy,vanna,1.675,correct,True,True,match,SELECT name FROM genre;,,True,0,,,892,49,30,1
+FROM track;",,True,0,,,913,42,30,1,1792551902.792,1792551903.93
+3,e01,easy,vanna_jev,1.785,correct,True,True,match,"SELECT COUNT(*) AS total_tracks
+FROM track;",,True,0,,,913,46,30,1,1792553448.137,1792553449.922
+3,e02,easy,vanna_jev_retry,1.115,correct,True,True,match,"SELECT name
+FROM genre;",,True,0,,,892,50,30,1,,
+3,e02,easy,vanna,1.675,correct,True,True,match,SELECT name FROM genre;,,True,0,,,892,49,30,1,1792551903.946,1792551905.62
+3,e02,easy,vanna_jev,1.365,correct,True,True,match,"SELECT name
+FROM genre;",,True,0,,,892,50,30,1,1792553449.935,1792553451.3
+3,e03,easy,vanna_jev_retry,1.107,correct,True,True,match,"SELECT COUNT(*) AS brazil_customer_count
+FROM customer
+WHERE country = 'Brazil';",,True,0,,,982,47,27,1,,
 3,e03,easy,vanna,0.999,correct,True,True,match,"SELECT COUNT(*) AS brazil_customer_count
 FROM customer
-WHERE country = 'Brazil';",,True,0,,,982,48,27,1
+WHERE country = 'Brazil';",,True,0,,,982,48,27,1,1792551905.636,1792551906.636
+3,e03,easy,vanna_jev,1.157,correct,True,True,match,"SELECT COUNT(*) AS brazil_customer_count
+FROM customer
+WHERE country = 'Brazil';",,True,0,,,982,50,27,1,1792553451.315,1792553452.471
+3,e04,easy,vanna_jev_retry,1.264,correct,True,True,match,"SELECT name
+FROM track
+WHERE milliseconds > 20 * 60 * 1000;",,True,0,,,898,97,45,1,,
 3,e04,easy,vanna,1.047,correct,True,True,match,"SELECT name
 FROM track
-WHERE milliseconds > 1200000;",,True,0,,,898,86,45,1
+WHERE milliseconds > 1200000;",,True,0,,,898,86,45,1,1792551906.653,1792551907.7
+3,e04,easy,vanna_jev,1.353,correct,True,True,match,"SELECT name
+FROM track
+WHERE milliseconds > 1200000;",,True,0,,,898,81,45,1,1792553452.493,1792553453.846
+3,e05,easy,vanna_jev_retry,1.158,correct,True,True,match,"SELECT MAX(unit_price) AS highest_price
+FROM track;",,True,0,,,887,45,36,1,,
 3,e05,easy,vanna,0.989,correct,True,True,match,"SELECT MAX(unit_price) AS highest_price
-FROM track;",,True,0,,,887,45,36,1
+FROM track;",,True,0,,,887,45,36,1,1792551907.719,1792551908.708
+3,e05,easy,vanna_jev,1.142,correct,True,True,match,"SELECT MAX(unit_price) AS highest_price
+FROM track;",,True,0,,,887,50,36,1,1792553453.867,1792553455.009
+3,e06,easy,vanna_jev_retry,1.148,correct,True,True,match,"SELECT first_name, last_name
+FROM employee
+WHERE title = 'Sales Support Agent';",,True,0,,,991,56,57,1,,
 3,e06,easy,vanna,1.001,correct,True,True,match,"SELECT first_name, last_name
 FROM employee
-WHERE title = 'Sales Support Agent';",,True,0,,,991,50,57,1
+WHERE title = 'Sales Support Agent';",,True,0,,,991,50,57,1,1792551908.726,1792551909.727
+3,e06,easy,vanna_jev,1.252,correct,True,True,match,"SELECT first_name, last_name
+FROM employee
+WHERE title = 'Sales Support Agent';",,True,0,,,991,60,57,1,1792553455.025,1792553456.277
+3,e07,easy,vanna_jev_retry,1.327,correct,True,True,match,"SELECT COUNT(*) AS invoice_count
+FROM invoice
+WHERE EXTRACT(YEAR FROM invoice_date) = 2023;",,True,0,,,987,91,45,1,,
 3,e07,easy,vanna,1.052,correct,True,True,match,"SELECT COUNT(*) AS invoice_count_2023
 FROM invoice
-WHERE EXTRACT(YEAR FROM invoice_date) = 2023;",,True,0,,,987,87,45,1
+WHERE EXTRACT(YEAR FROM invoice_date) = 2023;",,True,0,,,987,87,45,1,1792551909.743,1792551910.795
+3,e07,easy,vanna_jev,1.412,correct,True,True,match,"SELECT COUNT(*) AS invoice_count
+FROM invoice
+WHERE EXTRACT(YEAR FROM invoice_date) = 2023;",,True,0,,,987,91,45,1,1792553456.294,1792553457.706
+3,e08,easy,vanna_jev_retry,1.397,correct,True,True,match,"SELECT first_name, last_name, company
+FROM customer
+WHERE company IS NOT NULL;",,True,0,,,992,82,57,1,,
 3,e08,easy,vanna,1.099,correct,True,True,match,"SELECT first_name, last_name, company
 FROM customer
 WHERE company IS NOT NULL
-  AND company <> '';",,True,0,,,992,79,57,1
+  AND company <> '';",,True,0,,,992,79,57,1,1792551910.81,1792551911.909
+3,e08,easy,vanna_jev,1.435,correct,True,True,match,"SELECT first_name, last_name, company
+FROM customer
+WHERE company IS NOT NULL;",,True,0,,,992,82,57,1,1792553457.72,1792553459.155
+3,m01,medium,vanna_jev_retry,1.583,correct,True,True,match,"SELECT
+    g.name AS genre_name,
+    COUNT(t.track_id) AS track_count
+FROM genre AS g
+LEFT JOIN track AS t
+    ON t.genre_id = g.genre_id
+GROUP BY g.name
+ORDER BY g.name;",,True,0,,,903,171,63,1,,
 3,m01,medium,vanna,1.635,correct,True,True,match,"SELECT
     g.name AS genre_name,
     COUNT(t.track_id) AS track_count
@@ -480,7 +1446,23 @@ FROM genre AS g
 LEFT JOIN track AS t
     ON t.genre_id = g.genre_id
 GROUP BY g.name
-ORDER BY g.name;",,True,0,,,903,192,63,1
+ORDER BY g.name;",,True,0,,,903,192,63,1,1792551911.933,1792551913.568
+3,m01,medium,vanna_jev,1.691,correct,True,True,match,"SELECT
+    g.name AS genre_name,
+    COUNT(t.track_id) AS track_count
+FROM genre AS g
+LEFT JOIN track AS t
+    ON t.genre_id = g.genre_id
+GROUP BY g.name
+ORDER BY g.name;",,True,0,,,903,171,63,1,1792553459.169,1792553460.86
+3,m02,medium,vanna_jev_retry,1.722,correct,True,True,match,"SELECT 
+    ar.name AS artist_name,
+    COUNT(al.album_id) AS album_count
+FROM artist AS ar
+JOIN album AS al ON ar.artist_id = al.artist_id
+GROUP BY ar.name
+ORDER BY album_count DESC
+LIMIT 5;",,True,0,,,1000,170,78,1,,
 3,m02,medium,vanna,1.398,correct,True,True,match,"SELECT 
     ar.name AS artist_name,
     COUNT(al.album_id) AS album_count
@@ -488,17 +1470,57 @@ FROM artist ar
 JOIN album al ON ar.artist_id = al.artist_id
 GROUP BY ar.name
 ORDER BY album_count DESC
-LIMIT 5;",,True,0,,,1000,138,78,1
+LIMIT 5;",,True,0,,,1000,138,78,1,1792551913.585,1792551914.983
+3,m02,medium,vanna_jev,1.746,correct,True,True,match,"SELECT 
+    ar.name AS artist_name,
+    COUNT(al.album_id) AS album_count
+FROM artist AS ar
+JOIN album AS al ON ar.artist_id = al.artist_id
+GROUP BY ar.name
+ORDER BY album_count DESC
+LIMIT 5;",,True,0,,,1000,170,78,1,1792553460.875,1792553462.621
+3,m03,medium,vanna_jev_retry,1.523,correct,True,True,match,"SELECT
+    billing_country,
+    SUM(total) AS total_sales
+FROM invoice
+GROUP BY billing_country
+ORDER BY total_sales DESC;",,True,0,,,997,110,78,1,,
 3,m03,medium,vanna,1.133,correct,True,True,match,"SELECT
     billing_country,
     SUM(total) AS total_sales
 FROM invoice
 GROUP BY billing_country
-ORDER BY total_sales DESC;",,True,0,,,997,63,78,1
+ORDER BY total_sales DESC;",,True,0,,,997,63,78,1,1792551914.999,1792551916.132
+3,m03,medium,vanna_jev,1.512,correct,True,True,match,"SELECT
+    billing_country,
+    SUM(total) AS total_sales
+FROM invoice
+GROUP BY billing_country
+ORDER BY total_sales DESC;",,True,0,,,997,110,78,1,1792553462.635,1792553464.147
+3,m04,medium,vanna_jev_retry,1.603,correct,True,True,match,"SELECT c.first_name,
+       c.last_name
+FROM   customer AS c
+JOIN   employee AS e
+       ON c.support_rep_id = e.employee_id
+WHERE  e.first_name = 'Jane'
+  AND  e.last_name = 'Peacock';",,True,0,,,992,149,57,1,,
 3,m04,medium,vanna,1.24,correct,True,True,match,"SELECT c.first_name, c.last_name
 FROM customer c
 JOIN employee e ON c.support_rep_id = e.employee_id
-WHERE e.first_name = 'Jane' AND e.last_name = 'Peacock';",,True,0,,,992,135,57,1
+WHERE e.first_name = 'Jane' AND e.last_name = 'Peacock';",,True,0,,,992,135,57,1,1792551916.156,1792551917.396
+3,m04,medium,vanna_jev,1.478,correct,True,True,match,"SELECT c.first_name, c.last_name
+FROM customer AS c
+JOIN employee AS e ON c.support_rep_id = e.employee_id
+WHERE e.first_name = 'Jane' AND e.last_name = 'Peacock';",,True,0,,,992,141,57,1,1792553464.168,1792553465.647
+3,m05,medium,vanna_jev_retry,1.665,correct,True,True,match,"SELECT 
+    mt.name AS media_type,
+    AVG(t.milliseconds) / 60000.0 AS average_length_minutes
+FROM 
+    track t
+JOIN 
+    media_type mt ON t.media_type_id = mt.media_type_id
+GROUP BY 
+    mt.name;",,True,0,,,1000,166,81,1,,
 3,m05,medium,vanna,1.549,correct,True,True,match,"SELECT
     mt.name AS media_type,
     AVG(t.milliseconds) / 60000.0 AS average_length_minutes
@@ -507,29 +1529,95 @@ FROM
 JOIN
     media_type mt ON t.media_type_id = mt.media_type_id
 GROUP BY
-    mt.name;",,True,0,,,1000,167,81,1
+    mt.name;",,True,0,,,1000,167,81,1,1792551917.413,1792551918.961
+3,m05,medium,vanna_jev,1.661,correct,True,True,match,"SELECT 
+    mt.name AS media_type,
+    AVG(t.milliseconds) / 60000.0 AS average_length_minutes
+FROM 
+    track t
+JOIN 
+    media_type mt ON t.media_type_id = mt.media_type_id
+GROUP BY 
+    mt.name;",,True,0,,,1000,166,81,1,1792553465.659,1792553467.32
+3,m06,medium,vanna_jev_retry,1.624,correct,True,True,match,"SELECT a.title,
+       COUNT(t.track_id) AS track_count
+FROM   album a
+JOIN   track t ON t.album_id = a.album_id
+GROUP  BY a.album_id, a.title
+HAVING COUNT(t.track_id) > 20
+ORDER  BY track_count DESC;",,True,0,,,903,183,60,1,,
 3,m06,medium,vanna,1.298,correct,True,True,match,"SELECT
     a.title,
     COUNT(t.track_id) AS track_count
 FROM album a
 JOIN track t ON t.album_id = a.album_id
 GROUP BY a.title
-HAVING COUNT(t.track_id) > 20;",,True,0,,,903,118,60,1
+HAVING COUNT(t.track_id) > 20;",,True,0,,,903,118,60,1,1792551918.995,1792551920.293
+3,m06,medium,vanna_jev,1.719,correct,True,True,match,"SELECT
+    a.title,
+    COUNT(t.track_id) AS track_count
+FROM album AS a
+JOIN track AS t
+    ON t.album_id = a.album_id
+GROUP BY a.album_id, a.title
+HAVING COUNT(t.track_id) > 20
+ORDER BY track_count DESC;",,True,0,,,903,189,60,1,1792553467.335,1792553469.054
+3,m07,medium,vanna_jev_retry,1.579,correct,True,True,match,"SELECT g.name
+FROM genre AS g
+JOIN track AS t ON t.genre_id = g.genre_id
+GROUP BY g.genre_id, g.name
+ORDER BY COUNT(*) DESC
+LIMIT 1;",,True,0,,,896,134,42,1,,
 3,m07,medium,vanna,1.277,correct,True,True,match,"SELECT g.name
 FROM genre g
 JOIN track t ON t.genre_id = g.genre_id
 GROUP BY g.genre_id, g.name
 ORDER BY COUNT(*) DESC
-LIMIT 1;",,True,0,,,896,141,42,1
+LIMIT 1;",,True,0,,,896,141,42,1,1792551920.308,1792551921.586
+3,m07,medium,vanna_jev,1.576,correct,True,True,match,"SELECT g.name
+FROM genre AS g
+JOIN track AS t ON t.genre_id = g.genre_id
+GROUP BY g.genre_id, g.name
+ORDER BY COUNT(*) DESC
+LIMIT 1;",,True,0,,,896,134,42,1,1792553469.075,1792553470.651
+3,m08,medium,vanna_jev_retry,1.604,correct,True,True,match,"SELECT COUNT(*) AS track_count
+FROM playlist p
+JOIN playlist_track pt ON p.playlist_id = pt.playlist_id
+WHERE p.name = '90’s Music';",,True,0,,,897,153,54,1,,
 3,m08,medium,vanna,1.67,correct,True,True,match,"SELECT COUNT(*) AS track_count
 FROM playlist_track pt
 JOIN playlist p ON pt.playlist_id = p.playlist_id
-WHERE p.name = '90’s Music';",,True,0,,,897,213,54,1
+WHERE p.name = '90’s Music';",,True,0,,,897,213,54,1,1792551921.612,1792551923.283
+3,m08,medium,vanna_jev,1.743,correct,True,True,match,"SELECT COUNT(*) AS track_count
+FROM playlist_track pt
+JOIN playlist p ON pt.playlist_id = p.playlist_id
+WHERE p.name = '90’s Music';",,True,0,,,897,159,54,1,1792553470.666,1792553472.409
+3,m09,medium,vanna_jev_retry,1.963,correct,True,True,match,"SELECT 
+    EXTRACT(YEAR FROM invoice_date)::INT AS year,
+    SUM(total) AS revenue
+FROM invoice
+GROUP BY year
+ORDER BY year;",,True,0,,,995,138,72,1,,
 3,m09,medium,vanna,1.306,correct,True,True,match,"SELECT EXTRACT(YEAR FROM invoice_date)::int AS year,
        SUM(total) AS revenue
 FROM   invoice
 GROUP BY year
-ORDER BY year;",,True,0,,,995,153,72,1
+ORDER BY year;",,True,0,,,995,153,72,1,1792551923.299,1792551924.605
+3,m09,medium,vanna_jev,1.64,correct,True,True,match,"SELECT 
+    EXTRACT(YEAR FROM invoice_date)::int AS year,
+    SUM(total) AS revenue
+FROM invoice
+GROUP BY year
+ORDER BY year;",,True,0,,,995,145,72,1,1792553472.423,1792553474.063
+3,h01,hard,vanna_jev_retry,1.864,correct,True,True,match,"SELECT
+    g.name AS genre_name,
+    SUM(il.unit_price * il.quantity) AS revenue
+FROM invoice_line AS il
+JOIN track       AS t ON il.track_id = t.track_id
+JOIN genre       AS g ON t.genre_id = g.genre_id
+GROUP BY g.genre_id, g.name
+ORDER BY revenue DESC
+LIMIT 3;",,True,0,,,1007,208,105,1,,
 3,h01,hard,vanna,1.479,correct,True,True,match,"SELECT
     g.name AS genre,
     SUM(il.unit_price * il.quantity) AS revenue
@@ -538,7 +1626,25 @@ JOIN track       AS t ON il.track_id = t.track_id
 JOIN genre       AS g ON t.genre_id = g.genre_id
 GROUP BY g.name
 ORDER BY revenue DESC
-LIMIT 3;",,True,0,,,1007,195,105,1
+LIMIT 3;",,True,0,,,1007,195,105,1,1792551924.623,1792551926.102
+3,h01,hard,vanna_jev,1.8,correct,True,True,match,"SELECT
+    g.name AS genre_name,
+    SUM(il.unit_price * il.quantity) AS revenue
+FROM invoice_line AS il
+JOIN track       AS t ON il.track_id = t.track_id
+JOIN genre       AS g ON t.genre_id = g.genre_id
+GROUP BY g.genre_id, g.name
+ORDER BY revenue DESC
+LIMIT 3;",,True,0,,,1007,208,105,1,1792553474.075,1792553475.874
+3,h02,hard,vanna_jev_retry,2.011,correct,True,True,match,"SELECT 
+    e.first_name,
+    e.last_name,
+    COALESCE(SUM(i.total), 0) AS total
+FROM employee e
+JOIN customer c          ON c.support_rep_id = e.employee_id
+LEFT JOIN invoice i     ON i.customer_id = c.customer_id
+GROUP BY e.employee_id, e.first_name, e.last_name
+ORDER BY total DESC;",,True,0,,,1010,278,120,1,,
 3,h02,hard,vanna,1.672,wrong_result,False,False,row count 8 != gold 3,"SELECT 
     e.first_name,
     e.last_name,
@@ -547,7 +1653,39 @@ FROM employee e
 LEFT JOIN customer c ON c.support_rep_id = e.employee_id
 LEFT JOIN invoice i   ON i.customer_id = c.customer_id
 GROUP BY e.employee_id, e.first_name, e.last_name
-ORDER BY total DESC;",,True,0,,,1010,251,120,1
+ORDER BY total DESC;",,True,0,,,1010,251,120,1,1792551926.123,1792551927.794
+3,h02,hard,vanna_jev,2.121,correct,True,True,match,"SELECT
+    e.first_name,
+    e.last_name,
+    SUM(i.total) AS total
+FROM employee AS e
+JOIN customer AS c
+    ON c.support_rep_id = e.employee_id
+JOIN invoice AS i
+    ON i.customer_id = c.customer_id
+GROUP BY e.employee_id, e.first_name, e.last_name
+ORDER BY total DESC;",,True,0,,,1010,252,120,1,1792553475.898,1792553478.019
+3,h03,hard,vanna_jev_retry,2.098,correct,True,True,match,"WITH customer_spend AS (
+    SELECT
+        c.customer_id,
+        c.first_name,
+        c.last_name,
+        SUM(i.total) AS total_spend
+    FROM customer c
+    JOIN invoice i ON c.customer_id = i.customer_id
+    GROUP BY c.customer_id, c.first_name, c.last_name
+),
+avg_spend AS (
+    SELECT AVG(total_spend) AS avg_total FROM customer_spend
+)
+SELECT
+    cs.first_name,
+    cs.last_name,
+    cs.total_spend
+FROM customer_spend cs
+CROSS JOIN avg_spend a
+WHERE cs.total_spend > a.avg_total
+ORDER BY cs.total_spend DESC;",,False,0,,,1001,354,84,1,,
 3,h03,hard,vanna,2.004,correct,True,True,match,"WITH customer_spend AS (
     SELECT
         c.customer_id,
@@ -568,7 +1706,57 @@ SELECT
 FROM customer_spend cs
 CROSS JOIN avg_spend a
 WHERE cs.total_spent > a.avg_total
-ORDER BY cs.total_spent DESC;",,False,0,,,1001,353,84,1
+ORDER BY cs.total_spent DESC;",,False,0,,,1001,353,84,1,1792551927.812,1792551929.815
+3,h03,hard,vanna_jev,2.015,correct,True,True,match,"WITH customer_spend AS (
+    SELECT
+        c.customer_id,
+        c.first_name,
+        c.last_name,
+        SUM(i.total) AS total_spend
+    FROM customer c
+    JOIN invoice i ON c.customer_id = i.customer_id
+    GROUP BY c.customer_id, c.first_name, c.last_name
+),
+avg_spend AS (
+    SELECT AVG(total_spend) AS avg_total
+    FROM customer_spend
+)
+SELECT
+    cs.first_name,
+    cs.last_name,
+    cs.total_spend
+FROM customer_spend cs
+CROSS JOIN avg_spend a
+WHERE cs.total_spend > a.avg_total
+ORDER BY cs.total_spend DESC;",,False,0,,,1001,373,84,1,1792553478.034,1792553480.049
+3,h04,hard,vanna_jev_retry,2.508,correct,True,True,match,"WITH cust_spend AS (
+    SELECT
+        c.customer_id,
+        c.country,
+        c.first_name,
+        c.last_name,
+        COALESCE(SUM(i.total), 0) AS total_spend
+    FROM customer c
+    LEFT JOIN invoice i ON c.customer_id = i.customer_id
+    GROUP BY c.customer_id, c.country, c.first_name, c.last_name
+),
+max_spend AS (
+    SELECT
+        country,
+        MAX(total_spend) AS max_spend
+    FROM cust_spend
+    GROUP BY country
+)
+SELECT
+    cs.country,
+    cs.first_name,
+    cs.last_name,
+    cs.total_spend
+FROM cust_spend cs
+JOIN max_spend ms
+    ON cs.country = ms.country
+   AND cs.total_spend = ms.max_spend
+ORDER BY cs.country, cs.last_name, cs.first_name;",,False,0,,,1003,458,90,1,,
 3,h04,hard,vanna,2.519,correct,True,True,match,"WITH customer_spend AS (
     SELECT
         c.customer_id,
@@ -592,7 +1780,46 @@ FROM (
     FROM customer_spend
 ) ranked
 WHERE rnk = 1
-ORDER BY country, last_name, first_name;",,False,0,,,1003,465,90,1
+ORDER BY country, last_name, first_name;",,False,0,,,1003,465,90,1,1792551929.832,1792551932.351
+3,h04,hard,vanna_jev,2.913,correct,True,True,match,"WITH cust_spend AS (
+    SELECT
+        c.customer_id,
+        c.country,
+        c.first_name,
+        c.last_name,
+        SUM(i.total) AS total_spend
+    FROM customer c
+    JOIN invoice i ON c.customer_id = i.customer_id
+    GROUP BY c.customer_id, c.country, c.first_name, c.last_name
+)
+SELECT
+    country,
+    first_name,
+    last_name,
+    total_spend
+FROM (
+    SELECT
+        *,
+        MAX(total_spend) OVER (PARTITION BY country) AS max_spend
+    FROM cust_spend
+) AS ranked
+WHERE total_spend = max_spend
+ORDER BY country, last_name, first_name;",,False,0,,,1003,376,90,1,1792553480.064,1792553482.977
+3,h05,hard,vanna_jev_retry,2.418,correct,True,True,match,"WITH monthly AS (
+    SELECT 
+        date_trunc('month', invoice_date) AS month_start,
+        SUM(total) AS revenue
+    FROM invoice
+    WHERE invoice_date >= DATE '2024-01-01'
+      AND invoice_date <  DATE '2025-01-01'
+    GROUP BY month_start
+)
+SELECT 
+    EXTRACT(MONTH FROM month_start)::INT AS month,
+    revenue,
+    LAG(revenue) OVER (ORDER BY month_start) AS previous_month_revenue
+FROM monthly
+ORDER BY month;",,False,0,,,1008,352,114,1,,
 3,h05,hard,vanna,2.437,correct,True,True,match,"WITH monthly AS (
     SELECT 
         EXTRACT(MONTH FROM invoice_date)::int AS month,
@@ -608,7 +1835,32 @@ SELECT
     LAG(COALESCE(m.revenue, 0)) OVER (ORDER BY g.month) AS previous_month_revenue
 FROM generate_series(1, 12) AS g(month)
 LEFT JOIN monthly m ON m.month = g.month
-ORDER BY g.month;",,False,0,,,1008,396,114,1
+ORDER BY g.month;",,False,0,,,1008,396,114,1,1792551932.371,1792551934.807
+3,h05,hard,vanna_jev,2.473,correct,True,True,match,"WITH monthly AS (
+    SELECT 
+        date_trunc('month', invoice_date) AS month_start,
+        SUM(total) AS revenue
+    FROM invoice
+    WHERE invoice_date >= DATE '2024-01-01'
+      AND invoice_date <  DATE '2025-01-01'
+    GROUP BY month_start
+)
+SELECT 
+    EXTRACT(MONTH FROM month_start)::INT AS month,
+    revenue,
+    LAG(revenue) OVER (ORDER BY month_start) AS previous_month_revenue
+FROM monthly
+ORDER BY month;",,False,0,,,1008,352,114,1,1792553482.992,1792553485.465
+3,h06,hard,vanna_jev_retry,1.929,correct,True,True,match,"SELECT 
+    ar.name AS artist_name,
+    COUNT(DISTINCT tr.genre_id) AS genre_count
+FROM artist AS ar
+JOIN album   AS al ON al.artist_id = ar.artist_id
+JOIN track   AS tr ON tr.album_id = al.album_id
+WHERE tr.genre_id IS NOT NULL
+GROUP BY ar.artist_id, ar.name
+HAVING COUNT(DISTINCT tr.genre_id) > 3
+ORDER BY genre_count DESC, artist_name;",,True,0,,,928,271,72,1,,
 3,h06,hard,vanna,1.722,correct,True,True,match,"SELECT
     a.name AS artist_name,
     COUNT(DISTINCT t.genre_id) AS genre_count
@@ -618,18 +1870,59 @@ JOIN track t       ON t.album_id = al.album_id
 WHERE t.genre_id IS NOT NULL
 GROUP BY a.name
 HAVING COUNT(DISTINCT t.genre_id) > 3
-ORDER BY genre_count DESC;",,True,0,,,928,240,72,1
+ORDER BY genre_count DESC;",,True,0,,,928,240,72,1,1792551934.833,1792551936.555
+3,h06,hard,vanna_jev,2.093,correct,True,True,match,"SELECT 
+    ar.name AS artist_name,
+    COUNT(DISTINCT tr.genre_id) AS genre_count
+FROM artist AS ar
+JOIN album  AS al ON al.artist_id = ar.artist_id
+JOIN track  AS tr ON tr.album_id = al.album_id
+WHERE tr.genre_id IS NOT NULL
+GROUP BY ar.artist_id, ar.name
+HAVING COUNT(DISTINCT tr.genre_id) > 3
+ORDER BY genre_count DESC, artist_name;",,True,0,,,928,271,72,1,1792553485.478,1792553487.571
+3,h07,hard,vanna_jev_retry,1.472,correct,True,True,match,"SELECT COUNT(*) AS never_purchased_tracks
+FROM track t
+LEFT JOIN invoice_line il ON t.track_id = il.track_id
+WHERE il.track_id IS NULL;",,False,0,,,990,115,60,1,,
 3,h07,hard,vanna,1.254,correct,True,True,match,"SELECT COUNT(*) AS never_purchased_tracks
 FROM track t
 LEFT JOIN invoice_line il ON t.track_id = il.track_id
-WHERE il.track_id IS NULL;",,False,0,,,990,119,60,1
+WHERE il.track_id IS NULL;",,False,0,,,990,119,60,1,1792551936.573,1792551937.827
+3,h07,hard,vanna_jev,1.503,correct,True,True,match,"SELECT COUNT(*) AS never_purchased_tracks
+FROM track t
+LEFT JOIN invoice_line il ON t.track_id = il.track_id
+WHERE il.track_id IS NULL;",,False,0,,,990,115,60,1,1792553487.586,1792553489.089
+3,h08,hard,vanna_jev_retry,1.672,correct,True,True,match,"SELECT 
+    e.first_name  AS employee_first_name,
+    e.last_name   AS employee_last_name,
+    m.first_name  AS manager_first_name,
+    m.last_name   AS manager_last_name
+FROM employee e
+JOIN employee m
+  ON e.reports_to = m.employee_id;",,True,0,,,1012,215,120,1,,
 3,h08,hard,vanna,1.361,correct,True,True,match,"SELECT 
     e.first_name AS employee_first_name,
     e.last_name AS employee_last_name,
     m.first_name AS manager_first_name,
     m.last_name AS manager_last_name
 FROM employee e
-JOIN employee m ON e.reports_to = m.employee_id;",,True,0,,,1012,147,120,1
+JOIN employee m ON e.reports_to = m.employee_id;",,True,0,,,1012,147,120,1,1792551937.844,1792551939.205
+3,h08,hard,vanna_jev,1.775,correct,True,True,match,"SELECT e.first_name AS employee_first_name,
+       e.last_name  AS employee_last_name,
+       m.first_name AS manager_first_name,
+       m.last_name  AS manager_last_name
+FROM   employee e
+JOIN   employee m ON e.reports_to = m.employee_id;",,True,0,,,1012,207,120,1,1792553489.104,1792553490.88
+3,h09,hard,vanna_jev_retry,1.905,correct,True,True,match,"SELECT COUNT(*) AS customers_2025_no_2024
+FROM (
+    SELECT customer_id
+    FROM invoice
+    GROUP BY customer_id
+    HAVING 
+        COUNT(*) FILTER (WHERE EXTRACT(YEAR FROM invoice_date) = 2025) > 0
+        AND COUNT(*) FILTER (WHERE EXTRACT(YEAR FROM invoice_date) = 2024) = 0
+) AS sub;",,False,0,,,996,273,63,1,,
 3,h09,hard,vanna,1.75,correct,True,True,match,"SELECT COUNT(DISTINCT c.customer_id) AS customers_2025_no_2024
 FROM customer c
 WHERE EXISTS (
@@ -645,7 +1938,37 @@ WHERE EXISTS (
         WHERE i.customer_id = c.customer_id
           AND i.invoice_date >= DATE '2024-01-01'
           AND i.invoice_date <  DATE '2025-01-01'
-      );",,False,0,,,996,307,63,1
+      );",,False,0,,,996,307,63,1,1792551939.224,1792551940.975
+3,h09,hard,vanna_jev,1.91,correct,True,True,match,"SELECT COUNT(*) AS customer_count
+FROM (
+    SELECT c.customer_id
+    FROM customer c
+    WHERE EXISTS (
+        SELECT 1
+        FROM invoice i
+        WHERE i.customer_id = c.customer_id
+          AND EXTRACT(YEAR FROM i.invoice_date) = 2025
+    )
+    AND NOT EXISTS (
+        SELECT 1
+        FROM invoice i2
+        WHERE i2.customer_id = c.customer_id
+          AND EXTRACT(YEAR FROM i2.invoice_date) = 2024
+    )
+) AS sub;",,False,0,,,996,314,63,1,1792553490.901,1792553492.811
+3,h10,hard,vanna_jev_retry,2.311,correct,True,True,match,"SELECT 
+    to_char(month_start, 'YYYY-MM') AS month,
+    SUM(month_total) OVER (ORDER BY month_start) AS running_total
+FROM (
+    SELECT 
+        date_trunc('month', invoice_date)::date AS month_start,
+        SUM(total) AS month_total
+    FROM invoice
+    WHERE invoice_date >= DATE '2023-01-01'
+      AND invoice_date <  DATE '2024-01-01'
+    GROUP BY month_start
+) AS monthly
+ORDER BY month_start;",,True,0,,,1014,364,129,1,,
 3,h10,hard,vanna,2.218,correct,True,True,match,"SELECT 
     to_char(month_start, 'YYYY-MM') AS month,
     SUM(month_total) OVER (ORDER BY month_start) AS running_total
@@ -658,7 +1981,32 @@ FROM (
       AND invoice_date <  DATE '2024-01-01'
     GROUP BY month_start
 ) AS monthly
-ORDER BY month_start;",,True,0,,,1014,408,129,1
+ORDER BY month_start;",,True,0,,,1014,408,129,1,1792551941.006,1792551943.225
+3,h10,hard,vanna_jev,2.676,correct,True,True,match,"SELECT
+    month,
+    SUM(month_total) OVER (ORDER BY month) AS running_total
+FROM (
+    SELECT
+        date_trunc('month', invoice_date)::date AS month,
+        SUM(total) AS month_total
+    FROM invoice
+    WHERE invoice_date >= DATE '2023-01-01'
+      AND invoice_date <  DATE '2024-01-01'
+    GROUP BY month
+) AS monthly
+ORDER BY month;",,True,0,,,1014,524,129,1,1792553492.825,1792553495.501
+3,h11,hard,vanna_jev_retry,2.098,correct,True,True,match,"SELECT 
+    mt.name AS media_type,
+    ROUND( (SUM(il.unit_price * il.quantity) * 100.0) / total.total_rev, 2 ) AS percentage
+FROM invoice_line AS il
+JOIN track AS t          ON il.track_id = t.track_id
+JOIN media_type AS mt    ON t.media_type_id = mt.media_type_id
+CROSS JOIN (
+    SELECT SUM(unit_price * quantity) AS total_rev
+    FROM invoice_line
+) AS total
+GROUP BY mt.name, total.total_rev
+ORDER BY percentage DESC;",,False,0,,,1005,342,96,1,,
 3,h11,hard,vanna,2.042,correct,True,True,match,"SELECT 
     mt.name AS media_type,
     ROUND(100.0 * SUM(il.unit_price * il.quantity) 
@@ -667,7 +2015,29 @@ FROM invoice_line il
 JOIN track t          ON il.track_id = t.track_id
 JOIN media_type mt    ON t.media_type_id = mt.media_type_id
 GROUP BY mt.name
-ORDER BY percentage DESC;",,False,0,,,1005,306,96,1
+ORDER BY percentage DESC;",,False,0,,,1005,306,96,1,1792551943.238,1792551945.279
+3,h11,hard,vanna_jev,4.256,correct,True,True,match,"SELECT 
+    mt.name AS media_type,
+    ROUND(SUM(il.unit_price * il.quantity) * 100.0 / total.total_revenue, 2) AS percentage
+FROM invoice_line il
+JOIN track t          ON il.track_id = t.track_id
+JOIN media_type mt    ON t.media_type_id = mt.media_type_id
+CROSS JOIN (
+    SELECT SUM(unit_price * quantity) AS total_revenue
+    FROM invoice_line
+) total
+GROUP BY mt.name, total.total_revenue
+ORDER BY percentage DESC;",,False,0,,,1005,626,96,1,1792553495.516,1792553499.771
+3,h12,hard,vanna_jev_retry,1.955,correct,True,True,match,"SELECT
+    ar.name AS artist_name,
+    SUM(il.unit_price * il.quantity) AS revenue
+FROM invoice_line AS il
+JOIN track AS t          ON il.track_id = t.track_id
+JOIN album AS al         ON t.album_id = al.album_id
+JOIN artist AS ar        ON al.artist_id = ar.artist_id
+GROUP BY ar.artist_id, ar.name
+ORDER BY revenue DESC
+LIMIT 5;",,True,0,,,1003,286,96,1,,
 3,h12,hard,vanna,1.836,correct,True,True,match,"SELECT a.name AS artist_name,
        SUM(il.unit_price * il.quantity) AS revenue
 FROM invoice_line il
@@ -676,4 +2046,14 @@ JOIN album al      ON t.album_id = al.album_id
 JOIN artist a      ON al.artist_id = a.artist_id
 GROUP BY a.artist_id, a.name
 ORDER BY revenue DESC
-LIMIT 5;",,True,0,,,1003,273,96,1
+LIMIT 5;",,True,0,,,1003,273,96,1,1792551945.296,1792551947.132
+3,h12,hard,vanna_jev,2.09,correct,True,True,match,"SELECT
+    a.name AS artist_name,
+    SUM(il.unit_price * il.quantity) AS revenue
+FROM invoice_line AS il
+JOIN track AS t        ON il.track_id = t.track_id
+JOIN album AS al       ON t.album_id = al.album_id
+JOIN artist AS a       ON al.artist_id = a.artist_id
+GROUP BY a.artist_id, a.name
+ORDER BY revenue DESC
+LIMIT 5;",,True,0,,,1003,286,96,1,1792553499.788,1792553501.878

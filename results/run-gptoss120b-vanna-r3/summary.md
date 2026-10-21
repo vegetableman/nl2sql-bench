@@ -1,6 +1,6 @@
 # nl2sql-bench report (live run)
 
-- Report generated: 2026-10-21 08:35 IST
+- Report generated: 2026-10-21 09:05 IST
 - Dataset: Chinook 1.4.5 on Postgres 16.4; 29 questions x 3 run(s)
 - LLM: `gpt-oss:120b` via `https://ollama.com/v1`, embeddings `nomic-embed-text` (same for all systems, via llm-meter)
 - EX(exact) = same result set as gold (column order free; row order checked only when the question requires it).
@@ -10,17 +10,17 @@
 
 | System | EX exact | EX relaxed | wrong result | tool errors | exec errors | timeouts | unsupported | declined | p50 latency s | p95 latency s | avg prompt tok | avg completion tok |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
-| Vanna 2.0.2 (legacy generate_sql, DDL-trained) | 84/87 (97%) | 84/87 (97%) | 2 | 0 | 1 | 0 | 0 | 0 | 1.57 | 2.80 | 969 | 183 |
+| Vanna 2.0.2 + Jev check + 1 retry | 87/87 (100%) | 87/87 (100%) | 0 | 0 | 0 | 0 | 0 | 0 | 1.60 | 2.31 | 969 | 186 |
 
 ## EX (exact) by difficulty
 
 | System | easy | medium | hard |
 |---|---|---|---|
-| Vanna 2.0.2 (legacy generate_sql, DDL-trained) | 24/24 | 27/27 | 33/36 |
+| Vanna 2.0.2 + Jev check + 1 retry | 24/24 | 27/27 | 36/36 |
 
 ## Per question (status per run)
 
-| id | diff | vanna |
+| id | diff | vanna_jev_retry |
 |---|---|---|
 | e01 | easy | ✅ ✅ ✅ |
 | e02 | easy | ✅ ✅ ✅ |
@@ -40,8 +40,8 @@
 | m08 | medium | ✅ ✅ ✅ |
 | m09 | medium | ✅ ✅ ✅ |
 | h01 | hard | ✅ ✅ ✅ |
-| h02 | hard | ❌ ✅ ❌ |
-| h03 | hard | 💥 ✅ ✅ |
+| h02 | hard | ✅ ✅ ✅ |
+| h03 | hard | ✅ ✅ ✅ |
 | h04 | hard | ✅ ✅ ✅ |
 | h05 | hard | ✅ ✅ ✅ |
 | h06 | hard | ✅ ✅ ✅ |

@@ -31,3 +31,4 @@ mnemiq/*.log
 vanna/state/
 !results/run-gptoss120b-vanna-r3/
 vanna/serve.log
+vanna/serve-*.log

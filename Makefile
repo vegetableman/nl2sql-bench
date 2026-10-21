@@ -7,7 +7,7 @@ REPEATS ?= 1
 SYSTEMS ?= wrenai,dbgpt,cube
 QUESTIONS ?= bench/questions.yaml
 
-.PHONY: wren-mdl wren-mdl-noreason wren-mdl-restore wren-mdl-up report up down clean setup bench mock verify probe status logs venv render docker netfix wait bench-router bench-holdout mnemiq-install mnemiq-up bench-mnemiq mnemiq-failopen-up bench-mnemiq-failopen mnemiq-verified-up bench-mnemiq-verified mnemiq-jev-up bench-mnemiq-jev mnemiq-jev2-up bench-mnemiq-jev2 vanna-install vanna-up vanna-down bench-vanna
+.PHONY: wren-mdl wren-mdl-noreason wren-mdl-restore wren-mdl-up report up down clean setup bench mock verify probe status logs venv render docker netfix wait bench-router bench-holdout mnemiq-install mnemiq-up bench-mnemiq mnemiq-failopen-up bench-mnemiq-failopen mnemiq-verified-up bench-mnemiq-verified mnemiq-jev-up bench-mnemiq-jev mnemiq-jev2-up bench-mnemiq-jev2 vanna-install vanna-up vanna-down bench-vanna vanna-jev-up vanna-jev-retry-up bench-vanna-jev bench-vanna-jev-retry vanna-jev-offline
 
 up: docker netfix venv render          ## start everything and connect all tools to Postgres
 	docker compose up -d --build
@@ -169,8 +169,27 @@ vanna-up: vanna-install                ## Vanna service on :8095 (meter prefix /
 	@printf "waiting for vanna "; for i in $$(seq 1 60); do curl -sf -o /dev/null http://localhost:8095/healthz && break; printf .; sleep 2; done; echo " ok"
 
 vanna-down:
-	-pkill -f "vanna/server.py"
+	-pkill -f "vanna/server.py"  # all three Vanna services
 
 bench-vanna: vanna-up                  ## Vanna x3 on the 29 (own run dir) and the 15 holdout (shared holdout run dir)
 	$(PY) bench/harness.py --repeats $(REPEATS) --systems vanna --out run-gptoss120b-vanna-r3 --resume
 	$(PY) bench/harness.py --repeats $(REPEATS) --systems vanna --questions bench/questions_holdout.yaml --out run-gptoss120b-holdout-r3 --resume
+
+vanna-jev-up: vanna-install            ## vanna_jev: same Vanna generation + Jev variant-b answer check (fail-closed 0.5), :8096, /vannaj/
+	@curl -sf -o /dev/null http://localhost:8096/healthz || (VANNA_VARIANT=jev setsid nohup vanna/run.sh serve > vanna/serve-jev.log 2>&1 &)
+	@printf "waiting for vanna_jev "; for i in $$(seq 1 60); do curl -sf -o /dev/null http://localhost:8096/healthz && break; printf .; sleep 2; done; echo " ok"
+
+vanna-jev-retry-up: vanna-install      ## vanna_jev_retry: as vanna_jev + one regenerate-and-rejudge on a decline, :8097, /vannajr/
+	@curl -sf -o /dev/null http://localhost:8097/healthz || (VANNA_VARIANT=jevretry setsid nohup vanna/run.sh serve > vanna/serve-jevretry.log 2>&1 &)
+	@printf "waiting for vanna_jev_retry "; for i in $$(seq 1 60); do curl -sf -o /dev/null http://localhost:8097/healthz && break; printf .; sleep 2; done; echo " ok"
+
+bench-vanna-jev: vanna-jev-up          ## vanna_jev x3 on the 29 (vanna run dir) and the 15 holdout
+	$(PY) bench/harness.py --repeats $(REPEATS) --systems vanna_jev --out run-gptoss120b-vanna-r3 --resume
+	$(PY) bench/harness.py --repeats $(REPEATS) --systems vanna_jev --questions bench/questions_holdout.yaml --out run-gptoss120b-holdout-r3 --resume
+
+bench-vanna-jev-retry: vanna-jev-retry-up  ## vanna_jev_retry x3 on the 29 (vanna run dir) and the 15 holdout
+	$(PY) bench/harness.py --repeats $(REPEATS) --systems vanna_jev_retry --out run-gptoss120b-vanna-r3 --resume
+	$(PY) bench/harness.py --repeats $(REPEATS) --systems vanna_jev_retry --questions bench/questions_holdout.yaml --out run-gptoss120b-holdout-r3 --resume
+
+vanna-jev-offline:                     ## Jev variant b on plain vanna's saved SQLs (same-SQL view) -> results/run-gptoss120b-vanna-r3/jev_offline.jsonl
+	$(PY) bench/vanna_jev_offline.py
